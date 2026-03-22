@@ -1,0 +1,12 @@
+Test complete. Here's the JSON report:
+
+**Results: 227/233 passed, 6 failed**
+
+The 6 failures are all the same known ScreenReader bug — `sr.menu()` detects only 1 menu item instead of 4 across all 3 widths (40, 80, 120). The screenshots confirm the menu **renders correctly** with all 4 items (`Services`, `Work`, `Testimonials`, `Contact`) and proper selection indicator (`❯`). This is a ScreenReader detection issue, not a rendering bug.
+
+**3 P1 bugs filed** (all the same root cause):
+- `BUG-001`: Menu detection at 40x24
+- `BUG-002`: Menu detection at 80x24  
+- `BUG-003`: Menu detection at 120x24
+
+All content pages (services with 4 cards, work with 5 cards, testimonials with 4 quotes, contact with links) render cleanly with no overflow, no error strings, and no crashes at all tested widths including edge cases (20 and 200). All theme variants pass. Navigation and keybinding tests pass.

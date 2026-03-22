@@ -1,0 +1,18 @@
+{
+  "agent": "agent-9-docs-site",
+  "tests_run": 161,
+  "tests_passed": 160,
+  "tests_failed": 1,
+  "bugs": [
+    {
+      "id": "BUG-001",
+      "severity": "P2",
+      "title": "accordion overflow: line 6 is 84 chars (max 80)",
+      "component": "accordion",
+      "reproduction": "Page \"API Reference\", block accordion, width 80",
+      "expected": "<= 80 chars",
+      "actual": "84 chars: \"    instance\n```\nconst db = new FastDB('./mydata',...\""
+    }
+  ],
+  "notes": "1 tests failed. Failures: [80x24] Block accordion on \"API Reference\" no overflow: Overflow: 84 > 80"
+}

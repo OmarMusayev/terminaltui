@@ -1,0 +1,12 @@
+Test complete. Here's the report:
+
+- **161 tests run**, **155 passed**, **6 failed**
+- **3 bugs filed** (all P1, same root cause)
+
+**Bug summary:** The `ScreenReader.menu()` detection only finds 2 of the 4 menu items across all widths (40, 80, 120). The screenshots show all 4 items render correctly on screen — this is a ScreenReader detection issue, not a rendering bug. The menu items with emoji icons (❓ FAQ, 📋 Changelog) likely aren't being parsed correctly by the menu item regex.
+
+The 6 failures break down to:
+- 3 failures: menu item count mismatch (detects 2 instead of 4)
+- 3 failures: menu selection cycling (dependent on correct item detection)
+
+The report has been saved to `test-sites/docs-site/report.json`.

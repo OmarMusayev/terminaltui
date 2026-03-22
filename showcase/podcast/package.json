@@ -1,0 +1,8 @@
+{
+  "name": "showcase-podcast",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

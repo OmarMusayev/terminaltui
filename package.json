@@ -1,0 +1,47 @@
+{
+  "name": "terminaltui",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "npx tsx test/test-apple-terminal-colors.ts",
+    "build": "tsup src/index.ts src/cli/index.ts src/emulator/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "General-purpose TUI website framework — turn any website into a beautiful terminal experience",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./emulator": {
+      "types": "./dist/emulator/index.d.ts",
+      "import": "./dist/emulator/index.js"
+    }
+  },
+  "bin": {
+    "terminaltui": "dist/cli/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "node-pty": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "node-pty": {
+      "optional": true
+    }
+  },
+  "dependencies": {}
+}
