@@ -53,11 +53,20 @@ export default defineSite({
 
 ---
 
+## See it live
+
+```bash
+npx omar-musayev
+```
+
+A real portfolio built with terminaltui — AI chat, blog posts with parameterized routes, interactive forms, and a custom orange-on-black theme.
+
+---
+
 ## What people have built
 
 | Demo | Run it | Theme |
 |------|--------|-------|
-| **Creator's Portfolio** | **`npx omar-musayev`** | custom |
 | Developer Portfolio | `terminaltui dev demos/developer-portfolio/site.config.ts` | cyberpunk |
 | Restaurant | `npx demo-tui-restaurant` | gruvbox |
 | Coffee Shop | `npx demo-tui-cafe` | catppuccin |
