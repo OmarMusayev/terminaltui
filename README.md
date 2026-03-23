@@ -28,19 +28,27 @@ terminaltui convert
 
 ## Demos
 
-Run any of these to see the framework in action:
+Try them instantly — no install required:
 
 ```bash
-# From the repo:
-npx tsx src/cli/index.ts dev demos/developer-portfolio/site.config.ts   # cyberpunk portfolio
-npx tsx src/cli/index.ts dev demos/restaurant/site.config.ts            # gruvbox restaurant
-npx tsx src/cli/index.ts dev demos/dashboard/site.config.ts             # hacker dashboard (live API)
-npx tsx src/cli/index.ts dev demos/startup/site.config.ts               # tokyoNight SaaS landing
-npx tsx src/cli/index.ts dev demos/conference/site.config.ts            # nord conference
-npx tsx src/cli/index.ts dev demos/band/site.config.ts                  # rosePine band page
-npx tsx src/cli/index.ts dev demos/coffee-shop/site.config.ts           # catppuccin cafe
-npx tsx src/cli/index.ts dev demos/freelancer/site.config.ts            # custom earth-tone studio
-npx tsx demos/tetris/index.ts                                           # playable Tetris game
+npx demo-tui-restaurant          # 🍽  The Rusty Fork — gruvbox theme
+npx demo-tui-cafe                # ☕  Ember & Brew — catppuccin theme
+```
+
+Or clone the repo and run any of the 9 demos locally:
+
+```bash
+git clone https://github.com/OmarMusayev/terminaltui.git && cd terminaltui
+
+terminaltui dev demos/developer-portfolio/site.config.ts   # cyberpunk portfolio
+terminaltui dev demos/restaurant/site.config.ts            # gruvbox restaurant
+terminaltui dev demos/dashboard/site.config.ts             # hacker dashboard (live API)
+terminaltui dev demos/startup/site.config.ts               # tokyoNight SaaS landing
+terminaltui dev demos/conference/site.config.ts            # nord conference
+terminaltui dev demos/band/site.config.ts                  # rosePine band page
+terminaltui dev demos/coffee-shop/site.config.ts           # catppuccin cafe
+terminaltui dev demos/freelancer/site.config.ts            # custom earth-tone studio
+npx tsx demos/tetris/index.ts                              # playable Tetris
 ```
 
 ### Restaurant Demo (gruvbox theme)
