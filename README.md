@@ -1,106 +1,48 @@
 # terminaltui
 
-![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![dependencies](https://img.shields.io/badge/dependencies-0-success) ![tests](https://img.shields.io/badge/tests-1500%2B-brightgreen)
+![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![dependencies](https://img.shields.io/badge/dependencies-0-success) ![tests](https://img.shields.io/badge/tests-1572-brightgreen)
+
+A framework for building beautiful, interactive terminal websites and apps. Write a config, get a TUI, distribute via `npx`.
 
 ![terminaltui demo](assets/recordings/hero.gif)
 
-**Turn any website into a beautiful terminal experience.**
+---
+
+## Get Started
 
 ```bash
-npx omar-musayev   # try it now
+npm install -g terminaltui     # install
+terminaltui init               # create a new project
+terminaltui dev                # preview it
+terminaltui build && npm publish   # now anyone can: npx your-project-name
 ```
 
 ---
 
-## What is this?
-
-terminaltui is a framework for building interactive terminal (TUI) websites and applications. Write a config file, get a polished terminal app with keyboard navigation, ASCII art, themes, forms, live data, and animations. Distribute via `npx` — anyone can run it, nothing to install.
-
-### The AI Shortcut
-
-Already have a website? One command:
+## Already have a website?
 
 ```bash
 cd ~/my-website
 terminaltui convert
-# paste the prompt into Claude Code — done
+# paste the prompt into Claude Code — it reads your site and generates the TUI version
 ```
 
 ---
 
-## Demos
-
-Try them instantly — no install required:
-
-```bash
-npx demo-tui-restaurant          # 🍽  The Rusty Fork — gruvbox theme
-npx demo-tui-cafe                # ☕  Ember & Brew — catppuccin theme
-```
-
-Or clone the repo and run any of the 9 demos locally:
-
-```bash
-git clone https://github.com/OmarMusayev/terminaltui.git && cd terminaltui
-
-terminaltui dev demos/developer-portfolio/site.config.ts   # cyberpunk portfolio
-terminaltui dev demos/restaurant/site.config.ts            # gruvbox restaurant
-terminaltui dev demos/dashboard/site.config.ts             # hacker dashboard (live API)
-terminaltui dev demos/startup/site.config.ts               # tokyoNight SaaS landing
-terminaltui dev demos/conference/site.config.ts            # nord conference
-terminaltui dev demos/band/site.config.ts                  # rosePine band page
-terminaltui dev demos/coffee-shop/site.config.ts           # catppuccin cafe
-terminaltui dev demos/freelancer/site.config.ts            # custom earth-tone studio
-npx tsx demos/tetris/index.ts                              # playable Tetris
-```
-
-### Restaurant Demo (gruvbox theme)
-![restaurant demo](assets/recordings/restaurant.gif)
-
-### Dashboard Demo (hacker theme — live API data)
-![dashboard demo](assets/recordings/dashboard.gif)
-
-### Tetris (yes, really)
-![tetris](assets/recordings/tetris.gif)
-
-| Demo | Theme | Highlights |
-|------|-------|------------|
-| **Developer Portfolio** | cyberpunk | Gradient banner, 6 project cards, skill bars, sparkline, search |
-| **Restaurant** | gruvbox | 20+ menu items, wine list, reservation form, press quotes |
-| **Dashboard** | hacker | Live API data, reactive state, parameterized routes, bookmarks |
-| **Startup** | tokyoNight | Hero with CTA, pricing table, signup form, accordion quick start |
-| **Conference** | nord | 12 speaker cards, schedule tabs, speaker search, sponsor tiers |
-| **Band** | rosePine | Album search, tour dates, press quotes, mailing list signup |
-| **Coffee Shop** | catppuccin | 19-item menu search, bean origins, catering form |
-| **Freelancer** | custom | Service cards with pricing, portfolio, testimonials, contact form |
-| **Tetris** | cyberpunk | Fully playable Tetris with scoring, levels, hold piece, ghost |
-
----
-
-## Quick Start
-
-```bash
-npm install -g terminaltui
-terminaltui init         # pick a template
-terminaltui dev          # preview in terminal
-terminaltui build        # bundle for npm
-npm publish              # now anyone can npx your-site
-```
-
-### Minimal Config
+## Minimal Config
 
 ```typescript
 import { defineSite, page, markdown, card, link } from "terminaltui";
 
 export default defineSite({
   name: "My Site",
-  tagline: "welcome to my terminal",
   theme: "dracula",
   pages: [
     page("home", {
       title: "Home",
       icon: "◆",
       content: [
-        markdown("# Hello World"),
+        markdown("# Hello World\nWelcome to my terminal."),
         card({ title: "My Project", body: "Something cool", tags: ["typescript"] }),
         link("GitHub", "https://github.com/me"),
       ],
@@ -108,6 +50,31 @@ export default defineSite({
   ],
 });
 ```
+
+---
+
+## What people have built
+
+| Demo | Run it | Theme |
+|------|--------|-------|
+| Developer Portfolio | `terminaltui dev demos/developer-portfolio/site.config.ts` | cyberpunk |
+| Restaurant | `npx demo-tui-restaurant` | gruvbox |
+| Coffee Shop | `npx demo-tui-cafe` | catppuccin |
+| Live Dashboard | `terminaltui dev demos/dashboard/site.config.ts` | hacker |
+| Startup Landing | `terminaltui dev demos/startup/site.config.ts` | tokyoNight |
+| Conference | `terminaltui dev demos/conference/site.config.ts` | nord |
+| Band Page | `terminaltui dev demos/band/site.config.ts` | rosePine |
+| Freelancer Studio | `terminaltui dev demos/freelancer/site.config.ts` | custom |
+| Tetris | `npx tsx demos/tetris/index.ts` | cyberpunk |
+
+### Restaurant
+![restaurant demo](assets/recordings/restaurant.gif)
+
+### Dashboard (live API data)
+![dashboard demo](assets/recordings/dashboard.gif)
+
+### Tetris
+![tetris](assets/recordings/tetris.gif)
 
 ---
 
@@ -125,7 +92,7 @@ TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchIn
 
 ![fonts and art](assets/recordings/fonts-and-art.gif)
 
-14 fonts (ANSI Shadow, Ogre, Ghost, Electronic, Sub-Zero, Bloody, DOS Rebel, Calvin S, Block, Slant, Small, Colossal, Larry 3D, Isometric1), 15 scenes, 32 icons, 12 patterns, 9 shapes, 5 data visualizations. Image-to-ASCII conversion with braille mode. Art composition utilities.
+14 fonts, 15 scenes, 32 icons, 12 patterns, 9 shapes, 5 data visualizations. Image-to-ASCII conversion with braille mode.
 
 ### 10 Built-in Themes
 
@@ -167,15 +134,6 @@ terminaltui test --sizes --verbose
 
 Headless TUI emulator — like Puppeteer for terminals. Test every page programmatically.
 
-### AI-Powered Conversion
-
-```bash
-terminaltui convert
-# Drops API docs into your project
-# Paste the prompt into Claude Code
-# Claude reads your site and generates the TUI version
-```
-
 ---
 
 ## Navigation
@@ -188,7 +146,6 @@ terminaltui convert
 | q | Quit |
 | : | Command mode |
 | 1-9 | Jump to page |
-| Tab | Next item |
 
 When focused on a text input, just start typing — it auto-enters edit mode. Press Escape to return to navigation.
 
@@ -211,13 +168,10 @@ When focused on a text input, just start typing — it auto-enters edit mode. Pr
 
 - **TypeScript** — fully typed with strict mode
 - **Zero dependencies** — pure Node.js 18+
-- **83 exports** — comprehensive but focused
-- **1,572 tests** across 10 suites (`npm test` runs them all)
+- **1,572 tests** across 10 suites (`npm test`)
 - **Apple Terminal compatible** — auto-detects and falls back to 256-color
 
 > terminaltui is a v1 framework — the API is ambitious and some features are foundational implementations that will deepen over time. Contributions welcome.
-
----
 
 ## Contributing
 

@@ -354,7 +354,7 @@ export interface ButtonBlock {
 export interface FormBlock {
   type: "form";
   id: string;
-  onSubmit: (data: Record<string, any>) => Promise<ActionResult> | ActionResult;
+  onSubmit: (data: Record<string, unknown>) => Promise<ActionResult> | ActionResult;
   fields: ContentBlock[];
   /** Reset all field values to defaults after successful submit. Default: false. */
   resetOnSubmit?: boolean;

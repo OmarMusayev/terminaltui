@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
 
 const args = process.argv.slice(2);
@@ -189,7 +190,7 @@ async function runConvert() {
 /** Find the terminaltui package root (where claude/ lives). */
 function findPackageRoot(): string {
   // Try relative to this file (works from src/cli/ and dist/cli/)
-  const thisDir = new URL(".", import.meta.url).pathname;
+  const thisDir = dirname(fileURLToPath(import.meta.url));
   const candidate1 = resolve(thisDir, "..", ".."); // cli -> src/dist -> root
   if (existsSync(join(candidate1, "claude", "SKILL.md"))) return candidate1;
 
@@ -244,7 +245,8 @@ function printHelp() {
 
 function printVersion() {
   try {
-    const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf-8"));
+    const pkgPath = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
     console.log(`terminaltui v${pkg.version}`);
   } catch {
     console.log("terminaltui v1.0.0");
