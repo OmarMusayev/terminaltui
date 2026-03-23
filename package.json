@@ -8,10 +8,18 @@
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["tui", "terminal", "cli", "ascii", "terminal-ui", "npx", "terminal-website", "ascii-art", "tui-framework", "terminal-app"],
+  "author": "Omar Musayev",
   "license": "MIT",
-  "description": "General-purpose TUI website framework — turn any website into a beautiful terminal experience",
+  "homepage": "https://github.com/omarmusayev/terminaltui",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/omarmusayev/terminaltui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/omarmusayev/terminaltui/issues"
+  },
+  "description": "Turn any website into a beautiful terminal experience",
   "type": "module",
   "types": "dist/index.d.ts",
   "exports": {
@@ -27,6 +35,12 @@
   "bin": {
     "terminaltui": "dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "claude/SKILL.md",
+    "claude/prompt.md",
+    "claude/examples"
+  ],
   "engines": {
     "node": ">=18"
   },

@@ -10,6 +10,7 @@ import {
   link,
   spacer,
   divider,
+  searchInput,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -161,6 +162,28 @@ TermConf brings together the builders, artists, and thinkers pushing the termina
       title: "Speakers",
       icon: "*",
       content: [
+        searchInput({
+          id: "speaker-search",
+          label: "Find a Speaker or Talk",
+          placeholder: "Search...",
+          items: [
+            { label: "Sophia Chen — The State of the Terminal", value: "sophia-chen", keywords: ["keynote", "terminal emulators", "alacritty"] },
+            { label: "Marcus Rivera — Building a Modern Terminal Emulator", value: "marcus-rivera", keywords: ["warp", "gpu", "rust"] },
+            { label: "Yuki Tanaka — TUI Frameworks in Go", value: "yuki-tanaka", keywords: ["charm", "bubble tea", "tui", "go"] },
+            { label: "Priya Sharma — CLI DX That Sparks Joy", value: "priya-sharma", keywords: ["vercel", "dx", "cli design", "ux"] },
+            { label: "Daniel Park — AI Meets the Command Line", value: "daniel-park", keywords: ["anthropic", "ai", "llm", "cli"] },
+            { label: "Lucia Fernandez — Rethinking the Shell", value: "lucia-fernandez", keywords: ["nushell", "shell", "data"] },
+            { label: "Oliver Schmidt — Terminal Multiplexers Reimagined", value: "oliver-schmidt", keywords: ["zellij", "multiplexer", "wasm"] },
+            { label: "Amara Osei — ASCII Art in the Age of AI", value: "amara-osei", keywords: ["ascii art", "creative coding", "ai"] },
+            { label: "Erik Johansson — Cross-Platform Terminal Rendering", value: "erik-johansson", keywords: ["ghostty", "rendering", "font"] },
+            { label: "Kai Nakamura — Terminal Dashboards for Infrastructure", value: "kai-nakamura", keywords: ["dataflow", "monitoring", "dashboards"] },
+            { label: "Zara Okonkwo — Designing for 80 Columns", value: "zara-okonkwo", keywords: ["figma", "ui", "ux", "design"] },
+            { label: "Maya Williams — The Future of Terminal Culture", value: "maya-williams", keywords: ["community", "panel", "open source"] },
+          ],
+          action: "navigate",
+          maxResults: 8,
+        }),
+        spacer(),
         card({
           title: "Sophia Chen",
           subtitle: "Creator of Alacritty",

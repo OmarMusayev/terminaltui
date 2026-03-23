@@ -6,6 +6,12 @@ import {
   link,
   markdown,
   spacer,
+  searchInput,
+  textInput,
+  textArea,
+  select,
+  button,
+  form,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -25,6 +31,33 @@ export default defineSite({
       title: "Menu",
       icon: "*",
       content: [
+        searchInput({
+          id: "search-menu",
+          placeholder: "Search the menu...",
+          action: "navigate",
+          items: [
+            { label: "Espresso", value: "espresso", keywords: ["coffee", "double shot", "La Marzocca"] },
+            { label: "Cortado", value: "cortado", keywords: ["coffee", "espresso", "milk"] },
+            { label: "Flat White", value: "flat-white", keywords: ["coffee", "espresso", "microfoam", "popular"] },
+            { label: "Cappuccino", value: "cappuccino", keywords: ["coffee", "espresso", "foam", "latte art"] },
+            { label: "Oat Latte", value: "oat-latte", keywords: ["coffee", "espresso", "oat milk", "iced"] },
+            { label: "Mocha", value: "mocha", keywords: ["coffee", "espresso", "chocolate", "Valrhona"] },
+            { label: "Pour Over", value: "pour-over", keywords: ["filter", "coffee", "Kalita Wave", "single-origin"] },
+            { label: "Batch Brew", value: "batch-brew", keywords: ["filter", "coffee", "house blend"] },
+            { label: "Cold Brew", value: "cold-brew", keywords: ["coffee", "iced", "nitro", "Guatemala"] },
+            { label: "AeroPress", value: "aeropress", keywords: ["filter", "coffee", "inverted method"] },
+            { label: "Matcha Latte", value: "matcha-latte", keywords: ["tea", "matcha", "Uji", "Kyoto"] },
+            { label: "Hojicha Latte", value: "hojicha-latte", keywords: ["tea", "roasted", "Japanese"] },
+            { label: "Chai", value: "chai", keywords: ["tea", "spices", "masala", "cardamom"] },
+            { label: "Loose Leaf Selection", value: "loose-leaf-selection", keywords: ["tea", "Darjeeling", "oolong", "chamomile"] },
+            { label: "Almond Croissant", value: "almond-croissant", keywords: ["pastry", "frangipane", "baked"] },
+            { label: "Banana Bread", value: "banana-bread", keywords: ["pastry", "walnut", "vegan", "tahini"] },
+            { label: "Morning Bun", value: "morning-bun", keywords: ["pastry", "cinnamon", "orange", "Tartine"] },
+            { label: "Seasonal Scone", value: "seasonal-scone", keywords: ["pastry", "Meyer lemon", "poppy seed"] },
+            { label: "Cookie", value: "cookie", keywords: ["pastry", "chocolate chip", "brown butter", "sea salt"] },
+          ],
+        }),
+        spacer(),
         section("Espresso", [
           card({
             title: "Espresso",
@@ -197,6 +230,27 @@ We source directly from smallholder farms and cooperatives. Every bag is roasted
       title: "Connect",
       icon: "->",
       content: [
+        form({
+          id: "catering",
+          onSubmit: async (data) => ({ success: "We'll be in touch about your order!" }),
+          fields: [
+            textInput({ id: "name", label: "Name", validate: (v) => (v ? null : "Required") }),
+            textInput({ id: "email", label: "Email", validate: (v) => (v.includes("@") ? null : "Invalid email") }),
+            select({
+              id: "type",
+              label: "Inquiry Type",
+              options: [
+                { label: "Catering", value: "catering" },
+                { label: "Private Event", value: "event" },
+                { label: "Wholesale", value: "wholesale" },
+                { label: "Other", value: "other" },
+              ],
+            }),
+            textArea({ id: "details", label: "Details", rows: 3 }),
+            button({ label: "Submit Inquiry", style: "primary" }),
+          ],
+        }),
+        spacer(),
         link("Instagram", "https://instagram.com/emberandbrew", { icon: ">" }),
         link("Order Online", "https://order.emberandbrew.com", { icon: ">" }),
         link("Wholesale Inquiries", "mailto:wholesale@emberandbrew.com", { icon: ">" }),

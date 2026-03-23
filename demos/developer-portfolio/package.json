@@ -1,0 +1,9 @@
+{
+  "name": "demo-dev-portfolio",
+  "version": "1.0.0",
+  "description": "Cyberpunk developer portfolio TUI for Alex Rivera",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

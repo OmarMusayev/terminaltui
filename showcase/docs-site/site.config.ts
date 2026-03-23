@@ -8,6 +8,7 @@ import {
   timeline,
   divider,
   spacer,
+  searchInput,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -171,6 +172,27 @@ Open \`http://localhost:4040\` to browse your documents.
       title: "API Reference",
       icon: "#",
       content: [
+        searchInput({
+          id: "api-search",
+          label: "Search API & Docs",
+          placeholder: "Search methods, topics...",
+          items: [
+            { label: "db.insert(doc) — Insert a document", value: "db-insert", keywords: ["insert", "create", "add", "document"] },
+            { label: "db.find(query, options?) — Query documents", value: "db-find", keywords: ["find", "query", "search", "filter", "select"] },
+            { label: "db.update(query, update) — Update documents", value: "db-update", keywords: ["update", "modify", "set", "inc", "push"] },
+            { label: "db.delete(query) — Delete documents", value: "db-delete", keywords: ["delete", "remove", "drop"] },
+            { label: "db.createIndex(field, options?) — Create an index", value: "db-createindex", keywords: ["index", "btree", "unique", "sparse", "performance"] },
+            { label: "db.transaction(fn) — Execute atomically", value: "db-transaction", keywords: ["transaction", "atomic", "acid", "rollback"] },
+            { label: "db.backup(path) — Create a backup", value: "db-backup", keywords: ["backup", "snapshot", "export"] },
+            { label: "db.close() — Close the database", value: "db-close", keywords: ["close", "shutdown", "flush"] },
+            { label: "Getting Started — Installation & setup", value: "getting-started", keywords: ["install", "setup", "npm", "quickstart"] },
+            { label: "FAQ — Common questions", value: "faq", keywords: ["faq", "help", "sqlite", "mongodb", "production", "typescript"] },
+            { label: "Changelog — Release history", value: "changelog", keywords: ["changelog", "releases", "version", "updates"] },
+          ],
+          action: "navigate",
+          maxResults: 8,
+        }),
+        spacer(),
         accordion([
           {
             label: "db.insert(doc)",

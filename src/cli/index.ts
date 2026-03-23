@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { resolve, join } from "node:path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -26,6 +26,9 @@ async function main() {
     case "art":
       await runArtCommand();
       break;
+    case "convert":
+      await runConvert();
+      break;
     case "help":
     case "--help":
     case "-h":
@@ -49,10 +52,20 @@ async function main() {
 }
 
 async function runDev() {
-  const configPath = findConfig();
+  // Accept an explicit path as argument: `terminaltui dev path/to/site.config.ts`
+  const explicit = args[1];
+  let configPath: string | null;
+  if (explicit) {
+    const resolved = resolve(explicit);
+    configPath = existsSync(resolved) ? resolved : null;
+  } else {
+    configPath = findConfig();
+  }
   if (!configPath) {
-    console.error("Error: No site.config.ts found in current directory.");
-    console.error("Run 'terminaltui init' to create one.");
+    console.error(explicit
+      ? `Error: Config file not found: ${explicit}`
+      : "Error: No site.config.ts found in current directory.");
+    console.error("Run 'terminaltui init' to create one, or pass a path: terminaltui dev path/to/site.config.ts");
     process.exit(1);
   }
 
@@ -120,6 +133,74 @@ async function runArtCommand() {
   await runArt(args.slice(1));
 }
 
+async function runConvert() {
+  const { copyFileSync } = await import("node:fs");
+
+  // 1. Find the docs from the package
+  const pkgRoot = findPackageRoot();
+  const skillSrc = join(pkgRoot, "claude", "SKILL.md");
+  const promptSrc = join(pkgRoot, "claude", "prompt.md");
+
+  if (!existsSync(skillSrc) || !existsSync(promptSrc)) {
+    console.error("\x1b[31mError:\x1b[0m Could not find claude/SKILL.md and claude/prompt.md");
+    console.error("Looked in:", pkgRoot);
+    process.exit(1);
+  }
+
+  // 2. Copy the docs into the project directory, replacing __TERMINALTUI_PATH__
+  const cwd = process.cwd();
+  const skillDest = join(cwd, "TERMINALTUI_SKILL.md");
+  const promptDest = join(cwd, "TERMINALTUI_PROMPT.md");
+
+  copyFileSync(skillSrc, skillDest);
+
+  // Replace the placeholder path in prompt.md with the actual TUI project path
+  let promptContent = readFileSync(promptSrc, "utf-8");
+  promptContent = promptContent.replace(/__TERMINALTUI_PATH__/g, pkgRoot);
+  writeFileSync(promptDest, promptContent, "utf-8");
+
+  // 3. Tell the user what to do
+  console.log("");
+  console.log("\x1b[1m\x1b[35m  terminaltui convert\x1b[0m");
+  console.log("");
+  console.log("  \x1b[32m\u2713\x1b[0m Dropped into your project:");
+  console.log("    \x1b[36mTERMINALTUI_SKILL.md\x1b[0m  \u2014 full framework API reference");
+  console.log("    \x1b[36mTERMINALTUI_PROMPT.md\x1b[0m \u2014 conversion guide (paths pre-filled)");
+  console.log("");
+  console.log("  \x1b[36mFramework path:\x1b[0m " + pkgRoot);
+  console.log("");
+  console.log("  \x1b[1mNext:\x1b[0m Run \x1b[1mclaude\x1b[0m and paste this prompt:");
+  console.log("");
+  console.log("  \x1b[2m\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\x1b[0m");
+  console.log("");
+  console.log("  Read TERMINALTUI_SKILL.md for the terminaltui API, then");
+  console.log("  read TERMINALTUI_PROMPT.md for conversion steps. Convert");
+  console.log("  this website into a TUI in a tui/ subdirectory. Don't touch");
+  console.log("  existing files. Test it with: cd tui && npm run dev");
+  console.log("");
+  console.log("  \x1b[2m(add your preferences: theme, pages to skip, extra features, etc.)\x1b[0m");
+  console.log("");
+  console.log("  \x1b[2m\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\x1b[0m");
+  console.log("");
+  console.log("  When done: \x1b[2mrm TERMINALTUI_SKILL.md TERMINALTUI_PROMPT.md\x1b[0m");
+  console.log("");
+}
+
+/** Find the terminaltui package root (where claude/ lives). */
+function findPackageRoot(): string {
+  // Try relative to this file (works from src/cli/ and dist/cli/)
+  const thisDir = new URL(".", import.meta.url).pathname;
+  const candidate1 = resolve(thisDir, "..", ".."); // cli -> src/dist -> root
+  if (existsSync(join(candidate1, "claude", "SKILL.md"))) return candidate1;
+
+  // Try node_modules resolution
+  const candidate2 = resolve("node_modules", "terminaltui");
+  if (existsSync(join(candidate2, "claude", "SKILL.md"))) return candidate2;
+
+  // Fallback: current working directory
+  return process.cwd();
+}
+
 function findConfig(): string | null {
   const cwd = process.cwd();
   const candidates = ["site.config.ts", "site.config.js", "site.config.mjs"];
@@ -140,6 +221,7 @@ function printHelp() {
   Commands:
     dev          Start development preview (default)
     init [tpl]   Scaffold a new project (templates: minimal, portfolio, landing, restaurant, blog, creative)
+    convert      Drop terminaltui docs into your project for AI-assisted conversion
     build        Bundle for npm publish
     test         Run automated tests on site in current directory
     preview      Render a single frame to stdout
@@ -154,8 +236,8 @@ function printHelp() {
   Examples:
     terminaltui init portfolio
     terminaltui dev
+    terminaltui convert
     terminaltui build
-    terminaltui test
     terminaltui test --sizes --verbose
 `);
 }

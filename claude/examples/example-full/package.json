@@ -1,0 +1,11 @@
+{
+  "name": "example-full",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "terminaltui dev"
+  },
+  "dependencies": {
+    "terminaltui": "latest"
+  }
+}

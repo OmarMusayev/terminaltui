@@ -11,6 +11,8 @@ export interface BoxConfig {
   title?: string;
   titleRight?: string;
   content: string[];
+  borderColor?: string;
+  midSeparatorAfter?: number; // insert ├──┤ separator after this content line index
 }
 
 export function renderBox(config: BoxConfig, ctx: RenderContext): string[] {
@@ -19,7 +21,7 @@ export function renderBox(config: BoxConfig, ctx: RenderContext): string[] {
   const boxWidth = config.width ?? ctx.width;
   const padding = config.padding ?? 1;
   const innerWidth = Math.max(0, boxWidth - 2 - padding * 2);
-  const borderColor = ctx.theme.border;
+  const borderColor = config.borderColor ?? ctx.theme.border;
   const lines: string[] = [];
 
   // Top border
@@ -63,6 +65,12 @@ export function renderBox(config: BoxConfig, ctx: RenderContext): string[] {
       paddingStr + pad(content, innerWidth) + paddingStr +
       fgColor(borderColor) + chars.vertical + reset
     );
+    // Insert mid-separator after specified line
+    if (config.midSeparatorAfter !== undefined && i === config.midSeparatorAfter) {
+      lines.push(
+        fgColor(borderColor) + chars.teeRight + chars.horizontal.repeat(topInner) + chars.teeLeft + reset
+      );
+    }
   }
 
   // Bottom border

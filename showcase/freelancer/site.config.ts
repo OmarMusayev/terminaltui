@@ -5,6 +5,11 @@ import {
   markdown,
   link,
   divider,
+  spacer,
+  form,
+  textInput,
+  textArea,
+  button,
 } from "../../src/index.js";
 import type { Theme } from "../../src/index.js";
 
@@ -155,6 +160,17 @@ export default defineSite({
 4. **Delivery** — Iterative design with regular check-ins and structured feedback rounds
         `),
         divider(),
+        form({
+          id: "contact",
+          onSubmit: async (data) => ({ success: "Message sent! I'll get back to you soon." }),
+          fields: [
+            textInput({ id: "name", label: "Your Name", validate: (v) => v ? null : "Required" }),
+            textInput({ id: "email", label: "Email", validate: (v) => v.includes("@") ? null : "Invalid email" }),
+            textArea({ id: "message", label: "Message", rows: 4, placeholder: "Tell me about your project..." }),
+            button({ label: "Send Message", style: "primary" }),
+          ],
+        }),
+        spacer(),
         link("Email", "mailto:hello@studiokira.design", { icon: ">" }),
         link("Dribbble", "https://dribbble.com/studiokira", { icon: ">" }),
         link("Twitter", "https://twitter.com/studiokira", { icon: ">" }),

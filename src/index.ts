@@ -24,6 +24,18 @@ export {
   sparkline,
   divider,
   spacer,
+  // Input components
+  textInput,
+  textArea,
+  select,
+  checkbox,
+  toggle,
+  radioGroup,
+  numberInput,
+  searchInput,
+  button,
+  form,
+  asyncContent,
 } from "./config/parser.js";
 
 // Types
@@ -58,6 +70,20 @@ export type {
   EasterEggConfig,
   StatusBarConfig,
   LinkOptions,
+  TextInputBlock,
+  TextAreaBlock,
+  SelectBlock,
+  CheckboxBlock,
+  ToggleBlock,
+  RadioGroupBlock,
+  NumberInputBlock,
+  SearchInputBlock,
+  ButtonBlock,
+  FormBlock,
+  AsyncContentBlock,
+  ActionResult,
+  CardAction,
+  DynamicBlock,
 } from "./config/types.js";
 
 // Theme
@@ -150,3 +176,36 @@ export type { ArtPack, SceneData, IconData, PatternData, AssetInfo } from "./art
 
 // Runtime
 export { TUIRuntime, runSite } from "./core/runtime.js";
+
+// ─── State System ─────────────────────────────────────────
+export { createState } from "./state/reactive.js";
+export { computed } from "./state/computed.js";
+export { dynamic } from "./state/dynamic.js";
+export { createPersistentState } from "./state/persistent.js";
+export type { StateContainer, ComputedValue, PersistentStateOptions } from "./state/types.js";
+
+// ─── Data Fetching ────────────────────────────────────────
+export { fetcher } from "./data/fetcher.js";
+export type { FetcherOptions, FetcherResult } from "./data/fetcher.js";
+export { request } from "./data/request.js";
+export type { RequestOptions, RequestResult } from "./data/request.js";
+export { liveData } from "./data/live-data.js";
+export type { LiveDataConnection } from "./data/live-data.js";
+
+// ─── Routing ──────────────────────────────────────────────
+export { route } from "./routing/route.js";
+export { navigate } from "./routing/navigate.js";
+export type { RouteConfig, RouteParams, NavigateAction, HistoryEntry } from "./routing/types.js";
+
+// ─── Middleware ───────────────────────────────────────────
+export { middleware, redirect } from "./middleware/index.js";
+export { requireEnv, rateLimit, cache } from "./middleware/built-in.js";
+export type { MiddlewareFn, MiddlewareContext, MiddlewareResult } from "./middleware/types.js";
+
+// ─── Lifecycle ───────────────────────────────────────────
+export type { AppContext, ErrorContext, LifecycleHooks } from "./lifecycle/types.js";
+
+// ─── Config ──────────────────────────────────────────────
+export { defineConfig } from "./config/define-config.js";
+export type { ConfigField, ConfigSchema, ConfigContainer } from "./config/define-config.js";
+export { loadEnv } from "./config/env-loader.js";

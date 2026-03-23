@@ -1,4 +1,4 @@
-import { defineSite, page, markdown, link, quote, spacer, divider, ascii, themes } from "terminaltui";
+import { defineSite, page, markdown, link, quote, spacer, divider, ascii, themes, form, textInput, button } from "terminaltui";
 
 export default defineSite({
   name: "VOID.SYS",
@@ -49,6 +49,13 @@ export default defineSite({
         link("Instagram", "https://instagram.com/void.sys"),
         link("Are.na", "https://are.na/void-sys"),
         link("Transmissions", "mailto:signal@void.sys"),
+        form({ id: "signal", onSubmit: async (data) => ({ success: "Signal received. You're in." }),
+          fields: [
+            textInput({ id: "handle", label: "Handle", placeholder: "your@signal.net", validate: v => v ? null : "Required" }),
+            button({ label: "Connect", style: "primary" }),
+          ],
+        }),
+        spacer(),
       ],
     }),
   ],

@@ -7,6 +7,11 @@ import {
   link,
   markdown,
   spacer,
+  form,
+  textInput,
+  select,
+  numberInput,
+  button,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -228,6 +233,22 @@ Los Angeles, CA 90013
 Reservations recommended. Walk-ins welcome at the bar.
 Valet parking available Thursday – Saturday.
         `),
+        spacer(),
+        form({
+          id: "reservation",
+          onSubmit: async (data) => ({ success: `Table reserved for ${data.name}, party of ${data.partySize}!` }),
+          fields: [
+            textInput({ id: "name", label: "Name", validate: (v) => v ? null : "Name is required" }),
+            textInput({ id: "email", label: "Email", validate: (v) => v.includes("@") ? null : "Invalid email" }),
+            select({ id: "date", label: "Date", options: [
+              { label: "Today", value: "today" },
+              { label: "Tomorrow", value: "tomorrow" },
+              { label: "This Weekend", value: "weekend" },
+            ]}),
+            numberInput({ id: "partySize", label: "Party Size", defaultValue: 2, min: 1, max: 20 }),
+            button({ label: "Reserve Table", style: "primary" }),
+          ],
+        }),
         spacer(),
         link("Make a Reservation", "https://resy.com/the-rusty-fork", { icon: ">" }),
         link("Call Us — (213) 555-0142", "tel:+12135550142", { icon: ">" }),

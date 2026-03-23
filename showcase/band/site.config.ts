@@ -5,6 +5,10 @@ import {
   link,
   markdown,
   spacer,
+  searchInput,
+  textInput,
+  button,
+  form,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -26,6 +30,19 @@ export default defineSite({
       title: "Discography",
       icon: "~",
       content: [
+        searchInput({
+          id: "search-albums",
+          placeholder: "Search albums...",
+          action: "navigate",
+          items: [
+            { label: "Violet Hour", value: "violet-hour", keywords: ["Shoegaze", "Dream Pop", "Ambient", "2025", "LP"] },
+            { label: "Refraction", value: "refraction", keywords: ["Shoegaze", "Noise Pop", "Post-Punk", "2024", "LP"] },
+            { label: "Pale Light", value: "pale-light", keywords: ["Dream Pop", "Slowcore", "Lo-Fi", "2023", "EP"] },
+            { label: "Cathedral", value: "cathedral", keywords: ["Shoegaze", "Post-Rock", "Orchestral", "2022", "LP"] },
+            { label: "Demo Tape", value: "demo-tape", keywords: ["Lo-Fi", "Shoegaze", "Cassette", "2021", "Demo"] },
+          ],
+        }),
+        spacer(),
         card({
           title: "Violet Hour",
           subtitle: "2025 · LP",
@@ -63,6 +80,20 @@ export default defineSite({
       title: "Shows",
       icon: "*",
       content: [
+        searchInput({
+          id: "search-shows",
+          placeholder: "Search shows by venue or city...",
+          action: "navigate",
+          items: [
+            { label: "The Fillmore", value: "the-fillmore", keywords: ["San Francisco", "CA", "April", "2026", "headlining"] },
+            { label: "Primavera Sound", value: "primavera-sound", keywords: ["Barcelona", "Spain", "June", "2026", "festival"] },
+            { label: "Pitchfork Music Festival", value: "pitchfork-music-festival", keywords: ["Chicago", "IL", "July", "2026", "festival"] },
+            { label: "The Crocodile", value: "the-crocodile", keywords: ["Seattle", "WA", "August", "2026", "club"] },
+            { label: "Desert Daze", value: "desert-daze", keywords: ["Lake Perris", "CA", "October", "2026", "festival"] },
+            { label: "Le Guess Who?", value: "le-guess-who", keywords: ["Utrecht", "Netherlands", "November", "2026", "festival"] },
+          ],
+        }),
+        spacer(),
         card({
           title: "The Fillmore",
           subtitle: "April 12, 2026",
@@ -177,6 +208,15 @@ Their sound is built on contrasts: crushing distortion against delicate melody, 
       title: "Links",
       icon: "->",
       content: [
+        form({
+          id: "mailing-list",
+          onSubmit: async (data) => ({ success: "You're on the list!" }),
+          fields: [
+            textInput({ id: "email", label: "Join the Mailing List", placeholder: "your@email.com", validate: (v) => (v.includes("@") ? null : "Invalid email") }),
+            button({ label: "Subscribe", style: "primary" }),
+          ],
+        }),
+        spacer(),
         link("Bandcamp", "https://glasscathedral.bandcamp.com", { icon: ">" }),
         link("Spotify", "https://open.spotify.com/artist/glasscathedral", { icon: ">" }),
         link("Instagram", "https://instagram.com/glasscathedral", { icon: ">" }),

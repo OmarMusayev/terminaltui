@@ -1,0 +1,9 @@
+{
+  "name": "demo-tui-startup",
+  "version": "1.0.0",
+  "description": "Startup landing page TUI for Warpspeed",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

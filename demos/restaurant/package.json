@@ -1,0 +1,9 @@
+{
+  "name": "demo-tui-restaurant",
+  "version": "1.0.0",
+  "description": "Farm-to-table restaurant TUI for The Rusty Fork",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

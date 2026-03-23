@@ -1,0 +1,9 @@
+{
+  "name": "demo-tui-band",
+  "version": "1.0.0",
+  "description": "Atmospheric post-rock band TUI for Glass Cathedral",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

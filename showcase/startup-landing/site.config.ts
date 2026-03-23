@@ -8,6 +8,9 @@ import {
   divider,
   spacer,
   accordion,
+  form,
+  textInput,
+  button,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -37,6 +40,18 @@ export default defineSite({
         spacer(),
         markdown(`
 Trusted by 12,000+ developers and teams at **Vercel**, **Linear**, **Resend**, and **Raycast**.
+        `),
+        spacer(),
+        form({
+          id: "signup",
+          onSubmit: async (data) => ({ success: "Welcome aboard! Check your email." }),
+          fields: [
+            textInput({ id: "email", label: "Email", placeholder: "you@company.com", validate: (v) => v.includes("@") ? null : "Enter a valid email" }),
+            button({ label: "Get Started", style: "primary" }),
+          ],
+        }),
+        spacer(),
+        markdown(`
 
 \`\`\`
 $ warp deploy

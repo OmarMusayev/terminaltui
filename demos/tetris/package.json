@@ -1,0 +1,11 @@
+{
+  "name": "demo-tui-tetris",
+  "version": "1.0.0",
+  "description": "Tetris in your terminal — built with terminaltui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx index.ts",
+    "start": "npx tsx index.ts"
+  }
+}

@@ -1,4 +1,4 @@
-import { defineSite, page, card, timeline, link, skillBar, section, quote, ascii, markdown, themes, divider, spacer, badge } from "terminaltui";
+import { defineSite, page, card, timeline, link, skillBar, section, quote, ascii, markdown, themes, divider, spacer, badge, searchInput, form, textInput, textArea, button } from "terminaltui";
 
 export default defineSite({
   name: "Alex Chen",
@@ -31,6 +31,17 @@ export default defineSite({
       title: "Projects",
       icon: "◈",
       content: [
+        searchInput({
+          id: "project-search",
+          placeholder: "Search projects...",
+          action: "navigate",
+          items: [
+            { label: "fast-deploy", value: "fast-deploy", keywords: ["TypeScript", "CLI", "Open Source"] },
+            { label: "query-builder", value: "query-builder", keywords: ["TypeScript", "Database"] },
+            { label: "terminal-ui", value: "terminal-ui", keywords: ["Rust", "TUI"] },
+          ],
+        }),
+        spacer(),
         card({
           title: "fast-deploy",
           subtitle: "★ 2.4k",
@@ -86,6 +97,17 @@ export default defineSite({
       title: "Writing",
       icon: "▤",
       content: [
+        searchInput({
+          id: "writing-search",
+          placeholder: "Search posts...",
+          action: "navigate",
+          items: [
+            { label: "Why I switched from Go to Rust", value: "why-i-switched-from-go-to-rust", keywords: ["Go", "Rust", "CLI"] },
+            { label: "Building type-safe APIs", value: "building-type-safe-apis", keywords: ["TypeScript", "API", "type safety"] },
+            { label: "The case for monorepos", value: "the-case-for-monorepos", keywords: ["monorepo", "team", "workflow"] },
+          ],
+        }),
+        spacer(),
         card({ title: "Why I switched from Go to Rust", subtitle: "Mar 2026", body: "A practical comparison for CLI developers." }),
         card({ title: "Building type-safe APIs", subtitle: "Jan 2026", body: "How we eliminated runtime errors with end-to-end type safety." }),
         card({ title: "The case for monorepos", subtitle: "Nov 2025", body: "Why our team moved to a monorepo and never looked back." }),
@@ -101,6 +123,15 @@ export default defineSite({
         link("LinkedIn", "https://linkedin.com/in/alexchen"),
         link("Blog", "https://alexchen.dev/blog"),
         link("Email", "mailto:alex@alexchen.dev"),
+        form({ id: "contact", onSubmit: async (data) => ({ success: "Message sent!" }),
+          fields: [
+            textInput({ id: "name", label: "Name", validate: v => v ? null : "Name is required" }),
+            textInput({ id: "email", label: "Email", placeholder: "you@email.com", validate: v => v.includes("@") ? null : "Invalid email" }),
+            textArea({ id: "message", label: "Message", rows: 4 }),
+            button({ label: "Send", style: "primary" }),
+          ],
+        }),
+        spacer(),
       ],
     }),
   ],

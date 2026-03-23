@@ -7,6 +7,7 @@ export interface RenderContext {
   focused?: boolean;
   selected?: boolean;
   borderStyle?: string;
+  editing?: boolean;
 }
 
 // ─── Unicode-aware display width ──────────────────────────
@@ -142,50 +143,61 @@ export function truncate(text: string, maxWidth: number): string {
 
 export function wrapText(text: string, width: number): string[] {
   if (width <= 0) return [];
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let currentLine = "";
-  let currentWidth = 0;
 
-  for (const word of words) {
-    const wordWidth = stringWidth(word);
-    // Force-break words wider than width
-    if (wordWidth > width) {
-      if (currentLine) {
-        lines.push(currentLine);
-        currentLine = "";
-        currentWidth = 0;
-      }
-      // Break character by character
-      let chunk = "";
-      let chunkW = 0;
-      for (const ch of word) {
-        const cw = charWidth(ch.codePointAt(0) ?? 0);
-        if (chunkW + cw > width && chunk) {
-          lines.push(chunk);
-          chunk = "";
-          chunkW = 0;
-        }
-        chunk += ch;
-        chunkW += cw;
-      }
-      currentLine = chunk;
-      currentWidth = chunkW;
+  // Split on newlines first, then wrap each paragraph
+  const paragraphs = text.split("\n");
+  const allLines: string[] = [];
+
+  for (const para of paragraphs) {
+    if (para.length === 0) {
+      allLines.push("");
       continue;
     }
+    const words = para.split(" ");
+    let currentLine = "";
+    let currentWidth = 0;
 
-    if (currentWidth === 0) {
-      currentLine = word;
-      currentWidth = wordWidth;
-    } else if (currentWidth + 1 + wordWidth <= width) {
-      currentLine += " " + word;
-      currentWidth += 1 + wordWidth;
-    } else {
-      lines.push(currentLine);
-      currentLine = word;
-      currentWidth = wordWidth;
+    for (const word of words) {
+      const wordWidth = stringWidth(word);
+      // Force-break words wider than width
+      if (wordWidth > width) {
+        if (currentLine) {
+          allLines.push(currentLine);
+          currentLine = "";
+          currentWidth = 0;
+        }
+        // Break character by character
+        let chunk = "";
+        let chunkW = 0;
+        for (const ch of word) {
+          const cw = charWidth(ch.codePointAt(0) ?? 0);
+          if (chunkW + cw > width && chunk) {
+            allLines.push(chunk);
+            chunk = "";
+            chunkW = 0;
+          }
+          chunk += ch;
+          chunkW += cw;
+        }
+        currentLine = chunk;
+        currentWidth = chunkW;
+        continue;
+      }
+
+      if (currentWidth === 0) {
+        currentLine = word;
+        currentWidth = wordWidth;
+      } else if (currentWidth + 1 + wordWidth <= width) {
+        currentLine += " " + word;
+        currentWidth += 1 + wordWidth;
+      } else {
+        allLines.push(currentLine);
+        currentLine = word;
+        currentWidth = wordWidth;
+      }
     }
+    if (currentLine) allLines.push(currentLine);
   }
-  if (currentLine) lines.push(currentLine);
-  return lines.length > 0 ? lines : [""];
+
+  return allLines.length > 0 ? allLines : [""];
 }

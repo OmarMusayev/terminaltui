@@ -1,5 +1,7 @@
 import type { Theme, BuiltinThemeName } from "../style/theme.js";
 import type { BorderStyle } from "../style/borders.js";
+import type { RouteConfig, MiddlewareFn, RouteParams } from "../routing/types.js";
+import type { LifecycleHooks } from "../lifecycle/types.js";
 
 // ─── Site Config ───────────────────────────────────────────
 
@@ -12,11 +14,18 @@ export interface SiteConfig {
   borders?: BorderStyle;
   animations?: AnimationConfig;
   navigation?: NavigationConfig;
-  pages: PageConfig[];
+  pages: (PageConfig | RouteConfig)[];
+  middleware?: MiddlewareFn[];
   easterEggs?: EasterEggConfig;
   footer?: string | ContentBlock;
   statusBar?: boolean | StatusBarConfig;
-  artDir?: string | false;  // path to art directory, default "./art", false to disable
+  artDir?: string | false;
+
+  // Lifecycle hooks
+  onInit?: LifecycleHooks["onInit"];
+  onExit?: LifecycleHooks["onExit"];
+  onNavigate?: LifecycleHooks["onNavigate"];
+  onError?: LifecycleHooks["onError"];
 }
 
 export interface Site {
@@ -27,7 +36,11 @@ export interface PageConfig {
   id: string;
   title: string;
   icon?: string;
-  content: ContentBlock[];
+  content: ContentBlock[] | (() => Promise<ContentBlock[]>);
+  loading?: string;
+  refreshInterval?: number;
+  onError?: (err: Error) => ContentBlock[];
+  middleware?: MiddlewareFn[];
 }
 
 // ─── Animation Config ──────────────────────────────────────
@@ -99,7 +112,19 @@ export type ContentBlock =
   | DividerBlock
   | SpacerBlock
   | SectionBlock
-  | CustomBlock;
+  | CustomBlock
+  | TextInputBlock
+  | TextAreaBlock
+  | SelectBlock
+  | CheckboxBlock
+  | ToggleBlock
+  | RadioGroupBlock
+  | NumberInputBlock
+  | SearchInputBlock
+  | ButtonBlock
+  | FormBlock
+  | AsyncContentBlock
+  | DynamicBlock;
 
 export interface TextBlock {
   type: "text";
@@ -115,6 +140,7 @@ export interface CardBlock {
   tags?: string[];
   url?: string;
   border?: BorderStyle;
+  action?: CardAction;
 }
 
 export interface TimelineBlock {
@@ -224,6 +250,146 @@ export interface SectionBlock {
 export interface CustomBlock {
   type: "custom";
   render: (width: number, theme: Theme) => string[];
+}
+
+// ─── Input Components ─────────────────────────────────────
+
+export interface TextInputBlock {
+  type: "textInput";
+  id: string;
+  label: string;
+  placeholder?: string;
+  defaultValue?: string;
+  maxLength?: number;
+  validate?: (value: string) => string | null;
+  mask?: boolean;
+  transform?: (value: string) => string;
+  onChange?: (value: string) => void;
+}
+
+export interface TextAreaBlock {
+  type: "textArea";
+  id: string;
+  label: string;
+  placeholder?: string;
+  defaultValue?: string;
+  rows?: number;
+  maxLength?: number;
+  validate?: (value: string) => string | null;
+  onChange?: (value: string) => void;
+}
+
+export interface SelectBlock {
+  type: "select";
+  id: string;
+  label: string;
+  options: { label: string; value: string }[];
+  defaultValue?: string;
+  placeholder?: string;
+  onChange?: (value: string) => void;
+}
+
+export interface CheckboxBlock {
+  type: "checkbox";
+  id: string;
+  label: string;
+  defaultValue?: boolean;
+  onChange?: (value: boolean) => void;
+}
+
+export interface ToggleBlock {
+  type: "toggle";
+  id: string;
+  label: string;
+  defaultValue?: boolean;
+  onLabel?: string;
+  offLabel?: string;
+  onChange?: (value: boolean) => void;
+}
+
+export interface RadioGroupBlock {
+  type: "radioGroup";
+  id: string;
+  label: string;
+  options: { label: string; value: string }[];
+  defaultValue?: string;
+  onChange?: (value: string) => void;
+}
+
+export interface NumberInputBlock {
+  type: "numberInput";
+  id: string;
+  label: string;
+  defaultValue?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+export interface SearchInputBlock {
+  type: "searchInput";
+  id: string;
+  label?: string;
+  placeholder?: string;
+  items: { label: string; value: string; keywords?: string[] }[];
+  onSelect?: (value: string) => void;
+  maxResults?: number;
+  /**
+   * What happens when a result is selected:
+   * - "navigate": jump to a page matching the value, or scroll to a matching block on the current page
+   * - "callback": call onSelect (default if onSelect is provided)
+   */
+  action?: "navigate" | "callback";
+}
+
+export interface ButtonBlock {
+  type: "button";
+  label: string;
+  style?: "primary" | "secondary" | "danger";
+  onPress?: () => void | Promise<void>;
+  loading?: boolean;
+  _formId?: string;
+}
+
+export interface FormBlock {
+  type: "form";
+  id: string;
+  onSubmit: (data: Record<string, any>) => Promise<ActionResult> | ActionResult;
+  fields: ContentBlock[];
+  /** Reset all field values to defaults after successful submit. Default: false. */
+  resetOnSubmit?: boolean;
+}
+
+export interface AsyncContentBlock {
+  type: "asyncContent";
+  load: () => Promise<ContentBlock[]>;
+  loading?: string;
+  fallback?: ContentBlock[];
+  _asyncId?: string;
+}
+
+// ─── Dynamic Block ────────────────────────────────────────
+
+export interface DynamicBlock {
+  type: "dynamic";
+  render: () => ContentBlock | ContentBlock[];
+  deps?: string[];
+  _dynamicId?: string;
+}
+
+// ─── Action Types ─────────────────────────────────────────
+
+export type ActionResult = { success: string } | { error: string } | { info: string };
+
+export interface CardAction {
+  label?: string;
+  style?: "primary" | "secondary" | "danger";
+  confirm?: string;
+  onPress?: () => void | Promise<void>;
+  /** Navigate to a page or route. */
+  navigate?: string;
+  /** Route parameters for parameterized routes. */
+  params?: RouteParams;
 }
 
 // ─── Link Options ──────────────────────────────────────────

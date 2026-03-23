@@ -9,6 +9,11 @@ import {
   spacer,
   asciiArt,
   accordion,
+  searchInput,
+  textInput,
+  textArea,
+  button,
+  form,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -29,6 +34,27 @@ export default defineSite({
       title: "Episodes",
       icon: ">",
       content: [
+        searchInput({
+          id: "episode-search",
+          label: "Search Episodes",
+          placeholder: "Search by title, guest, or topic...",
+          action: "navigate",
+          items: [
+            { label: "Ep.47: The Great Monorepo Migration", value: "ep47-the-great-monorepo-migration", keywords: ["monorepo", "turborepo", "vercel", "jared palmer", "build tools"] },
+            { label: "Ep.46: Writing a Compiler in a Weekend", value: "ep46-writing-a-compiler-in-a-weekend", keywords: ["compiler", "lexing", "parsing", "codegen", "lily chen", "hackathon"] },
+            { label: "Ep.45: The State of CSS in 2026", value: "ep45-the-state-of-css-in-2026", keywords: ["css", "container queries", "has", "anchor positioning", "adam argyle", "chrome"] },
+            { label: "Ep.44: Postgres is the Answer", value: "ep44-postgres-is-the-answer", keywords: ["postgres", "jsonb", "pgvector", "craig kerstiens", "crunchy data", "database"] },
+            { label: "Ep.43: Debugging Production at 3 AM", value: "ep43-debugging-production-at-3-am", keywords: ["debugging", "observability", "honeycomb", "charity majors", "incident response", "logs"] },
+            { label: "Ep.42: The Bun Runtime One Year Later", value: "ep42-the-bun-runtime-one-year-later", keywords: ["bun", "runtime", "jarred sumner", "oven", "node.js", "compatibility"] },
+            { label: "Ep.41: AI Code Review — Help or Hype?", value: "ep41-ai-code-review-help-or-hype", keywords: ["ai", "code review", "swyx", "smol.ai", "automation"] },
+            { label: "Ep.40: Rust in the Browser with WASM", value: "ep40-rust-in-the-browser-with-wasm", keywords: ["rust", "wasm", "webassembly", "lin clark", "figma", "wasi"] },
+            { label: "Ep.39: Why SQLite is Everywhere", value: "ep39-why-sqlite-is-everywhere", keywords: ["sqlite", "database", "richard hipp", "testing", "lemon parser"] },
+            { label: "Ep.38: Designing Developer Tools", value: "ep38-designing-developer-tools", keywords: ["developer tools", "dx", "ux", "guillermo rauch", "vercel", "error messages"] },
+            { label: "Ep.37: The Edge Computing Debate", value: "ep37-the-edge-computing-debate", keywords: ["edge", "computing", "sunil pai", "partykit", "latency"] },
+            { label: "Ep.36: Open Source Sustainability", value: "ep36-open-source-sustainability", keywords: ["open source", "sponsorship", "evan you", "vue", "vite", "licensing"] },
+          ],
+        }),
+        spacer(),
         card({
           title: "Ep.47: The Great Monorepo Migration",
           subtitle: "March 19, 2026",
@@ -151,6 +177,18 @@ Each episode runs **45-60 minutes** and follows a loose structure: guest intro, 
           "Syntax Error is the podcast I wish existed when I started my career. Technical enough to learn from, human enough to enjoy. It's the only dev podcast I never skip.",
           "5-star review on Apple Podcasts",
         ),
+        spacer(),
+        markdown(`## Suggest a Topic`),
+        form({
+          id: "suggest-topic",
+          onSubmit: async (data) => ({ success: "Topic submitted! We'll consider it for a future episode." }),
+          fields: [
+            textInput({ id: "name", label: "Your Name" }),
+            textInput({ id: "topic", label: "Topic Suggestion", placeholder: "e.g. Rust async patterns", validate: (v) => v ? null : "Please enter a topic" }),
+            textArea({ id: "details", label: "Why This Topic?", rows: 3, placeholder: "Tell us why this would make a great episode..." }),
+            button({ label: "Suggest Topic", style: "primary" }),
+          ],
+        }),
       ],
     }),
 
@@ -163,6 +201,15 @@ Each episode runs **45-60 minutes** and follows a loose structure: guest intro, 
 
 New episodes drop every **Wednesday at 6 AM Pacific**. Subscribe on your favorite platform so you never miss an episode.
         `),
+        spacer(),
+        form({
+          id: "newsletter",
+          onSubmit: async (data) => ({ success: "Subscribed! Check your inbox." }),
+          fields: [
+            textInput({ id: "email", label: "Get Episode Notifications", placeholder: "you@email.com", validate: (v) => v.includes("@") ? null : "Enter a valid email" }),
+            button({ label: "Subscribe", style: "primary" }),
+          ],
+        }),
         spacer(),
         link("Apple Podcasts", "https://podcasts.apple.com/syntaxerror", { icon: ">" }),
         link("Spotify", "https://open.spotify.com/show/syntaxerror", { icon: ">" }),

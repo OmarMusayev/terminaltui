@@ -1,4 +1,4 @@
-import { defineSite, page, section, card, table, quote, link, markdown, ascii, themes, divider } from "terminaltui";
+import { defineSite, page, section, card, table, quote, link, markdown, ascii, themes, divider, searchInput, form, textInput, select, numberInput, button, spacer } from "terminaltui";
 
 export default defineSite({
   name: "The Rusty Fork",
@@ -13,6 +13,22 @@ export default defineSite({
       title: "Menu",
       icon: "◆",
       content: [
+        searchInput({
+          id: "menu-search",
+          placeholder: "Search the menu...",
+          action: "navigate",
+          items: [
+            { label: "Heirloom Tomato Salad", value: "heirloom-tomato-salad", keywords: ["starter", "salad", "burrata", "basil"] },
+            { label: "Crispy Pork Belly Bites", value: "crispy-pork-belly-bites", keywords: ["starter", "pork", "apple"] },
+            { label: "Charred Octopus", value: "charred-octopus", keywords: ["starter", "seafood", "romesco", "chorizo"] },
+            { label: "Dry-Aged Ribeye", value: "dry-aged-ribeye", keywords: ["main", "steak", "beef", "bone marrow"] },
+            { label: "Pan-Seared Salmon", value: "pan-seared-salmon", keywords: ["main", "fish", "miso", "seafood"] },
+            { label: "Wild Mushroom Risotto", value: "wild-mushroom-risotto", keywords: ["main", "vegetarian", "truffle", "risotto"] },
+            { label: "Crème Brûlée", value: "creme-brulee", keywords: ["dessert", "vanilla", "berries"] },
+            { label: "Dark Chocolate Tart", value: "dark-chocolate-tart", keywords: ["dessert", "chocolate", "espresso"] },
+          ],
+        }),
+        spacer(),
         section("Starters", [
           card({ title: "Heirloom Tomato Salad", subtitle: "$14", body: "Burrata, basil oil, aged balsamic, sea salt" }),
           card({ title: "Crispy Pork Belly Bites", subtitle: "$16", body: "Apple mostarda, pickled shallots, micro greens" }),
@@ -36,6 +52,19 @@ export default defineSite({
       title: "Drinks",
       icon: "◈",
       content: [
+        searchInput({
+          id: "drinks-search",
+          placeholder: "Search drinks...",
+          action: "navigate",
+          items: [
+            { label: "House Red — Cabernet Sauvignon", value: "house-red-cabernet-sauvignon", keywords: ["wine", "red", "cabernet"] },
+            { label: "House White — Sauvignon Blanc", value: "house-white-sauvignon-blanc", keywords: ["wine", "white", "sauvignon"] },
+            { label: "Rosé — Provence", value: "rose-provence", keywords: ["wine", "rosé", "provence"] },
+            { label: "Rusty Nail", value: "rusty-nail", keywords: ["cocktail", "scotch", "drambuie", "signature"] },
+            { label: "Garden Gimlet", value: "garden-gimlet", keywords: ["cocktail", "gin", "cucumber", "elderflower"] },
+          ],
+        }),
+        spacer(),
         section("Wine", [
           card({ title: "House Red — Cabernet Sauvignon", subtitle: "$14/glass" }),
           card({ title: "House White — Sauvignon Blanc", subtitle: "$12/glass" }),
@@ -76,6 +105,20 @@ export default defineSite({
         markdown("**Address:** 847 N. Damen Ave, Chicago, IL 60622"),
         link("Google Maps", "https://maps.google.com"),
         link("Reservations (OpenTable)", "https://opentable.com"),
+        form({ id: "reservation", onSubmit: async (data) => ({ success: `Table reserved for ${data.name}, party of ${data.guests}!` }),
+          fields: [
+            textInput({ id: "name", label: "Name", validate: v => v ? null : "Name is required" }),
+            textInput({ id: "email", label: "Email", validate: v => v.includes("@") ? null : "Invalid email" }),
+            select({ id: "date", label: "Date", options: [
+              { label: "Today", value: "today" },
+              { label: "Tomorrow", value: "tomorrow" },
+              { label: "This Weekend", value: "weekend" },
+            ]}),
+            numberInput({ id: "guests", label: "Party Size", defaultValue: 2, min: 1, max: 20 }),
+            button({ label: "Reserve Table", style: "primary" }),
+          ],
+        }),
+        spacer(),
       ],
     }),
 

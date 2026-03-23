@@ -66,6 +66,12 @@ function parseKeys(data: string): KeyPress[] {
     keys.push(makeKey("tab", "", false, false, false, data));
   } else if (data === "\x1b[Z") {
     keys.push(makeKey("tab", "", false, false, true, data));
+  } else if (data === "\x1b[3~") {
+    keys.push(makeKey("delete", "", false, false, false, data));
+  } else if (data === "\x1b[H" || data === "\x1b[1~" || data === "\x1bOH") {
+    keys.push(makeKey("home", "", false, false, false, data));
+  } else if (data === "\x1b[F" || data === "\x1b[4~" || data === "\x1bOF") {
+    keys.push(makeKey("end", "", false, false, false, data));
   } else if (data === " ") {
     keys.push(makeKey("space", " ", false, false, false, data));
   } else {

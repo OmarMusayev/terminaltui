@@ -6,8 +6,15 @@ import {
   card,
   accordion,
   divider,
+  spacer,
   asciiArt,
   artCompose,
+  searchInput,
+  textInput,
+  textArea,
+  select,
+  button,
+  form,
 } from "../../src/index.js";
 
 // --- Data for scene and pattern pages ---
@@ -89,7 +96,20 @@ export default defineSite({
     page("scenes", {
       title: "Scenes",
       icon: "~",
-      content: scenes.flatMap((scene) => [
+      content: [
+        searchInput({
+          id: "scene-search",
+          label: "Search Scenes",
+          placeholder: "Search for a scene...",
+          action: "navigate",
+          items: scenes.map((scene) => ({
+            label: scene.name,
+            value: scene.type,
+            keywords: ["scene", "ascii", "art", scene.name.toLowerCase()],
+          })),
+        }),
+        spacer(),
+        ...scenes.flatMap((scene) => [
         card({
           title: scene.name,
           subtitle: "Decorative ASCII scene",
@@ -104,6 +124,7 @@ export default defineSite({
           },
         },
       ]),
+      ],
     }),
 
     // ─── Shapes ─────────────────────────────────────────────
@@ -273,6 +294,51 @@ export default defineSite({
       title: "Icons",
       icon: "*",
       content: [
+        searchInput({
+          id: "icon-search",
+          label: "Search Icons",
+          placeholder: "Search by icon name or category...",
+          action: "navigate",
+          items: [
+            // Tech & Dev
+            { label: "laptop", value: "laptop", keywords: ["tech", "dev", "computer"] },
+            { label: "terminal", value: "terminal", keywords: ["tech", "dev", "cli", "console"] },
+            { label: "code", value: "code", keywords: ["tech", "dev", "programming"] },
+            { label: "folder", value: "folder", keywords: ["tech", "dev", "files"] },
+            { label: "file", value: "file", keywords: ["tech", "dev", "document"] },
+            { label: "git", value: "git", keywords: ["tech", "dev", "version control"] },
+            // People & Communication
+            { label: "person", value: "person", keywords: ["people", "communication", "user"] },
+            { label: "users", value: "users", keywords: ["people", "communication", "group", "team"] },
+            { label: "mail", value: "mail", keywords: ["people", "communication", "email"] },
+            { label: "phone", value: "phone", keywords: ["people", "communication", "call"] },
+            { label: "book", value: "book", keywords: ["people", "communication", "reading"] },
+            // Media & Creative
+            { label: "music", value: "music", keywords: ["media", "creative", "audio", "sound"] },
+            { label: "film", value: "film", keywords: ["media", "creative", "video", "movie"] },
+            { label: "camera", value: "camera", keywords: ["media", "creative", "photo"] },
+            { label: "pen", value: "pen", keywords: ["media", "creative", "writing", "draw"] },
+            // Objects & Travel
+            { label: "briefcase", value: "briefcase", keywords: ["objects", "travel", "work", "business"] },
+            { label: "cup", value: "cup", keywords: ["objects", "travel", "coffee", "drink"] },
+            { label: "food", value: "food", keywords: ["objects", "travel", "eating"] },
+            { label: "car", value: "car", keywords: ["objects", "travel", "vehicle", "driving"] },
+            { label: "plane", value: "plane", keywords: ["objects", "travel", "flight", "airplane"] },
+            // Symbols & Nature
+            { label: "heart", value: "heart", keywords: ["symbols", "nature", "love"] },
+            { label: "star", value: "star", keywords: ["symbols", "nature", "favorite"] },
+            { label: "globe", value: "globe", keywords: ["symbols", "nature", "world", "earth"] },
+            { label: "pin", value: "pin", keywords: ["symbols", "nature", "location", "map"] },
+            { label: "clock", value: "clock", keywords: ["symbols", "nature", "time"] },
+            // Status & Indicators
+            { label: "check", value: "check", keywords: ["status", "indicators", "success", "done"] },
+            { label: "cross", value: "cross", keywords: ["status", "indicators", "error", "fail"] },
+            { label: "warning", value: "warning", keywords: ["status", "indicators", "alert", "caution"] },
+            { label: "chart", value: "chart", keywords: ["status", "indicators", "data", "graph"] },
+            { label: "chain", value: "chain", keywords: ["status", "indicators", "link", "connection"] },
+          ],
+        }),
+        spacer(),
         accordion([
           {
             label: "Tech & Dev",
@@ -418,6 +484,30 @@ Terminal art lives within constraints: monospace fonts, limited colors, and a ch
 
 Every generator is deterministic, resolution-aware, and theme-compatible. Art adapts to your terminal width and color scheme automatically.
         `),
+        spacer(),
+        markdown(`### Submit Your Art`),
+        form({
+          id: "submit-art",
+          onSubmit: async (data) => ({ success: "Art submitted for review! Thanks for contributing." }),
+          fields: [
+            textInput({ id: "name", label: "Artist Name", validate: (v) => v ? null : "Required" }),
+            textInput({ id: "title", label: "Piece Title", validate: (v) => v ? null : "Required" }),
+            select({
+              id: "category",
+              label: "Category",
+              options: [
+                { label: "Scene", value: "scene" },
+                { label: "Shape", value: "shape" },
+                { label: "Pattern", value: "pattern" },
+                { label: "Data Visualization", value: "dataviz" },
+                { label: "Icon", value: "icon" },
+              ],
+            }),
+            textArea({ id: "description", label: "Description", rows: 3, placeholder: "Describe your ASCII art piece..." }),
+            button({ label: "Submit Art", style: "primary" }),
+          ],
+        }),
+        spacer(),
         divider(),
         link("Source Code", "https://github.com/example/tui", { icon: ">" }),
         link("Documentation", "https://tui.dev/docs/ascii-art", {

@@ -1,39 +1,28 @@
-# terminaltui — Claude Skill Reference
+---
+name: terminaltui
+description: Framework for building TUI websites and applications. Use when a user wants to create a terminal-based website, build a TUI application, or convert an existing website to TUI. Trigger on: "TUI", "terminal website", "terminal UI", "terminal app", "npx site", "terminaltui", converting websites to terminal, building CLI/terminal interfaces.
+---
 
-## Overview
+# terminaltui — TUI Website & Application Framework
 
-**terminaltui** is a framework that turns any website into a fully interactive terminal (TUI) experience. Users define their site in a single `site.config.ts` file using a declarative API of builder functions. The result is an interactive terminal app — navigable with keyboard — that can be published to npm so anyone can run it with `npx`.
+## What It Is
 
-### What it produces
+terminaltui is a TypeScript framework that turns any website into a fully interactive terminal (TUI) experience. Users define their site in a single `site.config.ts` file using a declarative API of builder functions — pages, content blocks, input components, themes, ASCII art, animations, state management, and data fetching. The result is an interactive terminal app navigable by keyboard that can be published to npm so anyone can run it with `npx my-site`.
 
-A `site.config.ts` file that default-exports a `Site` object created by `defineSite()`. This config describes the entire site: name, banner, theme, pages, content blocks, animations, and navigation.
-
-### How users run it
+## Quick Start
 
 ```bash
 # Scaffold a new project
 npx terminaltui init [template]
 
-# Start dev preview (compiles and runs the TUI)
+# Start dev preview
 npx terminaltui dev
 
 # Bundle for npm publish
 npx terminaltui build
-
-# Users install the published package and run:
-npx my-cool-site
 ```
 
-### File structure of a terminaltui project
-
-```
-my-site/
-  site.config.ts    # <-- the only file you edit
-  package.json      # must have "type": "module"
-  tsconfig.json
-```
-
-### Minimal valid config
+Minimal config (`site.config.ts`):
 
 ```ts
 import { defineSite, page, markdown } from "terminaltui";
@@ -43,13 +32,97 @@ export default defineSite({
   pages: [
     page("home", {
       title: "Home",
-      content: [
-        markdown("Hello world!"),
-      ],
+      content: [markdown("Hello world!")],
     }),
   ],
 });
 ```
+
+Project structure:
+
+```
+my-site/
+  site.config.ts    # the only file you edit
+  package.json      # must have "type": "module"
+  tsconfig.json
+```
+
+---
+
+## Focus & Scroll Model — CRITICAL FOR GOOD UX
+
+TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor between items. The viewport scrolls to follow the focused item. Understanding which components are focusable is essential for building good TUI experiences.
+
+**Default layout philosophy:** Use vertical scrolling with flat card layouts. Use `divider("Label")` to visually separate sections rather than nesting them inside containers like `tabs()`.
+
+### Focusability per Component
+
+| Component | Focusable? | Behavior |
+|-----------|-----------|----------|
+| `card()` | **Yes** — individually | Each card is a separate focus target. Best for browsable lists. |
+| `link()` | **Yes** — individually | Opens URL on Enter. |
+| `hero()` | **Yes** — individually | Opens CTA URL on Enter (if `cta` set). |
+| `accordion()` | **Yes** — per item | Each accordion item is separately focusable. Enter toggles open/close. |
+| `tabs()` | **Yes** — as one block | Enter cycles through tabs. Not ideal for many sections. |
+| `textInput()` | **Yes** — individually | Enter starts editing, Escape exits. |
+| `textArea()` | **Yes** — individually | Same as textInput but multi-line. |
+| `select()` | **Yes** — individually | Enter opens dropdown, arrow keys pick option. |
+| `checkbox()` | **Yes** — individually | Enter/Space toggles. |
+| `toggle()` | **Yes** — individually | Enter/Space toggles. |
+| `radioGroup()` | **Yes** — individually | Enter starts selection, arrows move between options. |
+| `numberInput()` | **Yes** — individually | Left/Right changes value. |
+| `searchInput()` | **Yes** — individually | Type to filter, arrows to pick result, Enter to select. |
+| `button()` | **Yes** — individually | Enter triggers action. |
+| `timeline()` | **Yes** — per item | Each timeline item is focusable but display-only (no action on Enter). |
+| `markdown()` | No | Passive text. Not focusable. |
+| `table()` | No | Passive data display. Not focusable. |
+| `list()` | No | Passive list. Items not individually focusable. |
+| `quote()` | No | Passive text. Not focusable. |
+| `progressBar()` / `skillBar()` | No | Passive display. |
+| `badge()` | No | Inline label. Not focusable. |
+| `divider()` | No | Visual separator. Not focusable. |
+| `spacer()` | No | Vertical spacing. Not focusable. |
+| `image()` | No | Passive display. |
+| `section()` | No — wrapper | Children inherit their own focusability. |
+| `form()` | No — wrapper | Children (inputs, buttons) are individually focusable. |
+| `dynamic()` | No — wrapper | Children inherit their own focusability. |
+
+### TUI UX Patterns — What to Use When
+
+| UX Need | Use | Avoid |
+|---------|-----|-------|
+| Scrollable list of items | Flat `card()` blocks | `timeline()`, `list()` |
+| Sectioned long page | `divider("Label")` + cards below | `tabs()` (forces horizontal switching) |
+| Toggle between views of same data | `tabs()` | n/a |
+| Dense reference data | `table()` | Many cards for tabular data |
+| Expandable FAQ / details | `accordion()` | Long `markdown()` blocks |
+| Work history / education | Individual `card()` blocks with period as subtitle | `timeline()` (items aren't actionable) |
+| Skills / tech stack | `skillBar()` or `list()` (passive reference) | Cards (overkill for simple data) |
+
+### Bad → Good Patterns
+
+```ts
+// BAD: tabs for resume sections + timeline for entries
+// timeline is one block, tabs force left/right switching
+tabs([
+  { label: "Experience", content: [timeline([
+    { title: "Engineer", subtitle: "Acme", period: "2023–now" }
+  ])] },
+  { label: "Education", content: [timeline([...])] },
+])
+
+// GOOD: flat cards with divider sections — everything scrolls vertically
+divider("Experience"),
+card({ title: "Senior Engineer", subtitle: "Acme Corp — 2023–present", body: "Leading platform team..." }),
+card({ title: "Junior Dev", subtitle: "Startup — 2021–2023", body: "Built core features..." }),
+divider("Education"),
+card({ title: "BS Computer Science", subtitle: "State University — 2021" }),
+// Each card is focusable, everything scrolls naturally with ↑↓
+```
+
+**When to use `timeline()`:** Only when you want a visual connected-dot timeline aesthetic AND the items are passive (no action needed on Enter). For anything users need to browse, navigate, or interact with, use `card()` blocks instead.
+
+**When to use `tabs()`:** Only for mutually exclusive views of the same data (e.g., "Grid view" vs "List view", "Day 1" vs "Day 2" of a conference). NOT for organizing sequential sections of a page — use `divider("Label")` for that.
 
 ---
 
@@ -57,132 +130,186 @@ export default defineSite({
 
 Every function below is imported from `"terminaltui"`.
 
-### `defineSite(config: SiteConfig): Site`
+### defineSite(config: SiteConfig): Site
 
 Top-level site definition. Must be the default export of `site.config.ts`.
 
 ```ts
-import { defineSite, page, markdown, ascii, themes } from "terminaltui";
+interface SiteConfig {
+  name: string;                                   // Required. Site name
+  handle?: string;                                // Handle shown on home (e.g. "@user")
+  tagline?: string;                               // Subtitle below the banner
+  banner?: BannerConfig;                          // ASCII art banner (use ascii() helper)
+  theme?: Theme | BuiltinThemeName;               // Theme object or name. Default: "dracula"
+  borders?: BorderStyle;                          // Border style for cards/tables. Default: "rounded"
+  animations?: AnimationConfig;                   // Boot, transitions, exit config
+  navigation?: NavigationConfig;                  // Navigation behavior options
+  pages: (PageConfig | RouteConfig)[];            // Array of pages and routes
+  middleware?: MiddlewareFn[];                     // Global middleware chain
+  easterEggs?: EasterEggConfig;                   // Konami code and custom commands
+  footer?: string | ContentBlock;                 // Footer content
+  statusBar?: boolean | StatusBarConfig;          // Status bar configuration
+  artDir?: string | false;                        // Custom art directory path
 
+  // Lifecycle hooks
+  onInit?: (app: AppContext) => Promise<void> | void;
+  onExit?: (app: AppContext) => Promise<void> | void;
+  onNavigate?: (from: string, to: string, params?: RouteParams) => void;
+  onError?: (error: Error, context: ErrorContext) => ContentBlock[] | void;
+}
+```
+
+```ts
 export default defineSite({
   name: "My Site",
-  handle: "@myhandle",
+  handle: "@me",
   tagline: "a cool terminal site",
   banner: ascii("My Site", { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] }),
-  theme: themes.dracula,
+  theme: "dracula",
   borders: "rounded",
-  animations: { boot: true, transitions: "fade", exitMessage: "Goodbye!" },
+  animations: { boot: true, transitions: "fade", exitMessage: "Goodbye!", speed: "normal" },
+  middleware: [requireEnv(["API_KEY"])],
+  onInit: async (app) => { /* setup */ },
+  onError: (err, ctx) => [markdown(`Error: ${err.message}`)],
   pages: [ /* ... */ ],
 });
 ```
 
-**Parameters (SiteConfig):**
+### page(id: string, config): PageConfig
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | `string` | Yes | Site name (shown if no banner) |
-| `handle` | `string` | No | Handle/username shown on home page (e.g. `"@username"`) |
-| `tagline` | `string` | No | Subtitle shown below the banner |
-| `banner` | `BannerConfig` | No | ASCII art banner config (use `ascii()` helper) |
-| `theme` | `Theme \| BuiltinThemeName` | No | Theme object or name string. Defaults to `"dracula"` |
-| `borders` | `BorderStyle` | No | Border style for cards/tables. Default `"rounded"` |
-| `animations` | `AnimationConfig` | No | Boot, transitions, exit animation config |
-| `navigation` | `NavigationConfig` | No | Navigation behavior options |
-| `pages` | `PageConfig[]` | Yes | Array of pages (use `page()` helper) |
-| `easterEggs` | `EasterEggConfig` | No | Konami code and custom commands |
-| `footer` | `string \| ContentBlock` | No | Footer content |
-| `statusBar` | `boolean \| StatusBarConfig` | No | Status bar configuration |
+Creates a page. Each page appears as a menu item.
 
----
-
-### `page(id: string, config): PageConfig`
-
-Creates a page. Each page appears as a menu item on the home screen.
+```ts
+interface PageConfig {
+  id: string;                                        // Unique page identifier (first arg)
+  title: string;                                     // Display name in the menu
+  icon?: string;                                     // Single character before the title
+  content: ContentBlock[] | (() => Promise<ContentBlock[]>); // Static or async content
+  loading?: string;                                  // Loading message for async content
+  refreshInterval?: number;                          // Auto-refresh interval in ms
+  onError?: (err: Error) => ContentBlock[];          // Error handler
+  middleware?: MiddlewareFn[];                        // Page-level middleware chain
+}
+```
 
 ```ts
 page("about", {
   title: "About Me",
   icon: "◆",
-  content: [
-    markdown("Hello! I'm a developer."),
-  ],
+  content: [markdown("Hello!")],
+  middleware: [requireEnv(["ABOUT_DATA"])],
 })
 ```
 
-**Parameters:**
+Common icons: `"◆"` `"◈"` `"▣"` `"▤"` `"◉"` `"▸"` `"✦"` `"★"` `"●"` `"■"` `"▲"` `"♦"`
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `id` | `string` | Yes | Unique page identifier (first arg) |
-| `title` | `string` | Yes | Display name in the menu |
-| `icon` | `string` | No | Single character/emoji shown before the title |
-| `content` | `ContentBlock[]` | Yes | Array of content blocks |
+### route(id: string, config): RouteConfig
 
-**Common icons:** `"◆"` `"◈"` `"▣"` `"▤"` `"◉"` `"▸"` `"✦"` `"★"` `"●"` `"■"` `"▲"` `"♦"`
+Defines a parameterized route. Unlike `page()`, routes receive params and content is always a function.
+
+```ts
+interface RouteConfig {
+  id: string;                                                          // Route ID
+  title: string | ((params: RouteParams) => string);                   // Static or dynamic title
+  icon?: string;
+  content: ((params: RouteParams) => ContentBlock[]) | ((params: RouteParams) => Promise<ContentBlock[]>);
+  loading?: string | ((params: RouteParams) => string);
+  onError?: (err: Error, params: RouteParams) => ContentBlock[];
+  middleware?: MiddlewareFn[];
+}
+
+type RouteParams = Record<string, string>;
+```
+
+```ts
+route("project", {
+  title: (params) => `Project: ${params.name}`,
+  content: async (params) => {
+    const data = await fetchProject(params.name);
+    return [card({ title: data.name, body: data.description })];
+  },
+  loading: "Loading project...",
+})
+```
+
+### navigate(pageId: string, params?: RouteParams): void
+
+Programmatic navigation from anywhere (event handlers, middleware, etc.).
+
+```ts
+navigate("project", { name: "my-app" });
+navigate("home");
+```
 
 ---
 
-### Content Helpers
+### Content Blocks
 
-#### `section(title: string, content: ContentBlock[]): SectionBlock`
+#### markdown(text: string): TextBlock
 
-Groups content under a titled section header with a divider line.
+Renders text with markdown formatting (bold, italic, inline code, code blocks).
 
 ```ts
-section("Starters", [
-  card({ title: "Bruschetta", subtitle: "$12", body: "Toasted bread with tomatoes" }),
-  card({ title: "Soup du Jour", subtitle: "$9", body: "Ask your server" }),
-])
+markdown("This is **bold** and *italic* with `code`.")
 ```
 
-#### `card(config): CardBlock`
+#### card(config): CardBlock
 
-A bordered card with title, optional subtitle, body text, tags, and URL.
+A bordered card with title, optional subtitle, body, tags, URL, and action.
+
+```ts
+interface CardBlock {
+  title: string;          // Card heading
+  subtitle?: string;      // Secondary text (price, date, star count)
+  body?: string;          // Body text
+  tags?: string[];        // Tags shown as badges
+  url?: string;           // URL opened on Enter
+  border?: BorderStyle;   // Override border style
+  action?: CardAction;    // Action on select (navigate, onPress, etc.)
+}
+
+interface CardAction {
+  label?: string;
+  style?: "primary" | "secondary" | "danger";
+  confirm?: string;                         // Confirmation prompt text
+  onPress?: () => void | Promise<void>;
+  navigate?: string;                        // Navigate to a page/route
+  params?: RouteParams;                     // Route parameters
+}
+```
 
 ```ts
 card({
   title: "My Project",
   subtitle: "★ 200",
-  body: "A brief description of this project.",
+  body: "A brief description.",
   tags: ["TypeScript", "Open Source"],
   url: "https://github.com/user/repo",
-  border: "rounded",  // optional: "single" | "double" | "rounded" | "heavy" | "dashed" | "ascii" | "none"
+  action: { navigate: "project", params: { name: "my-project" } },
 })
 ```
 
-**Parameters (Omit<CardBlock, "type">):**
+#### timeline(items: TimelineItem[]): TimelineBlock
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `title` | `string` | Yes | Card heading |
-| `subtitle` | `string` | No | Secondary text (price, star count, date, etc.) |
-| `body` | `string` | No | Body text / description |
-| `tags` | `string[]` | No | Tags shown as badges |
-| `url` | `string` | No | URL opened when user presses Enter |
-| `border` | `BorderStyle` | No | Override border style for this card |
+Vertical timeline with connected entries. Great for work history, changelog, education.
 
-#### `timeline(items: TimelineItem[]): TimelineBlock`
-
-A vertical timeline with connected entries. Great for work history, changelog, education.
+```ts
+interface TimelineItem {
+  title: string;       // Entry heading
+  subtitle?: string;   // Organization/company
+  period?: string;     // Time range
+  description?: string; // Details
+}
+```
 
 ```ts
 timeline([
-  { title: "Senior Engineer", subtitle: "Acme Corp", period: "2023 — present", description: "Leading the platform team" },
-  { title: "Software Engineer", subtitle: "Startup Inc", period: "2021 — 2023", description: "Full-stack development" },
+  { title: "Senior Engineer", subtitle: "Acme Corp", period: "2023 — present", description: "Leading platform team" },
   { title: "BS Computer Science", subtitle: "University", period: "2017 — 2021" },
 ])
 ```
 
-**TimelineItem fields:**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `title` | `string` | Yes | Entry heading |
-| `subtitle` | `string` | No | Organization/company |
-| `period` | `string` | No | Time range |
-| `description` | `string` | No | Details |
-
-#### `table(headers: string[], rows: string[][]): TableBlock`
+#### table(headers: string[], rows: string[][]): TableBlock
 
 A bordered data table.
 
@@ -192,220 +319,151 @@ table(
   [
     ["Free", "$0/mo", "Basic features"],
     ["Pro", "$10/mo", "Everything + priority support"],
-    ["Enterprise", "Custom", "Unlimited"],
   ]
 )
 ```
 
-#### `list(items: string[], style?): ListBlock`
+#### list(items: string[], style?): ListBlock
 
-A styled list of strings.
+A styled list. Style: `"bullet"` (default) | `"number"` | `"dash"` | `"check"` | `"arrow"`.
 
 ```ts
 list(["First item", "Second item", "Third item"], "check")
 ```
 
-**Style options:** `"bullet"` (default) | `"number"` | `"dash"` | `"check"` | `"arrow"`
+#### quote(text: string, attribution?: string): QuoteBlock
 
-#### `quote(text: string, attribution?: string): QuoteBlock`
-
-A block quote with optional attribution.
+Block quote with optional attribution.
 
 ```ts
 quote("The best way to predict the future is to invent it.", "— Alan Kay")
 ```
 
-#### `hero(config): HeroBlock`
+#### hero(config): HeroBlock
 
-A large hero section with title, subtitle, and call-to-action button.
+Large hero section with title, subtitle, CTA, and optional ASCII art.
 
 ```ts
-hero({
-  title: "Welcome to My Product",
-  subtitle: "The fastest way to build terminal apps.",
-  cta: { label: "Get Started →", url: "https://example.com/docs" },
-  art: "optional-ascii-art-string",
-})
+interface HeroBlock {
+  title: string;                              // Large heading
+  subtitle?: string;                          // Description
+  cta?: { label: string; url: string };       // Call-to-action link
+  art?: string;                               // Custom ASCII art string
+}
 ```
 
-**Parameters (Omit<HeroBlock, "type">):**
+```ts
+hero({ title: "Welcome", subtitle: "Build terminal apps.", cta: { label: "Get Started →", url: "https://..." } })
+```
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `title` | `string` | Yes | Large heading |
-| `subtitle` | `string` | No | Description text |
-| `cta` | `{ label: string; url: string }` | No | Call-to-action link |
-| `art` | `string` | No | Custom ASCII art string |
+#### gallery(items): GalleryBlock
 
-#### `gallery(items): GalleryBlock`
-
-A grid/gallery of cards. Items use the same shape as `card()` but without `type`.
+Grid of cards. Items use the same shape as `card()` (without `type`).
 
 ```ts
 gallery([
   { title: "Photo 1", body: "Description", tags: ["nature"] },
   { title: "Photo 2", body: "Description", tags: ["urban"] },
-  { title: "Photo 3", body: "Description", tags: ["portrait"] },
 ])
 ```
 
-#### `tabs(items): TabsBlock`
+#### tabs(items): TabsBlock
 
 Tabbed content. Each tab has a label and nested content blocks.
 
 ```ts
 tabs([
-  { label: "Frontend", content: [
-    list(["React", "Vue", "Svelte"], "check"),
-  ]},
-  { label: "Backend", content: [
-    list(["Node.js", "Python", "Go"], "check"),
-  ]},
+  { label: "Frontend", content: [list(["React", "Vue", "Svelte"], "check")] },
+  { label: "Backend", content: [list(["Node.js", "Python", "Go"], "check")] },
 ])
 ```
 
-#### `accordion(items): AccordionBlock`
+#### accordion(items): AccordionBlock
 
 Collapsible sections. Same shape as tabs. Great for FAQs.
 
 ```ts
 accordion([
-  { label: "What is terminaltui?", content: [
-    markdown("A framework for building terminal websites."),
-  ]},
-  { label: "How do I deploy?", content: [
-    markdown("Run `terminaltui build` then `npm publish`."),
-  ]},
+  { label: "What is terminaltui?", content: [markdown("A framework for building terminal websites.")] },
+  { label: "How do I deploy?", content: [markdown("Run `terminaltui build` then `npm publish`.")] },
 ])
 ```
 
-#### `link(label: string, url: string, options?): LinkBlock`
+#### link(label: string, url: string, options?: LinkOptions): LinkBlock
 
 A clickable link. Opens in the user's browser when selected.
+
+```ts
+interface LinkOptions {
+  icon?: string;   // Icon character before the label
+}
+```
 
 ```ts
 link("GitHub", "https://github.com/user")
 link("Email", "mailto:hello@example.com", { icon: "✉" })
 ```
 
-**Options:**
+#### progressBar(label: string, value: number, max?: number): ProgressBarBlock
 
-| Field | Type | Description |
-|---|---|---|
-| `icon` | `string` | Icon character shown before the label |
+Generic progress bar. Max defaults to 100. Always shows percent.
 
-#### `skillBar(label: string, value: number): ProgressBarBlock`
+```ts
+progressBar("Project Alpha", 7, 10)
+progressBar("Completion", 65)
+```
 
-A labeled skill/proficiency bar (0-100). Shorthand for `progressBar(label, value, 100)` with `showPercent: true`.
+#### skillBar(label: string, value: number): ProgressBarBlock
+
+Shorthand for `progressBar(label, value, 100)` with `showPercent: true`.
 
 ```ts
 skillBar("TypeScript", 90)
 skillBar("Rust", 75)
-skillBar("Python", 85)
 ```
 
-#### `progressBar(label: string, value: number, max?: number): ProgressBarBlock`
+#### badge(text: string, color?: string): BadgeBlock
 
-A generic progress bar.
-
-```ts
-progressBar("Project Alpha", 7, 10)
-progressBar("Completion", 65)  // max defaults to 100
-```
-
-#### `badge(text: string, color?: string): BadgeBlock`
-
-An inline badge/tag.
+An inline badge/tag. Color is a hex string.
 
 ```ts
 badge("v2.0")
 badge("NEW", "#50fa7b")
 ```
 
-**Parameters:**
+#### image(path: string, options?): ImageBlock
 
-| Field | Type | Description |
-|---|---|---|
-| `text` | `string` | Badge text |
-| `color` | `string` | Optional hex color |
-
-#### `image(path: string, options?): ImageBlock`
-
-Renders an image in the terminal using ASCII/braille/block art.
+Renders an image in the terminal.
 
 ```ts
 image("./logo.png")
 image("./photo.jpg", { width: 60, mode: "braille" })
 ```
 
-**Options:**
+Options: `width?: number`, `mode?: "ascii" | "braille" | "blocks"`.
 
-| Field | Type | Description |
-|---|---|---|
-| `width` | `number` | Render width in columns |
-| `mode` | `"ascii" \| "braille" \| "blocks"` | Rendering mode |
+#### section(title: string, content: ContentBlock[]): SectionBlock
 
----
-
-### Visual Helpers
-
-#### `ascii(text: string, options?): BannerConfig`
-
-Creates an ASCII art banner config for the `banner` field of `defineSite()`.
+Groups content under a titled section header with a divider line.
 
 ```ts
-ascii("MY SITE", { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] })
+section("Appetizers", [
+  card({ title: "Bruschetta", subtitle: "$12", body: "Toasted bread with tomatoes" }),
+])
 ```
 
-**Options (AsciiBannerOptions):**
+#### divider(style?, label?): DividerBlock
 
-| Field | Type | Description |
-|---|---|---|
-| `font` | `string` | Font name. See Font Selection Guide below |
-| `gradient` | `string[]` | Array of hex colors for gradient effect |
-| `align` | `"left" \| "center" \| "right"` | Text alignment |
-| `padding` | `number` | Padding around the banner |
-
-#### `markdown(text: string): TextBlock`
-
-Renders text with basic markdown formatting (bold, italic, inline code).
+Horizontal divider line. Styles: `"solid"` | `"dashed"` | `"dotted"` | `"double"` | `"label"`. If the first arg is not a known style, it becomes a label automatically.
 
 ```ts
-markdown("This is **bold** and *italic* with `code`.")
-```
-
-#### `gradient(text: string, colors: string[]): TextBlock`
-
-Creates gradient-colored text.
-
-```ts
-gradient("Rainbow text!", ["#ff0000", "#00ff00", "#0000ff"])
-```
-
-#### `sparkline(data: number[]): ContentBlock`
-
-A mini sparkline chart from numeric data, rendered with Unicode block characters.
-
-```ts
-sparkline([1, 5, 3, 8, 2, 7, 4, 9, 6])
-```
-
-#### `divider(style?, label?): DividerBlock`
-
-A horizontal divider line.
-
-```ts
-divider()                    // default solid
+divider()                    // solid line
 divider("dashed")            // dashed line
-divider("dotted")            // dotted line
-divider("double")            // double line
-divider("My Section")        // labeled divider (shorthand: if first arg is not a known style, it becomes a label)
+divider("My Section")        // labeled divider (auto-detected)
 divider("label", "Section")  // explicit label style
 ```
 
-**Style options:** `"solid"` | `"dashed"` | `"dotted"` | `"double"` | `"label"`
-
-#### `spacer(lines?: number): SpacerBlock`
+#### spacer(lines?: number): SpacerBlock
 
 Vertical whitespace. Defaults to 1 line.
 
@@ -414,111 +472,436 @@ spacer()     // 1 blank line
 spacer(3)    // 3 blank lines
 ```
 
+#### dynamic(renderFn) / dynamic(deps, renderFn): DynamicBlock
+
+Reactive content block that re-renders when state changes.
+
+```ts
+// Re-renders on any state change
+dynamic(() => markdown(`Count: ${state.get("count")}`))
+
+// Re-renders only when "count" changes
+dynamic(["count"], () => markdown(`Count: ${state.get("count")}`))
+```
+
+#### asyncContent(config): AsyncContentBlock
+
+Lazily-loaded async content.
+
+```ts
+asyncContent({
+  load: async () => {
+    const data = await fetchData();
+    return [card({ title: data.name, body: data.description })];
+  },
+  loading: "Loading data...",
+  fallback: [markdown("Failed to load.")],
+})
+```
+
 ---
 
-### `themes` Object
+### Input Components
 
-A record of all 10 built-in themes. Use as `themes.themeName`.
+All input components create interactive form elements. In navigation mode, press Enter on an input to enter edit mode; press Escape to return to navigation.
+
+#### textInput(config): TextInputBlock
+
+```ts
+interface TextInputBlock {
+  id: string;                                    // Unique input ID
+  label: string;                                 // Label text
+  placeholder?: string;                          // Placeholder text
+  defaultValue?: string;                         // Initial value
+  maxLength?: number;                            // Max character count
+  validate?: (value: string) => string | null;   // Return error message or null
+  mask?: boolean;                                // Mask input (for passwords)
+  transform?: (value: string) => string;         // Transform input on change
+}
+```
+
+```ts
+textInput({ id: "name", label: "Your Name", placeholder: "Enter name...", maxLength: 50 })
+textInput({ id: "password", label: "Password", mask: true })
+```
+
+#### textArea(config): TextAreaBlock
+
+```ts
+interface TextAreaBlock {
+  id: string;
+  label: string;
+  placeholder?: string;
+  defaultValue?: string;
+  rows?: number;                                 // Visible rows (default varies)
+  maxLength?: number;
+  validate?: (value: string) => string | null;
+}
+```
+
+```ts
+textArea({ id: "bio", label: "Bio", placeholder: "Tell us about yourself...", rows: 4, maxLength: 500 })
+```
+
+#### select(config): SelectBlock
+
+```ts
+interface SelectBlock {
+  id: string;
+  label: string;
+  options: { label: string; value: string }[];
+  defaultValue?: string;
+  placeholder?: string;
+  onChange?: (value: string) => void;
+}
+```
+
+```ts
+select({
+  id: "color",
+  label: "Favorite Color",
+  options: [{ label: "Red", value: "red" }, { label: "Blue", value: "blue" }],
+  onChange: (val) => console.log("Selected:", val),
+})
+```
+
+#### checkbox(config): CheckboxBlock
+
+```ts
+interface CheckboxBlock {
+  id: string;
+  label: string;
+  defaultValue?: boolean;
+  onChange?: (value: boolean) => void;
+}
+```
+
+```ts
+checkbox({ id: "agree", label: "I agree to the terms", onChange: (val) => console.log(val) })
+```
+
+#### toggle(config): ToggleBlock
+
+```ts
+interface ToggleBlock {
+  id: string;
+  label: string;
+  defaultValue?: boolean;
+  onLabel?: string;                              // Text for "on" state
+  offLabel?: string;                             // Text for "off" state
+  onChange?: (value: boolean) => void;
+}
+```
+
+```ts
+toggle({ id: "dark", label: "Dark Mode", onLabel: "ON", offLabel: "OFF", defaultValue: true })
+```
+
+#### radioGroup(config): RadioGroupBlock
+
+```ts
+interface RadioGroupBlock {
+  id: string;
+  label: string;
+  options: { label: string; value: string }[];
+  defaultValue?: string;
+  onChange?: (value: string) => void;
+}
+```
+
+```ts
+radioGroup({
+  id: "plan",
+  label: "Select Plan",
+  options: [{ label: "Free", value: "free" }, { label: "Pro", value: "pro" }],
+  defaultValue: "free",
+  onChange: (val) => console.log("Plan:", val),
+})
+```
+
+#### numberInput(config): NumberInputBlock
+
+```ts
+interface NumberInputBlock {
+  id: string;
+  label: string;
+  defaultValue?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+```
+
+```ts
+numberInput({ id: "qty", label: "Quantity", defaultValue: 1, min: 1, max: 99, step: 1 })
+```
+
+#### searchInput(config): SearchInputBlock
+
+```ts
+interface SearchInputBlock {
+  id: string;
+  label?: string;
+  placeholder?: string;
+  items: { label: string; value: string; keywords?: string[] }[];
+  maxResults?: number;
+  action?: "navigate" | "callback";              // Default: "callback" if onSelect provided
+  onSelect?: (value: string) => void;
+}
+```
+
+```ts
+searchInput({
+  id: "search",
+  placeholder: "Search pages...",
+  items: [
+    { label: "About", value: "about", keywords: ["bio", "info"] },
+    { label: "Projects", value: "projects", keywords: ["work", "code"] },
+  ],
+  action: "navigate",
+})
+```
+
+#### button(config): ButtonBlock
+
+```ts
+interface ButtonBlock {
+  label: string;
+  style?: "primary" | "secondary" | "danger";
+  onPress?: () => void | Promise<void>;
+  loading?: boolean;
+}
+```
+
+```ts
+button({ label: "Submit", style: "primary", onPress: async () => { /* ... */ } })
+```
+
+#### form(config): FormBlock
+
+Groups input fields and a submit button. On submit, collects all field values by ID.
+
+```ts
+interface FormBlock {
+  id: string;
+  onSubmit: (data: Record<string, any>) => Promise<ActionResult> | ActionResult;
+  fields: ContentBlock[];
+}
+
+type ActionResult = { success: string } | { error: string } | { info: string };
+```
+
+```ts
+form({
+  id: "contact",
+  onSubmit: async (data) => {
+    await sendEmail(data.name, data.email, data.message);
+    return { success: "Message sent!" };
+  },
+  fields: [
+    textInput({ id: "name", label: "Name" }),
+    textInput({ id: "email", label: "Email" }),
+    textArea({ id: "message", label: "Message", rows: 4 }),
+    button({ label: "Send", style: "primary" }),
+  ],
+})
+```
+
+---
+
+### State Management
+
+#### createState(initial): StateContainer
+
+Reactive state container. Changes trigger UI re-renders.
+
+```ts
+interface StateContainer<T> {
+  get(): T;                                      // Get entire state
+  get<K extends keyof T>(key: K): T[K];          // Get single key
+  set<K extends keyof T>(key: K, value: T[K]): void;
+  update<K extends keyof T>(key: K, fn: (prev: T[K]) => T[K]): void;
+  batch(fn: () => void): void;                   // Batch multiple updates
+  on<K extends keyof T>(key: K, handler: (newVal, oldVal) => void): Unsubscribe;
+  on(key: "*", handler: (key, newVal) => void): Unsubscribe;
+}
+```
+
+```ts
+const state = createState({ count: 0, name: "world" });
+state.set("count", 1);
+state.update("count", (prev) => prev + 1);
+state.on("count", (newVal, oldVal) => console.log(`Changed: ${oldVal} -> ${newVal}`));
+state.batch(() => {
+  state.set("count", 10);
+  state.set("name", "hello");
+});
+```
+
+#### computed(fn): ComputedValue
+
+Cached derived values. Call `.invalidate()` to force recalculation.
+
+```ts
+interface ComputedValue<T> {
+  get(): T;
+  invalidate(): void;
+}
+```
+
+```ts
+const total = computed(() => state.get("price") * state.get("quantity"));
+console.log(total.get());
+```
+
+#### createPersistentState(options): StateContainer
+
+State that persists to disk as JSON. Same API as `createState`.
+
+```ts
+interface PersistentStateOptions<T> {
+  path: string;           // File path for JSON persistence
+  defaults: T;            // Default values
+  encrypt?: boolean;      // Encrypt on disk
+}
+```
+
+```ts
+const prefs = createPersistentState({
+  path: "./data/prefs.json",
+  defaults: { theme: "dracula", fontSize: 14 },
+});
+```
+
+---
+
+### Data Fetching
+
+#### fetcher(options): FetcherResult
+
+Reactive data fetcher with caching, retry, and auto-refresh.
+
+```ts
+interface FetcherOptions<T> {
+  url?: string;                                  // URL to fetch
+  fetch?: () => Promise<T>;                      // Custom fetch function
+  method?: string;                               // HTTP method
+  headers?: Record<string, string>;
+  body?: any;
+  refreshInterval?: number;                      // Auto-refresh in ms
+  cache?: boolean;                               // Enable caching (default: true)
+  cacheTTL?: number;                             // Cache TTL in ms (default: 60000)
+  retry?: number;                                // Retry count (default: 0)
+  retryDelay?: number;                           // Retry delay in ms (default: 1000)
+  transform?: (data: any) => T;                  // Transform response
+  onError?: (err: Error) => void;
+}
+
+interface FetcherResult<T> {
+  readonly data: T | null;
+  readonly loading: boolean;
+  readonly error: Error | null;
+  refresh(): Promise<void>;
+  mutate(data: T): void;
+  clear(): void;
+  destroy(): void;
+}
+```
+
+```ts
+const api = fetcher({ url: "https://api.example.com/data", refreshInterval: 30000, retry: 3 });
+```
+
+#### request(options) / request.get/post/put/delete/patch
+
+Simple HTTP request helper.
+
+```ts
+interface RequestOptions {
+  url: string;
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  headers?: Record<string, string>;
+  body?: any;
+  timeout?: number;
+}
+
+interface RequestResult<T> {
+  data: T | null;
+  error: Error | null;
+  status: number;
+  ok: boolean;
+}
+```
+
+```ts
+const res = await request({ url: "https://api.example.com/data", method: "POST", body: { name: "test" } });
+// Shorthand methods:
+const res = await request.get("https://api.example.com/data");
+const res = await request.post("https://api.example.com/data", { name: "test" });
+const res = await request.put("https://api.example.com/data/1", { name: "updated" });
+const res = await request.delete("https://api.example.com/data/1");
+const res = await request.patch("https://api.example.com/data/1", { name: "patched" });
+// Third arg is a flat headers object (not { headers: {...} }):
+const res = await request.post("https://api.example.com/data", { name: "test" }, { Authorization: "Bearer sk-..." });
+```
+
+#### liveData(options): LiveDataConnection
+
+Real-time data via WebSocket or Server-Sent Events.
+
+```ts
+// WebSocket
+const ws = liveData({
+  type: "websocket",
+  url: "wss://api.example.com/ws",
+  onMessage: (data) => { /* handle message */ },
+  onConnect: () => console.log("Connected"),
+  onDisconnect: () => console.log("Disconnected"),
+  onError: (err) => console.error(err),
+  reconnect: true,                               // Auto-reconnect (default: false)
+  reconnectInterval: 5000,
+  protocols: [],
+});
+
+// SSE
+const sse = liveData({
+  type: "sse",
+  url: "https://api.example.com/events",
+  onMessage: (event) => { /* event.data, event.type, event.lastEventId */ },
+  headers: { Authorization: "Bearer ..." },
+});
+
+// LiveDataConnection API:
+ws.send("hello");
+ws.close();
+ws.connected; // boolean
+```
+
+---
+
+### Themes
+
+10 built-in themes. Use as string name or reference `themes.themeName`.
 
 ```ts
 import { themes } from "terminaltui";
-
-// Use by reference:
-theme: themes.dracula
-
-// Or use as a string name:
-theme: "dracula"
+theme: themes.dracula    // or theme: "dracula"
 ```
 
-**Available themes:** `cyberpunk`, `dracula`, `nord`, `monokai`, `solarized`, `gruvbox`, `catppuccin`, `tokyoNight`, `rosePine`, `hacker`
+| Theme | Accent | Best For |
+|---|---|---|
+| `cyberpunk` | `#ff2a6d` (hot pink) | Tech startups, gaming, futuristic |
+| `dracula` | `#ff79c6` (pink) | General purpose, developer tools (default) |
+| `nord` | `#88c0d0` (frost blue) | Corporate, professional, SaaS |
+| `monokai` | `#f92672` (magenta) | Developer portfolios, coding tools |
+| `solarized` | `#268bd2` (blue) | Academic, documentation, research |
+| `gruvbox` | `#fe8019` (orange) | Restaurants, cafes, warm brands |
+| `catppuccin` | `#f5c2e7` (pink) | Creative agencies, design portfolios |
+| `tokyoNight` | `#7aa2f7` (blue) | Modern SaaS, product pages |
+| `rosePine` | `#ebbcba` (rose) | Music, art, personal blogs |
+| `hacker` | `#00ff41` (green) | Security, infosec, Matrix-style |
 
-You can also provide a custom theme object conforming to the `Theme` interface (see Type Reference).
-
----
-
-## Type Reference
-
-### `SiteConfig`
-
-```ts
-interface SiteConfig {
-  name: string;
-  handle?: string;
-  tagline?: string;
-  banner?: BannerConfig;
-  theme?: Theme | BuiltinThemeName;
-  borders?: BorderStyle;
-  animations?: AnimationConfig;
-  navigation?: NavigationConfig;
-  pages: PageConfig[];
-  easterEggs?: EasterEggConfig;
-  footer?: string | ContentBlock;
-  statusBar?: boolean | StatusBarConfig;
-}
-```
-
-### `PageConfig`
-
-```ts
-interface PageConfig {
-  id: string;
-  title: string;
-  icon?: string;
-  content: ContentBlock[];
-}
-```
-
-### `ContentBlock`
-
-Union type of all block types:
-
-```ts
-type ContentBlock =
-  | TextBlock | CardBlock | TimelineBlock | TableBlock
-  | ListBlock | QuoteBlock | HeroBlock | GalleryBlock
-  | TabsBlock | AccordionBlock | LinkBlock | ProgressBarBlock
-  | BadgeBlock | ImageBlock | DividerBlock | SpacerBlock
-  | SectionBlock | CustomBlock;
-```
-
-### `CardBlock`
-
-```ts
-interface CardBlock {
-  type: "card";
-  title: string;
-  subtitle?: string;
-  body?: string;
-  tags?: string[];
-  url?: string;
-  border?: BorderStyle;
-}
-```
-
-### `TimelineItem`
-
-```ts
-interface TimelineItem {
-  title: string;
-  subtitle?: string;
-  period?: string;
-  description?: string;
-}
-```
-
-### `HeroBlock`
-
-```ts
-interface HeroBlock {
-  type: "hero";
-  title: string;
-  subtitle?: string;
-  cta?: { label: string; url: string };
-  art?: string;
-}
-```
-
-### `Theme`
+Custom theme:
 
 ```ts
 interface Theme {
@@ -526,233 +909,246 @@ interface Theme {
   accentDim: string;    // Dimmed accent
   text: string;         // Primary text color
   muted: string;        // Muted/secondary text
-  subtle: string;       // Subtle elements, backgrounds
-  success: string;      // Success color (green)
-  warning: string;      // Warning color (yellow)
-  error: string;        // Error color (red)
+  subtle: string;       // Subtle elements
+  success: string;      // Success color
+  warning: string;      // Warning color
+  error: string;        // Error color
   border: string;       // Border color
   bg?: string;          // Background color
 }
 ```
 
-### `BannerConfig`
-
 ```ts
-interface BannerConfig {
-  text: string;
-  font?: string;
-  gradient?: string[];
-  align?: "left" | "center" | "right";
-  padding?: number;
+theme: {
+  accent: "#e06c75", accentDim: "#be5046", text: "#abb2bf", muted: "#5c6370",
+  subtle: "#3e4452", success: "#98c379", warning: "#e5c07b", error: "#e06c75",
+  border: "#5c6370", bg: "#282c34",
 }
 ```
 
-### `AnimationConfig`
+---
 
-```ts
-interface AnimationConfig {
-  boot?: boolean;                              // Enable boot animation
-  transitions?: "instant" | "fade" | "slide" | "wipe";  // Page transition style
-  exitMessage?: string;                        // Message shown on quit
-  speed?: "slow" | "normal" | "fast";          // Animation speed
-}
-```
-
-### `BorderStyle`
+### Border Styles
 
 ```ts
 type BorderStyle = "single" | "double" | "rounded" | "heavy" | "dashed" | "ascii" | "none";
 ```
 
-### `NavigationConfig`
-
-```ts
-interface NavigationConfig {
-  numberJump?: boolean;    // Press 1-9 to jump to page
-  vim?: boolean;           // vim-style j/k navigation
-  commandMode?: boolean;   // : to enter command mode
-}
-```
-
-### `EasterEggConfig`
-
-```ts
-interface EasterEggConfig {
-  konami?: boolean | string;                        // Enable Konami code easter egg
-  commands?: Record<string, string | (() => void)>; // Custom : commands
-}
-```
-
-### `StatusBarConfig`
-
-```ts
-interface StatusBarConfig {
-  show?: boolean;
-  showPageName?: boolean;
-  showHints?: boolean;
-}
-```
+Used in: `defineSite({ borders })`, `card({ border })`, `table({ border })`.
 
 ---
 
-## Content Mapping Guide
+### ASCII Art System
 
-Use this to decide which terminaltui components to use for different types of web content.
+#### ascii(text, options?): BannerConfig
 
-| Web Content | terminaltui Component |
-|---|---|
-| Navigation / menu | Becomes `pages` array automatically |
-| Hero / banner section | `hero()` |
-| Cards / grid of items | `card()` individually or `gallery()` for a grid |
-| Pricing tables | `table()` |
-| Testimonials / reviews | `quote()` per testimonial |
-| Work history / changelog | `timeline()` |
-| FAQ / collapsible sections | `accordion()` |
-| Tabbed content | `tabs()` |
-| Blog post list | `card()` per post (subtitle = date, body = excerpt) |
-| Contact / social links | `link()` per item |
-| Stats / metrics / skills | `skillBar()` or `progressBar()` |
-| Features list | `card()` per feature, or `list()` for simple lists |
-| Menu items (restaurant) | `section()` with `card()` items (subtitle = price) |
-| Album / discography | `card()` per album (subtitle = year, tags = genres) |
-| Tour dates / events | `card()` per event (subtitle = date, body = venue) |
-| Documentation / prose | `markdown()` |
-| Code snippets | `markdown()` with backtick blocks |
-| Image / logo | `image()` |
-| Data / comparison | `table()` |
-| Step-by-step instructions | `list()` with `"number"` style |
-| Tags / status labels | `badge()` |
-| Visual separation | `divider()` |
-| Vertical spacing | `spacer()` |
-| Grouped content | `section()` |
-| Metrics over time | `sparkline()` |
-| Custom rendering | `CustomBlock` with `render` function |
+Creates an ASCII art banner for the `banner` field of `defineSite()`.
 
----
+```ts
+interface BannerConfig {
+  text: string;
+  font?: string;                                 // Font name (see list below)
+  gradient?: string[];                           // Array of hex colors
+  align?: "left" | "center" | "right";           // Default: "left"
+  padding?: number;                              // Padding around banner
+  shadow?: boolean;                              // Drop shadow effect
+  border?: string | false;                       // Border around banner
+  width?: number;                                // Max width
+}
+```
 
-## Theme Selection Guide
+```ts
+banner: ascii("MY SITE", { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"], shadow: true })
+```
 
-Choose a theme based on the personality and industry of the site.
+#### Fonts (14 built-in)
 
-| Theme | Best For | Personality |
+| Font | Height | Style |
 |---|---|---|
-| `cyberpunk` | Tech startups, gaming, futuristic products | Neon, electric, high-energy |
-| `dracula` | Developer tools, general purpose | Classic dark theme, versatile (default) |
-| `nord` | Corporate, professional, SaaS | Clean, minimal, trustworthy |
-| `monokai` | Coding tools, developer portfolios | Familiar to developers, code-editor feel |
-| `solarized` | Academic, documentation, research | Scholarly, readable, precise |
-| `gruvbox` | Restaurants, cafes, crafts, warm brands | Earthy, warm, retro, approachable |
-| `catppuccin` | Creative agencies, design portfolios, soft brands | Soft, pastel, modern, friendly |
-| `tokyoNight` | Modern SaaS, product pages, startups | Sleek, contemporary, polished |
-| `rosePine` | Music, art, creative portfolios, personal blogs | Artistic, dreamy, elegant |
-| `hacker` | Security, CTF, terminal-native tools, infosec | Green-on-black, raw, Matrix-style |
+| `"ANSI Shadow"` | 6 | Clean block letters with shadow — modern default |
+| `"Block"` | 6 | Solid block characters — bold and heavy |
+| `"Slant"` | 6 | Classic italic/slanted — elegant |
+| `"Calvin S"` | 4 | Clean thin letters — professional, compact |
+| `"Small"` | 4 | Tiny but readable — space-constrained |
+| `"Ogre"` | 5 | Chunky and playful — fun, casual |
+| `"DOS Rebel"` | 10 | DOS-era block art — retro, nostalgic |
+| `"Ghost"` | 10 | Spooky hollow letters — horror, creative |
+| `"Bloody"` | 10 | Dripping horror letters — intense |
+| `"Electronic"` | 10 | Digital/LED style — tech, futuristic |
+| `"Sub-Zero"` | 10 | Icy/frozen appearance — cool, sharp |
+| `"Larry 3D"` | 10 | 3D perspective letters — eye-catching |
+| `"Colossal"` | 10 | Massive block letters — impactful |
+| `"Isometric1"` | 10 | Isometric 3D projection — unique |
 
-### Custom themes
+Font names are case-sensitive. Use exactly as listed.
 
-You can pass a custom `Theme` object instead of using a built-in name:
+#### asciiArt.scene(type, options?): string[]
+
+Pre-made decorative scenes. Returns string array.
 
 ```ts
-theme: {
-  accent: "#e06c75",
-  accentDim: "#be5046",
-  text: "#abb2bf",
-  muted: "#5c6370",
-  subtle: "#3e4452",
-  success: "#98c379",
-  warning: "#e5c07b",
-  error: "#e06c75",
-  border: "#5c6370",
-  bg: "#282c34",
+type SceneType = "mountains" | "cityscape" | "forest" | "ocean" | "space"
+  | "clouds" | "coffee-cup" | "rocket" | "cat" | "robot" | "terminal"
+  | "vinyl-record" | "cassette" | "floppy-disk" | "gameboy";
+
+interface SceneOptions { width?: number; color?: string; }
+```
+
+15 scenes:
+- **Landscapes:** `mountains`, `cityscape`, `forest`, `ocean`, `space`, `clouds`
+- **Objects:** `coffee-cup`, `rocket`, `cat`, `robot`, `terminal`
+- **Retro:** `vinyl-record`, `cassette`, `floppy-disk`, `gameboy`
+
+```ts
+const art = asciiArt.scene("mountains", { width: 60 });
+```
+
+#### getIcon(name, size?): string[] | undefined
+
+Pre-made ASCII art icons. Size: `"small"` | `"medium"` | `"large"`.
+
+32 icons: `laptop`, `briefcase`, `person`, `chain`, `chart`, `pen`, `music`, `star`, `globe`, `mail`, `code`, `terminal`, `folder`, `file`, `git`, `heart`, `check`, `cross`, `warning`, `film`, `camera`, `book`, `phone`, `pin`, `clock`, `users`, `cup`, `food`, `car`, `plane`, `fire`, `lightning`
+
+```ts
+const icon = getIcon("terminal");
+// or via asciiArt:
+const icon = asciiArt.getIcon("terminal");
+```
+
+#### asciiArt.pattern(width, height, type, options?): string[]
+
+Decorative fill patterns.
+
+```ts
+type PatternType = "dots" | "crosshatch" | "diagonal" | "waves" | "bricks"
+  | "circuit" | "rain" | "stars" | "confetti" | "static" | "braille-dots" | "grid";
+
+interface PatternOptions { density?: number; seed?: number; }
+```
+
+12 patterns: `dots`, `crosshatch`, `diagonal`, `waves`, `bricks`, `circuit`, `rain`, `stars`, `confetti`, `static`, `braille-dots`, `grid`
+
+```ts
+const bg = asciiArt.pattern(40, 10, "circuit", { density: 0.5 });
+```
+
+#### Shapes (9)
+
+All shapes return `string[]`.
+
+```ts
+asciiArt.box(width: number, height: number, style?: "single"|"double"|"rounded"|"heavy"|"ascii"): string[]
+asciiArt.circle(radius: number, fill?: string): string[]
+asciiArt.diamond(size: number): string[]
+asciiArt.triangle(height: number): string[]
+asciiArt.heart(size: number): string[]
+asciiArt.star(size: number): string[]
+asciiArt.arrow(length: number, direction?: "right"|"left"|"up"|"down"): string[]
+asciiArt.hexagon(size: number): string[]
+asciiArt.line(length: number, style?: string): string[]
+```
+
+```ts
+const box = asciiArt.box(20, 5, "rounded");
+const heart = asciiArt.heart(5);
+```
+
+#### Data Visualization (5)
+
+```ts
+asciiArt.barChart(
+  data: { label: string; value: number }[],
+  options?: { width?: number; horizontal?: boolean; showValues?: boolean; maxBarWidth?: number }
+): string[]
+
+asciiArt.sparkline(data: number[], width?: number): string[]
+
+asciiArt.heatmap(
+  data: number[][],
+  options?: { chars?: string; showScale?: boolean }
+): string[]
+
+asciiArt.pieChart(
+  data: { label: string; value: number }[],
+  radius?: number
+): string[]
+
+asciiArt.graph(data: number[], width?: number, height?: number): string[]
+```
+
+```ts
+const chart = asciiArt.barChart([
+  { label: "TypeScript", value: 85 },
+  { label: "Rust", value: 70 },
+], { width: 50 });
+const spark = asciiArt.sparkline([1, 5, 3, 8, 2, 7], 30);
+const heat = asciiArt.heatmap([[1,2,3],[4,5,6],[7,8,9]], { showScale: true });
+const pie = asciiArt.pieChart([{ label: "A", value: 60 }, { label: "B", value: 40 }], 6);
+const g = asciiArt.graph([10, 20, 15, 30, 25], 40, 10);
+```
+
+#### Art Compose Utilities (13)
+
+All operate on `string[]` (lines of ASCII art).
+
+```ts
+artCompose.overlay(base: string[], over: string[], x: number, y: number): string[]
+artCompose.sideBySide(left: string[], right: string[], gap?: number): string[]   // gap default: 2
+artCompose.stack(top: string[], bottom: string[], gap?: number): string[]        // gap default: 1
+artCompose.center(art: string[], width: number): string[]
+artCompose.pad(art: string[], padding: number | { top?, right?, bottom?, left? }): string[]
+artCompose.crop(art: string[], x: number, y: number, width: number, height: number): string[]
+artCompose.repeat(art: string[], times: number, direction: "horizontal" | "vertical"): string[]
+artCompose.mirror(art: string[], axis: "horizontal" | "vertical"): string[]
+artCompose.rotate(art: string[], degrees: 90 | 180 | 270): string[]
+artCompose.colorize(art: string[], color: string): string[]           // hex color on non-space chars
+artCompose.gradient(art: string[], colors: string[], direction?: "horizontal"|"vertical"|"diagonal"): string[]
+artCompose.rainbow(art: string[]): string[]                           // rainbow gradient
+artCompose.shadow(art: string[], direction?: "bottom-right"|"bottom-left", char?: string): string[]
+```
+
+```ts
+const combined = artCompose.sideBySide(
+  asciiArt.scene("mountains"),
+  asciiArt.scene("forest"),
+  4
+);
+const colored = artCompose.gradient(asciiArt.box(20, 5), ["#ff0000", "#0000ff"]);
+```
+
+#### asciiImage(source, options?): Promise<string[]>
+
+Convert images to ASCII art. Requires `sharp` peer dependency.
+
+```ts
+interface AsciiImageOptions {
+  width?: number;                                // Default: 60
+  height?: number;
+  mode?: "ascii" | "braille" | "blocks" | "shading";
+  charset?: string;                              // Custom char ramp
+  invert?: boolean;
+  color?: boolean;
+  dithering?: "none" | "floyd-steinberg" | "ordered";
+  threshold?: number;
 }
+```
+
+```ts
+const art = await asciiImage("./logo.png", { width: 40, mode: "braille", color: true });
 ```
 
 ---
 
-## Font Selection Guide
-
-The `font` option in `ascii()` controls the ASCII banner font. Five built-in fonts are available.
-
-| Font | Height | Best For | Look |
-|---|---|---|---|
-| `"ANSI Shadow"` | 6 lines | Default, modern sites | Clean block letters with shadow effect |
-| `"Slant"` | 6 lines | Elegant, creative sites | Classic italic/slanted style |
-| `"Calvin S"` | 4 lines | Professional, compact | Clean thin letters, saves space |
-| `"Small"` | 4 lines | Space-constrained, blogs | Tiny but readable |
-| `"Ogre"` | 5 lines | Fun, casual, restaurants | Chunky, playful, bold |
-
-### Font examples
+### Animations
 
 ```ts
-// Modern tech site
-banner: ascii("ACME", { font: "ANSI Shadow" })
-
-// Elegant portfolio
-banner: ascii("Jane Doe", { font: "Slant", gradient: ["#ebbcba", "#c4a7e7"] })
-
-// Professional / corporate
-banner: ascii("CorpName", { font: "Calvin S" })
-
-// Blog with limited space
-banner: ascii("My Blog", { font: "Small" })
-
-// Fun restaurant
-banner: ascii("Bistro", { font: "Ogre", gradient: ["#d4a373", "#e63946"] })
-```
-
-**Important:** Font names are case-sensitive. Use exactly: `"ANSI Shadow"`, `"Slant"`, `"Calvin S"`, `"Small"`, `"Ogre"`.
-
----
-
-## Animation Guide
-
-### Boot animation
-
-When `boot: true`, the banner reveals progressively and menu items stagger in.
-
-```ts
-animations: {
-  boot: true,
+interface AnimationConfig {
+  boot?: boolean;                                // Boot animation (banner reveal + stagger)
+  transitions?: "instant" | "fade" | "slide" | "wipe";
+  exitMessage?: string;                          // Centered message on quit
+  speed?: "slow" | "normal" | "fast";
 }
 ```
-
-### Transitions
-
-Controls the animation when switching between pages.
-
-```ts
-animations: {
-  transitions: "fade",   // "instant" | "fade" | "slide" | "wipe"
-}
-```
-
-| Transition | Effect |
-|---|---|
-| `"instant"` | No animation, immediate switch |
-| `"fade"` | Fade in/out |
-| `"slide"` | Slide from side |
-| `"wipe"` | Wipe across screen |
-
-### Exit message
-
-A centered message shown briefly when the user quits.
-
-```ts
-animations: {
-  exitMessage: "Thanks for visiting!",
-}
-```
-
-### Speed
-
-Controls overall animation speed.
-
-```ts
-animations: {
-  speed: "fast",  // "slow" | "normal" | "fast"
-}
-```
-
-### Full animation config example
 
 ```ts
 animations: {
@@ -765,136 +1161,263 @@ animations: {
 
 ---
 
-## Common Patterns by Site Type
-
-### Portfolio
+### Middleware
 
 ```ts
-pages: [
-  page("about",      { title: "About",      icon: "◆", content: [ markdown("...") ] }),
-  page("projects",   { title: "Projects",   icon: "◈", content: [ card({...}), card({...}) ] }),
-  page("experience", { title: "Experience", icon: "▣", content: [ timeline([...]) ] }),
-  page("skills",     { title: "Skills",     icon: "▤", content: [ skillBar("...", 90), ... ] }),
-  page("links",      { title: "Links",      icon: "◉", content: [ link("...", "..."), ... ] }),
-]
+// Create middleware
+middleware(fn: MiddlewareFn): MiddlewareFn
+
+// Return a redirect from middleware
+redirect(pageId: string, params?: RouteParams): { redirect: string; params?: RouteParams }
+
+type MiddlewareFn = (context: MiddlewareContext) => Promise<MiddlewareResult> | MiddlewareResult;
+
+interface MiddlewareContext {
+  page: string;
+  params: RouteParams;
+  state: any;
+}
+
+type MiddlewareResult = void | undefined | { redirect: string; params?: RouteParams };
 ```
 
-Theme: `dracula`, `monokai`, `tokyoNight`, or `catppuccin`
-Font: `"ANSI Shadow"` or `"Slant"`
-
-### Restaurant
+Built-in middleware:
 
 ```ts
-pages: [
-  page("menu",    { title: "Menu",             icon: "◆", content: [
-    section("Appetizers", [ card({title: "...", subtitle: "$12", body: "..."}) ]),
-    divider(),
-    section("Entrees",    [ card({title: "...", subtitle: "$28", body: "..."}) ]),
-  ]}),
-  page("about",   { title: "Our Story",        icon: "◈", content: [ markdown("..."), quote("...", "— Critic") ] }),
-  page("hours",   { title: "Hours & Location", icon: "▣", content: [ table(["Day", "Hours"], [...]) ] }),
-  page("contact", { title: "Contact",          icon: "◉", content: [ link("...", "...") ] }),
-]
+requireEnv(vars: string[]): MiddlewareFn          // Check env vars exist
+rateLimit({ maxRequests, windowMs }): MiddlewareFn // Rate limit
+cache({ ttl: number }): MiddlewareFn              // Cache page content
 ```
-
-Theme: `gruvbox`
-Font: `"Ogre"`
-
-### Landing Page / SaaS
 
 ```ts
-pages: [
-  page("home",     { title: "Home",       icon: "◆", content: [ hero({title: "...", subtitle: "...", cta: {...}}) ] }),
-  page("features", { title: "Features",   icon: "◈", content: [ card({...}), card({...}), card({...}) ] }),
-  page("pricing",  { title: "Pricing",    icon: "▣", content: [ table(["Plan", "Price", "Features"], [...]) ] }),
-  page("docs",     { title: "Quick Start",icon: "▸", content: [ list([...], "number"), link("Docs", "...") ] }),
-]
+// Global middleware
+defineSite({
+  middleware: [requireEnv(["API_KEY"]), rateLimit({ maxRequests: 100, windowMs: 60000 })],
+  pages: [
+    page("admin", {
+      middleware: [middleware(async (ctx) => {
+        if (!isAdmin(ctx.state)) return redirect("home");
+      })],
+      // ...
+    }),
+  ],
+});
 ```
-
-Theme: `tokyoNight`, `cyberpunk`, or `nord`
-Font: `"ANSI Shadow"`
-
-### Band / Musician
-
-```ts
-pages: [
-  page("music",   { title: "Music",       icon: "♦", content: [
-    card({title: "Album Name", subtitle: "2025", body: "Description", tags: ["Rock", "Indie"]}),
-  ]}),
-  page("tour",    { title: "Tour Dates",  icon: "◆", content: [
-    card({title: "City, Venue", subtitle: "Mar 15, 2026", body: "Doors 7pm, Show 8pm"}),
-  ]}),
-  page("about",   { title: "About",       icon: "◈", content: [ markdown("...") ] }),
-  page("links",   { title: "Listen",      icon: "◉", content: [
-    link("Spotify", "..."), link("Apple Music", "..."), link("Bandcamp", "..."),
-  ]}),
-]
-```
-
-Theme: `rosePine` or `cyberpunk`
-Font: `"Slant"`
-
-### Blog
-
-```ts
-pages: [
-  page("posts", { title: "Posts",  icon: "◆", content: [
-    card({title: "Post Title", subtitle: "Mar 2026", body: "Excerpt..."}),
-    card({title: "Another Post", subtitle: "Feb 2026", body: "Excerpt..."}),
-  ]}),
-  page("about", { title: "About",  icon: "◈", content: [ markdown("...") ] }),
-  page("links", { title: "Links",  icon: "◉", content: [ link("RSS", "..."), link("Twitter", "...") ] }),
-]
-```
-
-Theme: `rosePine`, `catppuccin`, or `solarized`
-Font: `"Small"` or `"Calvin S"`
-
-### Corporate / Agency
-
-```ts
-pages: [
-  page("services", { title: "Services", icon: "◆", content: [ card({...}), card({...}) ] }),
-  page("team",     { title: "Team",     icon: "◈", content: [ gallery([{title: "Name", subtitle: "Role"}, ...]) ] }),
-  page("clients",  { title: "Clients",  icon: "▣", content: [ quote("...", "— Client"), quote("...", "— Client") ] }),
-  page("contact",  { title: "Contact",  icon: "◉", content: [ link("...", "..."), ... ] }),
-]
-```
-
-Theme: `nord` or `tokyoNight`
-Font: `"Calvin S"` or `"ANSI Shadow"`
-
-### Event Page
-
-```ts
-pages: [
-  page("info",     { title: "Info",     icon: "◆", content: [ hero({title: "Event Name", subtitle: "Date & Location"}) ] }),
-  page("schedule", { title: "Schedule", icon: "◈", content: [
-    timeline([
-      {title: "Registration", period: "9:00 AM"},
-      {title: "Keynote", period: "10:00 AM", description: "Speaker Name"},
-      {title: "Workshops", period: "1:00 PM"},
-    ]),
-  ]}),
-  page("speakers", { title: "Speakers", icon: "▣", content: [ card({...}), card({...}) ] }),
-  page("register", { title: "Register", icon: "◉", content: [ link("Get Tickets", "https://...") ] }),
-]
-```
-
-Theme: `cyberpunk` or `tokyoNight`
-Font: `"ANSI Shadow"`
 
 ---
 
-## Complete Example Configs
+### Environment & Config
 
-### Example 1: Developer Portfolio
+`.env` files are auto-loaded on startup.
+
+```ts
+// Typed config from environment variables
+const config = defineConfig({
+  apiUrl: { env: "API_URL", default: "https://api.example.com" },
+  apiKey: { env: "API_KEY", required: true },
+  debug: { env: "DEBUG", default: false, transform: (v) => v === "true" },
+});
+config.get("apiUrl"); // string
+config.get("debug");  // boolean
+```
+
+```ts
+interface ConfigField<T> {
+  env: string;                                   // Env var name
+  default?: T;                                   // Default if missing
+  required?: boolean;                            // Throw if missing and no default
+  transform?: (value: string) => T;              // Transform string value
+}
+```
+
+---
+
+### Lifecycle Hooks
+
+Set on `SiteConfig`. All receive an `AppContext`.
+
+```ts
+interface AppContext {
+  state: any;
+  navigate: (pageId: string, params?: RouteParams) => void;
+}
+
+interface ErrorContext {
+  page?: string;
+  params?: RouteParams;
+  phase: "render" | "middleware" | "action" | "fetch";
+}
+```
+
+```ts
+defineSite({
+  onInit: async (app) => { /* runs once at startup */ },
+  onExit: async (app) => { /* runs on quit */ },
+  onNavigate: (from, to, params) => { /* runs on every navigation */ },
+  onError: (error, context) => {
+    // Return ContentBlock[] to show custom error page, or void to use default
+    return [markdown(`Error on ${context.page}: ${error.message}`)];
+  },
+  // ...
+});
+```
+
+---
+
+### CLI Commands
+
+```bash
+terminaltui init [template]              # Scaffold project (templates: portfolio, restaurant, saas, blog, band)
+terminaltui dev [path]                   # Dev preview with hot reload
+terminaltui build                        # Bundle for npm publish
+terminaltui test [--cols=N] [--sizes] [--verbose]  # Run tests
+terminaltui art list|preview|create|validate       # Manage ASCII art assets
+```
+
+---
+
+### Navigation & Keybindings
+
+**Navigation mode (default):**
+
+| Key | Action |
+|---|---|
+| `Up` / `k` | Move selection up |
+| `Down` / `j` | Move selection down |
+| `Enter` | Select item / enter page / enter edit mode on input |
+| `Escape` / `Backspace` | Go back / exit page |
+| `1`-`9` | Jump to page by number (if `numberJump: true`) |
+| `q` / `Ctrl+C` | Quit |
+| `Tab` | Next focusable element |
+| `Shift+Tab` | Previous focusable element |
+| `Home` | First item |
+| `End` | Last item |
+
+**Edit mode (when editing an input):**
+
+| Key | Action |
+|---|---|
+| `Escape` | Exit edit mode, return to navigation |
+| `Enter` | Submit (in forms) / confirm selection |
+| `Tab` | Next field |
+| `Up`/`Down` | Navigate options (select, radio) |
+| `Space` | Toggle (checkbox, toggle) |
+| Standard typing | Text input |
+
+---
+
+### TUI Emulator (Testing)
+
+Headless terminal emulator for automated testing. Think Puppeteer for terminal apps.
+
+```ts
+import { TUIEmulator } from "terminaltui";
+
+const emu = await TUIEmulator.launch({
+  command: "terminaltui dev",
+  cwd: "./my-site",
+  cols: 80,                                      // Terminal width (default: 80)
+  rows: 24,                                      // Terminal height (default: 24)
+  timeout: 30000,                                // Kill after timeout
+});
+
+await emu.waitForBoot();                         // Wait for boot animation
+await emu.waitForText("About");                  // Wait for text to appear
+await emu.waitForTextGone("Loading...");         // Wait for text to disappear
+await emu.waitForIdle(500);                      // Wait for screen to stabilize
+await emu.waitFor(() => emu.screen.contains("Ready")); // Custom condition
+
+await emu.press("down");                         // Single key press
+await emu.press("down", { times: 3 });           // Multiple presses
+await emu.pressSequence(["down", "down", "enter"]); // Key sequence
+await emu.type("hello world");                   // Type text
+await emu.navigateTo("About");                   // Navigate to page by name
+
+emu.screen.text();                               // Full screen as text
+emu.screen.ansi();                               // Full screen as ANSI string
+emu.screen.contains("text");                     // Check if text is visible
+emu.screen.find("text");                         // Find text position
+emu.screen.currentPage();                        // Current page name
+emu.screen.menu();                               // Menu items and selected index
+emu.screen.cards();                              // All visible cards
+emu.screen.links();                              // All visible links
+
+emu.assert.textVisible("About");                 // Assert text is on screen
+emu.screenshot();                                // ANSI screenshot string
+emu.snapshot();                                  // { text, ansi, timestamp }
+
+await emu.close();                               // Shut down
+```
+
+---
+
+## Content Extraction Guide
+
+### Component Mapping
+
+**IMPORTANT:** The "Best TUI Pattern" column takes priority. TUI navigation is up/down arrows — optimize for vertical scrolling and per-item focusability, not semantic content matching.
+
+| Web Content | Semantic Match | Best TUI Pattern |
+|---|---|---|
+| Navigation / menu | Becomes `pages` array | `pages` array (automatic) |
+| Hero / banner section | `hero()` | `hero()` — focusable if CTA set |
+| Cards / grid of items | `card()` | Individual `card()` blocks (each focusable) |
+| Pricing tables | `table()` | `table()` — passive, fine for dense data |
+| Testimonials / reviews | `quote()` | `quote()` — passive, or `card()` if users need to browse |
+| Work history / experience | `timeline()` | **Individual `card()` blocks** (each focusable, scrollable) |
+| Education entries | `timeline()` | **Individual `card()` blocks** (subtitle=dates) |
+| FAQ / collapsible sections | `accordion()` | `accordion()` — each item is focusable + expandable |
+| Sectioned page content | `tabs()` | **`divider("Label")` + content below** (vertical scroll) |
+| Toggle between views | `tabs()` | `tabs()` — only for mutually exclusive views |
+| Blog post list | `card()` | Individual `card()` blocks (subtitle=date, body=excerpt) |
+| Contact / social links | `link()` | `link()` per item (each focusable) |
+| Stats / metrics / skills | `skillBar()` | `skillBar()` or `progressBar()` — passive display |
+| Features list | `card()` | Individual `card()` blocks with tags |
+| Menu items (restaurant) | `section()` + `card()` | `divider("Category")` + `card()` items (subtitle=price) |
+| Documentation / prose | `markdown()` | `markdown()` — passive text |
+| Data / comparison | `table()` | `table()` — passive dense data |
+| Step-by-step instructions | `list()` | `list("number")` — passive, or `accordion()` for expandable |
+| Search functionality | `searchInput()` | `searchInput()` with `action: "navigate"` |
+| Contact forms | `form()` | `form()` with inputs + button |
+| Interactive charts | `asciiArt.barChart()` | Custom block with dataviz functions |
+| Real-time data | `liveData()` + `dynamic()` | `dynamic()` blocks with fetcher/state |
+
+### Theme Selection Guide
+
+| Theme | Best For |
+|---|---|
+| `cyberpunk` | Tech startups, gaming, futuristic — neon, electric |
+| `dracula` | Developer tools, general purpose — classic dark (default) |
+| `nord` | Corporate, professional, SaaS — clean, minimal |
+| `monokai` | Coding tools, dev portfolios — code-editor feel |
+| `solarized` | Academic, documentation, research — scholarly |
+| `gruvbox` | Restaurants, cafes, crafts — earthy, warm, retro |
+| `catppuccin` | Creative agencies, design — soft, pastel, friendly |
+| `tokyoNight` | Modern SaaS, product pages — sleek, contemporary |
+| `rosePine` | Music, art, creative portfolios — dreamy, elegant |
+| `hacker` | Security, CTF, infosec — green-on-black, Matrix |
+
+### ASCII Art Selection Guide
+
+- **Banners:** Use `ascii()` with a font. Short names (1-2 words) work best. `"ANSI Shadow"` for modern, `"Calvin S"` for compact, `"Ogre"` for fun, `"Slant"` for elegant.
+- **Hero art:** Use `asciiArt.scene()` — `mountains` for outdoors, `cityscape` for urban, `rocket` for startups, `terminal` for dev tools, `coffee-cup` for cafes.
+- **Decorative icons:** Use `getIcon()` — `laptop` for tech, `music` for bands, `cup` for restaurants, `heart` for personal, `code` for dev.
+- **Backgrounds/borders:** Use `asciiArt.pattern()` — `circuit` for tech, `stars` for night themes, `waves` for ocean.
+- **Data display:** Use `asciiArt.barChart()` for comparisons, `asciiArt.sparkline()` for trends, `asciiArt.pieChart()` for proportions, `asciiArt.graph()` for time series.
+- **Composition:** Use `artCompose.sideBySide()` to place art next to each other, `artCompose.overlay()` for layering, `artCompose.gradient()` for color.
+
+---
+
+## Complete Example: Developer Portfolio
 
 ```ts
 import {
   defineSite, page, card, timeline, link, skillBar,
   ascii, markdown, themes, divider, spacer, badge,
+  searchInput, asciiArt, artCompose,
 } from "terminaltui";
+
+const terminalIcon = asciiArt.scene("terminal");
 
 export default defineSite({
   name: "Alex Chen",
@@ -902,6 +1425,7 @@ export default defineSite({
   tagline: "full-stack engineer & open source contributor",
   banner: ascii("Alex Chen", { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] }),
   theme: themes.dracula,
+  borders: "rounded",
   animations: { boot: true, transitions: "fade", exitMessage: "See you in the terminal!" },
 
   pages: [
@@ -909,7 +1433,7 @@ export default defineSite({
       title: "About",
       icon: "◆",
       content: [
-        markdown("Hey! I'm Alex, a full-stack engineer based in San Francisco. I build developer tools and contribute to open source. Currently working on distributed systems at **Acme Corp**."),
+        markdown("Hey! I'm Alex, a full-stack engineer in San Francisco. I build developer tools and contribute to open source. Currently at **Acme Corp** working on distributed systems."),
         spacer(),
         markdown("When I'm not coding, you'll find me climbing rocks or brewing coffee."),
       ],
@@ -922,7 +1446,7 @@ export default defineSite({
         card({
           title: "terminaltools",
           subtitle: "★ 2.4k",
-          body: "A suite of terminal utilities for modern developers. Built with Rust for blazing performance.",
+          body: "A suite of terminal utilities for modern developers. Built with Rust.",
           tags: ["Rust", "CLI", "Open Source"],
           url: "https://github.com/alexchen/terminaltools",
         }),
@@ -947,31 +1471,12 @@ export default defineSite({
       title: "Experience",
       icon: "▣",
       content: [
-        timeline([
-          {
-            title: "Senior Platform Engineer",
-            subtitle: "Acme Corp",
-            period: "2023 — present",
-            description: "Leading the developer platform team. Building internal tooling and CI/CD infrastructure.",
-          },
-          {
-            title: "Software Engineer",
-            subtitle: "Startup Labs",
-            period: "2021 — 2023",
-            description: "Full-stack development on the core product. Grew the user base from 1k to 50k.",
-          },
-          {
-            title: "Junior Developer",
-            subtitle: "WebAgency",
-            period: "2019 — 2021",
-            description: "Frontend development, client projects, and learning the ropes.",
-          },
-          {
-            title: "BS Computer Science",
-            subtitle: "UC Berkeley",
-            period: "2015 — 2019",
-          },
-        ]),
+        divider("Experience"),
+        card({ title: "Senior Platform Engineer", subtitle: "Acme Corp — 2023–present", body: "Leading the developer platform team." }),
+        card({ title: "Software Engineer", subtitle: "Startup Labs — 2021–2023", body: "Full-stack development. Grew users from 1k to 50k." }),
+        card({ title: "Junior Developer", subtitle: "WebAgency — 2019–2021", body: "Frontend development and client projects." }),
+        divider("Education"),
+        card({ title: "BS Computer Science", subtitle: "UC Berkeley — 2015–2019" }),
       ],
     }),
 
@@ -984,7 +1489,6 @@ export default defineSite({
         skillBar("Python", 85),
         skillBar("Go", 70),
         skillBar("React", 90),
-        skillBar("PostgreSQL", 75),
         divider("Tools"),
         skillBar("Docker/K8s", 85),
         skillBar("AWS", 80),
@@ -1006,12 +1510,13 @@ export default defineSite({
 });
 ```
 
-### Example 2: Restaurant
+## Complete Example: Restaurant
 
 ```ts
 import {
   defineSite, page, section, card, table, quote,
   link, markdown, ascii, themes, divider, spacer,
+  form, textInput, textArea, select, button, toggle,
 } from "terminaltui";
 
 export default defineSite({
@@ -1028,43 +1533,53 @@ export default defineSite({
       icon: "◆",
       content: [
         section("Small Plates", [
-          card({ title: "Heirloom Tomato Bruschetta", subtitle: "$14", body: "San Marzano tomatoes, fresh basil, aged balsamic, sourdough crostini" }),
-          card({ title: "Burrata & Figs", subtitle: "$16", body: "Creamy burrata, mission figs, honey, toasted pistachios, arugula" }),
-          card({ title: "Charred Octopus", subtitle: "$18", body: "Spanish octopus, romesco, fingerling potatoes, smoked paprika oil" }),
+          card({ title: "Heirloom Tomato Bruschetta", subtitle: "$14", body: "San Marzano tomatoes, fresh basil, aged balsamic" }),
+          card({ title: "Burrata & Figs", subtitle: "$16", body: "Creamy burrata, mission figs, honey, toasted pistachios" }),
+          card({ title: "Charred Octopus", subtitle: "$18", body: "Spanish octopus, romesco, fingerling potatoes" }),
         ]),
         divider(),
         section("Mains", [
-          card({ title: "Pan-Seared Salmon", subtitle: "$32", body: "Wild-caught king salmon, lemon beurre blanc, asparagus, dill" }),
-          card({ title: "Dry-Aged Ribeye", subtitle: "$45", body: "28-day aged, 14oz, bone marrow butter, roasted root vegetables" }),
-          card({ title: "Wild Mushroom Risotto", subtitle: "$26", body: "Arborio rice, porcini, chanterelle, truffle oil, Parmigiano-Reggiano" }),
-          card({ title: "Roasted Half Chicken", subtitle: "$28", body: "Free-range, herbs de Provence, garlic confit, seasonal greens" }),
+          card({ title: "Pan-Seared Salmon", subtitle: "$32", body: "Wild-caught king salmon, lemon beurre blanc, asparagus" }),
+          card({ title: "Dry-Aged Ribeye", subtitle: "$45", body: "28-day aged, 14oz, bone marrow butter, root vegetables" }),
+          card({ title: "Wild Mushroom Risotto", subtitle: "$26", body: "Arborio rice, porcini, chanterelle, truffle oil" }),
         ]),
         divider(),
         section("Desserts", [
-          card({ title: "Crème Brûlée", subtitle: "$12", body: "Classic vanilla bean, caramelized sugar" }),
+          card({ title: "Creme Brulee", subtitle: "$12", body: "Classic vanilla bean, caramelized sugar" }),
           card({ title: "Chocolate Fondant", subtitle: "$14", body: "Valrhona dark chocolate, salted caramel, vanilla gelato" }),
         ]),
       ],
     }),
 
-    page("drinks", {
-      title: "Wine & Drinks",
+    page("reservations", {
+      title: "Reservations",
       icon: "◈",
       content: [
-        section("Red Wine", [
-          card({ title: "Château Margaux 2015", subtitle: "$28/glass" }),
-          card({ title: "Barolo, Piedmont 2018", subtitle: "$22/glass" }),
-        ]),
-        divider(),
-        section("White Wine", [
-          card({ title: "Chablis Premier Cru 2020", subtitle: "$18/glass" }),
-          card({ title: "Sancerre, Loire Valley 2021", subtitle: "$16/glass" }),
-        ]),
-        divider(),
-        section("Cocktails", [
-          card({ title: "The Golden Negroni", subtitle: "$16", body: "Gin, Aperol, white vermouth, gold leaf" }),
-          card({ title: "Smoked Old Fashioned", subtitle: "$18", body: "Bourbon, demerara, Angostura, applewood smoke" }),
-        ]),
+        markdown("**Book your table online.** We'll confirm by email within an hour."),
+        spacer(),
+        form({
+          id: "reservation",
+          onSubmit: async (data) => {
+            return { success: `Table for ${data.guests} booked on ${data.date}! Confirmation sent to ${data.email}.` };
+          },
+          fields: [
+            textInput({ id: "name", label: "Name", placeholder: "Your name..." }),
+            textInput({ id: "email", label: "Email", placeholder: "your@email.com" }),
+            textInput({ id: "date", label: "Date", placeholder: "e.g. March 25, 2026" }),
+            select({
+              id: "guests",
+              label: "Party Size",
+              options: [
+                { label: "2 guests", value: "2" },
+                { label: "4 guests", value: "4" },
+                { label: "6 guests", value: "6" },
+                { label: "8+ guests", value: "8+" },
+              ],
+            }),
+            textArea({ id: "notes", label: "Special Requests", placeholder: "Dietary restrictions, celebrations...", rows: 3 }),
+            button({ label: "Reserve Table", style: "primary" }),
+          ],
+        }),
       ],
     }),
 
@@ -1072,12 +1587,10 @@ export default defineSite({
       title: "Our Story",
       icon: "▣",
       content: [
-        markdown("Founded in 2018 by Chef Maria Santos, The Golden Fork is dedicated to bringing the freshest seasonal ingredients from local farms to your plate. Every dish tells the story of the land it came from."),
-        spacer(),
-        markdown("We partner with over 20 local farms and producers within a 50-mile radius. Our menu changes with the seasons, reflecting what the earth gives us."),
+        markdown("Founded in 2018 by Chef Maria Santos, The Golden Fork brings the freshest seasonal ingredients from local farms to your plate."),
         divider(),
-        quote("One of the most exciting farm-to-table experiences in the city. Every bite is intentional.", "— City Food Magazine"),
-        quote("Chef Santos has created something truly special. A must-visit.", "— The Dining Gazette"),
+        quote("One of the most exciting farm-to-table experiences in the city.", "— City Food Magazine"),
+        quote("Chef Santos has created something truly special.", "— The Dining Gazette"),
       ],
     }),
 
@@ -1098,238 +1611,6 @@ export default defineSite({
         link("Make a Reservation", "https://opentable.com/golden-fork"),
         link("Google Maps", "https://maps.google.com"),
         link("Instagram", "https://instagram.com/thegoldenfork"),
-        link("Email", "mailto:hello@thegoldenfork.com"),
-      ],
-    }),
-  ],
-});
-```
-
-### Example 3: SaaS Landing Page
-
-```ts
-import {
-  defineSite, page, hero, card, table, link,
-  list, badge, ascii, themes, markdown, divider,
-  tabs, accordion, spacer, sparkline, progressBar,
-} from "terminaltui";
-
-export default defineSite({
-  name: "Launchpad",
-  tagline: "deploy anywhere in seconds",
-  banner: ascii("Launchpad", { font: "ANSI Shadow", gradient: ["#7c3aed", "#06b6d4"] }),
-  theme: themes.tokyoNight,
-  animations: { boot: true, transitions: "slide", exitMessage: "Happy deploying!" },
-
-  pages: [
-    page("home", {
-      title: "Home",
-      icon: "◆",
-      content: [
-        hero({
-          title: "Ship Faster Than Ever",
-          subtitle: "One command to deploy your app to any cloud. No config files, no YAML, no pain.",
-          cta: { label: "Get Started Free →", url: "https://launchpad.dev/signup" },
-        }),
-        spacer(),
-        sparkline([2, 5, 8, 12, 18, 25, 34, 45, 60, 78, 95, 120]),
-        markdown("*Monthly deployments (thousands) — growing fast*"),
-      ],
-    }),
-
-    page("features", {
-      title: "Features",
-      icon: "◈",
-      content: [
-        card({
-          title: "Zero-Config Deploys",
-          body: "Just run `launch deploy`. We detect your framework, build, and ship. Works with Next.js, Remix, Astro, SvelteKit, and more.",
-          tags: ["Core"],
-        }),
-        card({
-          title: "Edge Functions",
-          body: "Run serverless functions at the edge in 40+ regions. Sub-10ms cold starts.",
-          tags: ["Performance"],
-        }),
-        card({
-          title: "Preview Environments",
-          body: "Every pull request gets its own URL. Share with your team, get feedback, merge with confidence.",
-          tags: ["Collaboration"],
-        }),
-        card({
-          title: "Built-in Analytics",
-          body: "Real-time performance metrics, error tracking, and usage analytics. No third-party scripts needed.",
-          tags: ["Observability"],
-        }),
-        card({
-          title: "Team Management",
-          body: "Role-based access, audit logs, SSO. Everything your team needs to ship together.",
-          tags: ["Enterprise"],
-        }),
-      ],
-    }),
-
-    page("pricing", {
-      title: "Pricing",
-      icon: "▣",
-      content: [
-        table(
-          ["", "Hobby", "Pro", "Enterprise"],
-          [
-            ["Price", "Free", "$20/mo", "Custom"],
-            ["Deployments", "100/mo", "Unlimited", "Unlimited"],
-            ["Bandwidth", "10 GB", "1 TB", "Unlimited"],
-            ["Team members", "1", "10", "Unlimited"],
-            ["Edge functions", "10", "Unlimited", "Unlimited"],
-            ["Support", "Community", "Email", "Dedicated"],
-            ["SLA", "—", "99.9%", "99.99%"],
-          ]
-        ),
-        spacer(),
-        link("Start Free →", "https://launchpad.dev/signup"),
-      ],
-    }),
-
-    page("docs", {
-      title: "Quick Start",
-      icon: "▸",
-      content: [
-        list([
-          "Install the CLI: npm install -g @launchpad/cli",
-          "Navigate to your project directory",
-          "Run: launch deploy",
-          "Your app is live! Visit the generated URL.",
-        ], "number"),
-        divider(),
-        tabs([
-          { label: "Next.js", content: [
-            markdown("```\nnpx create-next-app my-app\ncd my-app\nlaunch deploy\n```"),
-          ]},
-          { label: "Remix", content: [
-            markdown("```\nnpx create-remix my-app\ncd my-app\nlaunch deploy\n```"),
-          ]},
-          { label: "Astro", content: [
-            markdown("```\nnpm create astro@latest\ncd my-app\nlaunch deploy\n```"),
-          ]},
-        ]),
-        spacer(),
-        link("Full Documentation →", "https://docs.launchpad.dev"),
-        link("API Reference →", "https://docs.launchpad.dev/api"),
-      ],
-    }),
-
-    page("faq", {
-      title: "FAQ",
-      icon: "★",
-      content: [
-        accordion([
-          { label: "Is there a free tier?", content: [
-            markdown("Yes! The Hobby plan is free forever with generous limits."),
-          ]},
-          { label: "Can I bring my own domain?", content: [
-            markdown("Absolutely. Custom domains with automatic SSL are included on all plans."),
-          ]},
-          { label: "Do you support monorepos?", content: [
-            markdown("Yes. We detect and build individual packages within monorepos automatically."),
-          ]},
-          { label: "What about databases?", content: [
-            markdown("We offer managed Postgres, Redis, and S3-compatible storage. Connect with one command."),
-          ]},
-        ]),
-      ],
-    }),
-  ],
-});
-```
-
-### Example 4: Band / Musician Page
-
-```ts
-import {
-  defineSite, page, card, link, markdown,
-  ascii, themes, divider, spacer, quote, gallery,
-} from "terminaltui";
-
-export default defineSite({
-  name: "Neon Dusk",
-  tagline: "synthwave / electronic / dream pop",
-  banner: ascii("Neon Dusk", { font: "Slant", gradient: ["#ff2a6d", "#05d9e8", "#ff2a6d"] }),
-  theme: themes.rosePine,
-  animations: { boot: true, transitions: "wipe", exitMessage: "🎵 keep listening" },
-
-  pages: [
-    page("music", {
-      title: "Discography",
-      icon: "♦",
-      content: [
-        card({
-          title: "Chromatic Dreams",
-          subtitle: "2026 — LP",
-          body: "Our latest album. 12 tracks exploring the space between memory and imagination. Produced with analog synths and modern production.",
-          tags: ["Synthwave", "Dream Pop", "New"],
-          url: "https://open.spotify.com/album/chromatic-dreams",
-        }),
-        card({
-          title: "Midnight Signal",
-          subtitle: "2024 — LP",
-          body: "The sophomore record. Darker, more atmospheric. Features collaborations with Dreamcatcher and LMNO.",
-          tags: ["Electronic", "Ambient"],
-          url: "https://open.spotify.com/album/midnight-signal",
-        }),
-        card({
-          title: "First Light",
-          subtitle: "2022 — EP",
-          body: "Where it all started. 5 tracks of raw synthwave energy.",
-          tags: ["Synthwave"],
-          url: "https://open.spotify.com/album/first-light",
-        }),
-      ],
-    }),
-
-    page("tour", {
-      title: "Tour Dates",
-      icon: "◆",
-      content: [
-        card({ title: "Los Angeles, CA", subtitle: "Apr 5, 2026", body: "The Fonda Theatre — Doors 7pm, Show 8pm", tags: ["On Sale"] }),
-        card({ title: "San Francisco, CA", subtitle: "Apr 7, 2026", body: "The Independent — Doors 7pm, Show 8:30pm", tags: ["On Sale"] }),
-        card({ title: "Portland, OR", subtitle: "Apr 9, 2026", body: "Wonder Ballroom — Doors 7pm, Show 8pm", tags: ["On Sale"] }),
-        card({ title: "Seattle, WA", subtitle: "Apr 11, 2026", body: "Neumos — Doors 7pm, Show 8pm", tags: ["Sold Out"] }),
-        card({ title: "Vancouver, BC", subtitle: "Apr 13, 2026", body: "Commodore Ballroom — Doors 7pm, Show 8pm", tags: ["On Sale"] }),
-        divider(),
-        link("Buy Tickets", "https://neondusk.com/tickets"),
-      ],
-    }),
-
-    page("about", {
-      title: "About",
-      icon: "◈",
-      content: [
-        markdown("**Neon Dusk** is a three-piece electronic act from Los Angeles. Formed in 2021, we blend synthwave, dream pop, and ambient textures into something we call \"terminal music\" — music for the space between waking and dreaming."),
-        spacer(),
-        markdown("**Members:**"),
-        markdown("- **Kai** — synths, production\n- **Luna** — vocals, keys\n- **Zero** — drums, electronics"),
-        divider(),
-        quote("Neon Dusk creates soundscapes that feel like driving through a neon-lit city at 3am.", "— Synth Magazine"),
-        quote("One of the most exciting new acts in electronic music.", "— Pitchfork"),
-      ],
-    }),
-
-    page("listen", {
-      title: "Listen",
-      icon: "◉",
-      content: [
-        link("Spotify", "https://open.spotify.com/artist/neondusk"),
-        link("Apple Music", "https://music.apple.com/artist/neondusk"),
-        link("Bandcamp", "https://neondusk.bandcamp.com"),
-        link("YouTube", "https://youtube.com/@neondusk"),
-        link("SoundCloud", "https://soundcloud.com/neondusk"),
-        divider(),
-        link("Instagram", "https://instagram.com/neondusk"),
-        link("Twitter", "https://twitter.com/neondusk"),
-        link("TikTok", "https://tiktok.com/@neondusk"),
-        divider(),
-        link("Press Kit", "https://neondusk.com/press"),
-        link("Booking", "mailto:booking@neondusk.com"),
       ],
     }),
   ],
@@ -1338,171 +1619,40 @@ export default defineSite({
 
 ---
 
-## Troubleshooting
+## Common Mistakes to Avoid
 
-### Common Mistakes
+1. **Missing `page()` wrapper.** Always use `page("id", { ... })`, not raw objects. The first argument is the page ID.
 
-**1. Missing `type: "module"` in package.json**
+2. **Wrong font name casing.** Font names are case-sensitive: `"ANSI Shadow"` not `"ansi shadow"`, `"Calvin S"` not `"Calvin s"`.
 
-The project's `package.json` MUST include `"type": "module"`. Without it, ESM imports will fail.
+3. **Using `content: markdown("text")` instead of `content: [markdown("text")]`.** Content is always an array of blocks.
 
-```json
-{
-  "type": "module"
-}
-```
+4. **Forgetting `type: "module"` in package.json.** terminaltui uses ES modules. Your package.json must include `"type": "module"`.
 
-**2. Content not wrapped in an array**
+5. **Not returning ActionResult from form onSubmit.** Must return `{ success: "..." }`, `{ error: "..." }`, or `{ info: "..." }`.
 
-The `content` field of a page expects `ContentBlock[]` (an array). Every content helper returns a single block, so you must wrap them in `[]`.
+6. **Putting inputs outside a form and expecting submission.** Standalone inputs work for onChange reactivity, but for submit behavior wrap them in `form()`.
 
-```ts
-// WRONG
-page("about", {
-  title: "About",
-  content: markdown("Hello"),  // not an array!
-})
+7. **Using `.length` instead of `stringWidth()` for terminal display width.** Unicode characters (CJK, emoji, box-drawing) have different display widths. Import `stringWidth` from terminaltui.
 
-// CORRECT
-page("about", {
-  title: "About",
-  content: [
-    markdown("Hello"),
-  ],
-})
-```
+8. **Gradient arrays with one color.** Gradients need at least 2 colors: `gradient: ["#ff0000", "#0000ff"]`.
 
-**3. Forgetting to import functions**
+9. **Async content without loading state.** When using `() => Promise<ContentBlock[]>` for page content or `asyncContent()`, always provide a `loading` message.
 
-Every helper must be imported from `"terminaltui"`. If you use `card()`, `timeline()`, `link()`, etc., they must appear in the import statement.
+10. **Not handling errors in async pages.** Provide `onError` on pages with async content to show a fallback instead of crashing.
 
-```ts
-// WRONG — card is not imported
-import { defineSite, page, markdown } from "terminaltui";
-// ... card({...}) // ReferenceError!
+11. **Calling `navigate()` before runtime init.** Only call `navigate()` from event handlers, middleware, or lifecycle hooks — not at the top level of the file.
 
-// CORRECT
-import { defineSite, page, markdown, card } from "terminaltui";
-```
+12. **Missing `id` on input components.** Every input (textInput, select, checkbox, etc.) must have a unique `id` for form data collection.
 
-**4. Wrong theme name casing**
+13. **Forgetting `onChange` on interactive inputs.** If you want real-time reactivity from a select, checkbox, toggle, or radioGroup, you must pass an `onChange` handler.
 
-Theme names are camelCase. `"tokyoNight"` and `"rosePine"` have specific casing.
+14. **Using truecolor hex in Apple Terminal.** Apple Terminal does not support truecolor ANSI. terminaltui auto-detects and falls back to 256-color mode, but custom render functions using raw ANSI codes should use `fgColor()`/`bgColor()` from terminaltui which handle this automatically.
 
-```ts
-// WRONG
-theme: themes.TokyoNight
-theme: themes.tokyo_night
-theme: "Tokyo Night"
+15. **Using `timeline()` for browsable content.** `timeline()` renders as individual focusable items but they're display-only — Enter does nothing. If users need to interact with entries (open URLs, see details), use individual `card()` blocks instead.
 
-// CORRECT
-theme: themes.tokyoNight
-theme: "tokyoNight"
-```
+16. **Using `tabs()` to organize page sections.** `tabs()` forces horizontal left/right switching which is awkward in a TUI. Use `divider("Section Name")` to visually separate sections — everything stays in one vertical scroll flow.
 
-**5. Using `themes.dracula` vs `"dracula"` string**
+17. **Putting everything inside `section()`.** `section()` adds a header + divider but doesn't change focusability. If you just need a visual label, `divider("Label")` is lighter and doesn't add nesting.
 
-Both forms work. You can pass either the theme object or its name as a string.
-
-```ts
-// Both are valid:
-theme: themes.dracula    // object reference
-theme: "dracula"         // string name
-```
-
-**6. Banner text vs site name**
-
-The `banner` field controls the ASCII art. The `name` field is the fallback if no banner is set. Always set both.
-
-```ts
-// Banner shows ASCII art of "ACME" but the site is named "Acme Corp"
-name: "Acme Corp",
-banner: ascii("ACME", { font: "ANSI Shadow" }),
-```
-
-**7. Font name must be exact**
-
-Font names are strings and must match exactly: `"ANSI Shadow"`, `"Slant"`, `"Calvin S"`, `"Small"`, `"Ogre"`.
-
-```ts
-// WRONG
-ascii("Hello", { font: "ansi shadow" })
-ascii("Hello", { font: "ANSI_Shadow" })
-
-// CORRECT
-ascii("Hello", { font: "ANSI Shadow" })
-```
-
-**8. Card takes an object, not positional args**
-
-```ts
-// WRONG
-card("Title", "Subtitle", "Body")
-
-// CORRECT
-card({ title: "Title", subtitle: "Subtitle", body: "Body" })
-```
-
-**9. Timeline takes an array of items**
-
-```ts
-// WRONG
-timeline({ title: "Job", period: "2023" })
-
-// CORRECT
-timeline([
-  { title: "Job", period: "2023" },
-])
-```
-
-**10. Gallery items do NOT include `type`**
-
-The `gallery()` helper adds `type: "card"` automatically. Pass items without it.
-
-```ts
-// WRONG
-gallery([{ type: "card", title: "Item" }])
-
-// CORRECT
-gallery([{ title: "Item", body: "Description" }])
-```
-
-**11. Section content must also be an array**
-
-```ts
-// WRONG
-section("Title", card({ title: "Item" }))
-
-// CORRECT
-section("Title", [
-  card({ title: "Item" }),
-])
-```
-
-**12. Tabs and accordion items need `content` arrays**
-
-```ts
-// WRONG
-tabs([{ label: "Tab 1", content: markdown("text") }])
-
-// CORRECT
-tabs([{ label: "Tab 1", content: [markdown("text")] }])
-```
-
-**13. The config must be the default export**
-
-```ts
-// WRONG
-export const site = defineSite({...});
-
-// CORRECT
-export default defineSite({...});
-```
-
-**14. Missing `esbuild` dependency**
-
-The `terminaltui dev` and `terminaltui build` commands need `esbuild` to compile TypeScript. Install it as a dev dependency:
-
-```bash
-npm install --save-dev esbuild
-```
+18. **Forgetting the TUI is vertical-first.** Always ask: "can the user reach this content by pressing ↓ repeatedly?" If the answer is no (e.g., content hidden behind a tab or inside a non-focusable block), restructure to be vertically scrollable.

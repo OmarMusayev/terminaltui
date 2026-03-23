@@ -1,4 +1,4 @@
-import { defineSite, page, card, quote, link, markdown, ascii, themes, divider } from "terminaltui";
+import { defineSite, page, card, quote, link, markdown, ascii, themes, divider, searchInput, form, textInput, button, spacer } from "terminaltui";
 
 export default defineSite({
   name: "GLASS CATHEDRAL",
@@ -41,6 +41,17 @@ export default defineSite({
       title: "Upcoming Shows",
       icon: "★",
       content: [
+        searchInput({
+          id: "shows-search",
+          placeholder: "Search shows by venue or city...",
+          action: "navigate",
+          items: [
+            { label: "Metro — Chicago, IL", value: "metro-chicago-il", keywords: ["Chicago", "Metro", "Slow Crush", "Narrow Head"] },
+            { label: "Rough Trade — Brooklyn, NY", value: "rough-trade-brooklyn-ny", keywords: ["Brooklyn", "New York", "Rough Trade", "album release"] },
+            { label: "The Echo — Los Angeles, CA", value: "the-echo-los-angeles-ca", keywords: ["Los Angeles", "The Echo", "Nothing", "Cloakroom"] },
+          ],
+        }),
+        spacer(),
         card({
           title: "Metro — Chicago, IL",
           subtitle: "Mar 28, 2026",
@@ -84,6 +95,13 @@ export default defineSite({
         link("Instagram", "https://instagram.com/glasscathedral"),
         link("Merch", "https://glasscathedral.bigcartel.com"),
         link("Booking", "mailto:booking@glasscathedral.com"),
+        form({ id: "mailing-list", onSubmit: async (data) => ({ success: "You're on the list. See you at the next show." }),
+          fields: [
+            textInput({ id: "email", label: "Join the Mailing List", placeholder: "your@email.com", validate: v => v.includes("@") ? null : "Invalid email" }),
+            button({ label: "Subscribe", style: "primary" }),
+          ],
+        }),
+        spacer(),
       ],
     }),
   ],

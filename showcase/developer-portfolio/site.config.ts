@@ -10,6 +10,11 @@ import {
   spacer,
   asciiArt,
   artCompose,
+  searchInput,
+  textInput,
+  textArea,
+  button,
+  form,
 } from "../../src/index.js";
 
 export default defineSite({
@@ -60,6 +65,20 @@ export default defineSite({
       title: "Projects",
       icon: ">>",
       content: [
+        searchInput({
+          id: "search-projects",
+          placeholder: "Search projects...",
+          action: "navigate",
+          items: [
+            { label: "Conduit", value: "conduit", keywords: ["Rust", "Streaming", "Open Source"] },
+            { label: "Nebula Deploy", value: "nebula-deploy", keywords: ["Go", "Kubernetes", "DevOps"] },
+            { label: "Lattice", value: "lattice", keywords: ["Rust", "Networking", "Infrastructure"] },
+            { label: "tokio-uring", value: "tokio-uring", keywords: ["Rust", "Linux", "Async"] },
+            { label: "kube-rs", value: "kube-rs", keywords: ["Rust", "Kubernetes", "API"] },
+            { label: "OpenTelemetry Rust SDK", value: "opentelemetry-rust-sdk", keywords: ["Rust", "Observability", "CNCF"] },
+          ],
+        }),
+        spacer(),
         section("Featured Projects", [
           card({
             title: "Conduit",
@@ -188,6 +207,19 @@ export default defineSite({
       title: "Blog",
       icon: "//",
       content: [
+        searchInput({
+          id: "search-blog",
+          placeholder: "Search blog posts...",
+          action: "navigate",
+          items: [
+            { label: "Why We Rewrote Our Pipeline in Rust", value: "why-we-rewrote-our-pipeline-in-rust", keywords: ["Rust", "pipeline", "JVM", "migration"] },
+            { label: "Zero-Copy Deserialization in Production", value: "zero-copy-deserialization-in-production", keywords: ["memory", "allocators", "rkyv", "flatbuffers"] },
+            { label: "Building a Service Mesh Without Sidecars", value: "building-a-service-mesh-without-sidecars", keywords: ["eBPF", "Lattice", "service mesh", "networking"] },
+            { label: "The Case for io_uring in Production", value: "the-case-for-io-uring-in-production", keywords: ["io_uring", "Linux", "performance", "benchmarks"] },
+            { label: "Kubernetes Operators That Don't Break", value: "kubernetes-operators-that-dont-break", keywords: ["Kubernetes", "kube-rs", "operators", "reconciliation"] },
+          ],
+        }),
+        spacer(),
         card({
           title: "Why We Rewrote Our Pipeline in Rust",
           subtitle: "March 2026",
@@ -225,6 +257,17 @@ export default defineSite({
       title: "Links",
       icon: "->",
       content: [
+        form({
+          id: "contact",
+          onSubmit: async (data) => ({ success: "Thanks for reaching out!" }),
+          fields: [
+            textInput({ id: "name", label: "Name", validate: (v) => (v ? null : "Required") }),
+            textInput({ id: "email", label: "Email", validate: (v) => (v.includes("@") ? null : "Invalid email") }),
+            textArea({ id: "message", label: "Message", rows: 3, placeholder: "Say hello..." }),
+            button({ label: "Send", style: "primary" }),
+          ],
+        }),
+        spacer(),
         link("GitHub", "https://github.com/kainakamura", { icon: ">" }),
         link("Twitter", "https://twitter.com/kainakamura", { icon: ">" }),
         link("Blog", "https://kai.dev/blog", { icon: ">" }),

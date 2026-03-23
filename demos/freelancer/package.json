@@ -1,0 +1,9 @@
+{
+  "name": "demo-tui-studio",
+  "description": "A freelance design studio portfolio with services, case studies, and contact form",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "example-crud-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "terminaltui dev"
+  },
+  "dependencies": {
+    "terminaltui": "latest"
+  }
+}

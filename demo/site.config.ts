@@ -1,7 +1,8 @@
 import {
   defineSite, page, card, timeline, link, skillBar,
   section, quote, hero, table, list, ascii, markdown,
-  themes, divider, spacer, badge
+  themes, divider, spacer, badge,
+  searchInput, textInput, textArea, button, form,
 } from "terminaltui";
 
 export default defineSite({
@@ -37,6 +38,17 @@ export default defineSite({
       title: "Projects",
       icon: "◈",
       content: [
+        searchInput({
+          id: "search-projects",
+          placeholder: "Search projects...",
+          action: "navigate",
+          items: [
+            { label: "terminaltui", value: "terminaltui", keywords: ["TypeScript", "CLI", "TUI"] },
+            { label: "cool-project", value: "cool-project", keywords: ["Rust", "Open Source"] },
+            { label: "another-thing", value: "another-thing", keywords: ["Go", "CLI"] },
+          ],
+        }),
+        spacer(),
         card({
           title: "terminaltui",
           subtitle: "★ new",
@@ -90,6 +102,17 @@ export default defineSite({
       title: "Links",
       icon: "◉",
       content: [
+        form({
+          id: "contact",
+          onSubmit: async (data) => ({ success: "Thanks for reaching out!" }),
+          fields: [
+            textInput({ id: "name", label: "Name", validate: (v) => (v ? null : "Required") }),
+            textInput({ id: "email", label: "Email", validate: (v) => (v.includes("@") ? null : "Invalid email") }),
+            textArea({ id: "message", label: "Message", rows: 3, placeholder: "Say hello..." }),
+            button({ label: "Send", style: "primary" }),
+          ],
+        }),
+        spacer(),
         link("GitHub", "https://github.com"),
         link("Twitter / X", "https://x.com"),
         link("LinkedIn", "https://linkedin.com"),

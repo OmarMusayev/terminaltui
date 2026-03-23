@@ -24,6 +24,17 @@ import type {
   BannerConfig,
   AsciiBannerOptions,
   LinkOptions,
+  TextInputBlock,
+  TextAreaBlock,
+  SelectBlock,
+  CheckboxBlock,
+  ToggleBlock,
+  RadioGroupBlock,
+  NumberInputBlock,
+  SearchInputBlock,
+  ButtonBlock,
+  FormBlock,
+  AsyncContentBlock,
 } from "./types.js";
 import type { Theme } from "../style/theme.js";
 
@@ -145,3 +156,63 @@ export function divider(style?: DividerBlock["style"] | string, label?: string):
 export function spacer(lines?: number): SpacerBlock {
   return { type: "spacer", lines: lines ?? 1 };
 }
+
+// ─── Input Component Helpers ──────────────────────────────
+
+let asyncIdCounter = 0;
+
+export function textInput(config: Omit<TextInputBlock, "type">): TextInputBlock {
+  return { type: "textInput", ...config };
+}
+
+export function textArea(config: Omit<TextAreaBlock, "type">): TextAreaBlock {
+  return { type: "textArea", ...config };
+}
+
+export function select(config: Omit<SelectBlock, "type">): SelectBlock {
+  return { type: "select", ...config };
+}
+
+export function checkbox(config: Omit<CheckboxBlock, "type">): CheckboxBlock {
+  return { type: "checkbox", ...config };
+}
+
+export function toggle(config: Omit<ToggleBlock, "type">): ToggleBlock {
+  return { type: "toggle", ...config };
+}
+
+export function radioGroup(config: Omit<RadioGroupBlock, "type">): RadioGroupBlock {
+  return { type: "radioGroup", ...config };
+}
+
+export function numberInput(config: Omit<NumberInputBlock, "type">): NumberInputBlock {
+  return { type: "numberInput", ...config };
+}
+
+export function searchInput(config: Omit<SearchInputBlock, "type">): SearchInputBlock {
+  return { type: "searchInput", ...config };
+}
+
+export function button(config: Omit<ButtonBlock, "type">): ButtonBlock {
+  return { type: "button", ...config };
+}
+
+export function form(config: Omit<FormBlock, "type">): FormBlock {
+  const formBlock: FormBlock = { type: "form", ...config };
+  // Tag buttons with form ID so the runtime knows which form to submit
+  for (const field of formBlock.fields) {
+    if (field.type === "button") {
+      (field as ButtonBlock)._formId = formBlock.id;
+    }
+  }
+  return formBlock;
+}
+
+export function asyncContent(config: Omit<AsyncContentBlock, "type">): AsyncContentBlock {
+  return { type: "asyncContent", ...config, _asyncId: `async-${asyncIdCounter++}` };
+}
+
+// ─── Re-exports from other modules ────────────────────────
+
+// These are re-exported here for convenience so users can import everything from one place.
+// The actual implementations live in their respective modules.

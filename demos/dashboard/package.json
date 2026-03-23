@@ -1,0 +1,9 @@
+{
+  "name": "demo-tui-dashboard",
+  "description": "An API-powered dashboard demonstrating state, fetcher, routing, and persistent bookmarks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

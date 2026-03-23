@@ -1,0 +1,9 @@
+{
+  "name": "demo-tui-cafe",
+  "description": "A specialty coffee shop TUI with searchable menu, origin stories, and catering inquiries",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}

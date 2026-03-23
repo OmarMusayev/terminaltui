@@ -4,5 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "npx tsx ../../src/cli/index.ts dev"
-  }
+  },
+  "version": "1.0.0",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }

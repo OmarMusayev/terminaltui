@@ -1,0 +1,9 @@
+{
+  "name": "demo-tui-conf",
+  "description": "A terminal conference site with schedule tabs, speaker search, and sponsor tiers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx ../../src/cli/index.ts dev"
+  }
+}
