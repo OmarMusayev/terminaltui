@@ -49,6 +49,9 @@ npx tsx demos/tetris/index.ts                                           # playab
 ### Dashboard Demo (hacker theme — live API data)
 ![dashboard demo](assets/recordings/dashboard.gif)
 
+### Tetris (yes, really)
+![tetris](assets/recordings/tetris.gif)
+
 | Demo | Theme | Highlights |
 |------|-------|------------|
 | **Developer Portfolio** | cyberpunk | Gradient banner, 6 project cards, skill bars, sparkline, search |
