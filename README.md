@@ -83,7 +83,7 @@ A real portfolio built with terminaltui — AI chat, blog posts with parameteriz
 ### Dashboard (live API data)
 ![dashboard demo](assets/recordings/dashboard.gif)
 
-### Tetris
+### Tetris (yes, really — a fully playable game built on the framework)
 ![tetris](assets/recordings/tetris.gif)
 
 ---
