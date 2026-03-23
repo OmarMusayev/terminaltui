@@ -3,7 +3,7 @@ import type { RouteParams } from "../routing/types.js";
 
 /** Application context passed to lifecycle hooks. */
 export interface AppContext {
-  state: any; // StateContainer — typed as any to avoid circular deps
+  state: Record<string, unknown> | null; // App state, null if no state configured
   navigate: (pageId: string, params?: RouteParams) => void;
 }
 

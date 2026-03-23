@@ -1,14 +1,14 @@
 /** Listener for a specific state key change. */
-export type StateListener<T = any> = (newValue: T, oldValue: T) => void;
+export type StateListener<T = unknown> = (newValue: T, oldValue: T) => void;
 
 /** Listener for any state change. */
-export type WildcardListener = (key: string, newValue: any) => void;
+export type WildcardListener = (key: string, newValue: unknown) => void;
 
 /** Unsubscribe function returned by on(). */
 export type Unsubscribe = () => void;
 
 /** A reactive state container. */
-export interface StateContainer<T extends Record<string, any>> {
+export interface StateContainer<T extends Record<string, unknown>> {
   get(): T;
   get<K extends keyof T>(key: K): T[K];
   set<K extends keyof T>(key: K, value: T[K]): void;
@@ -23,10 +23,10 @@ export interface StateContainer<T extends Record<string, any>> {
 }
 
 /** Options for persistent state. */
-export interface PersistentStateOptions<T extends Record<string, any>> {
+export interface PersistentStateOptions<T extends Record<string, unknown>> {
   path: string;
   defaults: T;
-  encrypt?: boolean;
+  // Future: encryption support via node:crypto
 }
 
 /** A computed/derived value. */

@@ -209,11 +209,13 @@ When focused on a text input, just start typing — it auto-enters edit mode. Pr
 
 ## Tech Stack
 
-- **TypeScript** — fully typed, zero `any` in the public API
+- **TypeScript** — fully typed with strict mode
 - **Zero dependencies** — pure Node.js 18+
 - **83 exports** — comprehensive but focused
-- **1,500+ tests** — components, state, routing, rendering
+- **1,572 tests** across 10 suites (`npm test` runs them all)
 - **Apple Terminal compatible** — auto-detects and falls back to 256-color
+
+> terminaltui is a v1 framework — the API is ambitious and some features are foundational implementations that will deepen over time. Contributions welcome.
 
 ---
 

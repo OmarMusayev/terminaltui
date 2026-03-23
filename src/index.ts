@@ -199,7 +199,7 @@ export type { RouteConfig, RouteParams, NavigateAction, HistoryEntry } from "./r
 
 // ─── Middleware ───────────────────────────────────────────
 export { middleware, redirect } from "./middleware/index.js";
-export { requireEnv, rateLimit, cache } from "./middleware/built-in.js";
+export { requireEnv, rateLimit } from "./middleware/built-in.js";
 export type { MiddlewareFn, MiddlewareContext, MiddlewareResult } from "./middleware/types.js";
 
 // ─── Lifecycle ───────────────────────────────────────────

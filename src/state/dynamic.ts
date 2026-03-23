@@ -13,7 +13,9 @@ let dynamicIdCounter = 0;
  * Create a dynamic content block that re-renders when state changes.
  *
  * Overload 1: dynamic(renderFn) — re-renders on any state change
- * Overload 2: dynamic(deps, renderFn) — re-renders when specified keys change
+ * Overload 2: dynamic(deps, renderFn) — accepts a deps array for forward compatibility.
+ *   Currently all dynamic blocks re-render on any state change regardless of deps.
+ *   Targeted re-rendering based on deps is planned for a future release.
  */
 export function dynamic(
   depsOrRender: string[] | (() => ContentBlock | ContentBlock[]),

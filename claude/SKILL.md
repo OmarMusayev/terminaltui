@@ -474,13 +474,13 @@ spacer(3)    // 3 blank lines
 
 #### dynamic(renderFn) / dynamic(deps, renderFn): DynamicBlock
 
-Reactive content block that re-renders when state changes.
+Reactive content block that re-renders when state changes. Currently all dynamic blocks re-render on any state change. The deps array is accepted for forward compatibility.
 
 ```ts
 // Re-renders on any state change
 dynamic(() => markdown(`Count: ${state.get("count")}`))
 
-// Re-renders only when "count" changes
+// Deps accepted for forward compatibility (currently re-renders on any change)
 dynamic(["count"], () => markdown(`Count: ${state.get("count")}`))
 ```
 
@@ -762,7 +762,6 @@ State that persists to disk as JSON. Same API as `createState`.
 interface PersistentStateOptions<T> {
   path: string;           // File path for JSON persistence
   defaults: T;            // Default values
-  encrypt?: boolean;      // Encrypt on disk
 }
 ```
 
@@ -1184,9 +1183,8 @@ type MiddlewareResult = void | undefined | { redirect: string; params?: RoutePar
 Built-in middleware:
 
 ```ts
-requireEnv(vars: string[]): MiddlewareFn          // Check env vars exist
-rateLimit({ maxRequests, windowMs }): MiddlewareFn // Rate limit
-cache({ ttl: number }): MiddlewareFn              // Cache page content
+requireEnv(vars: string[]): MiddlewareFn          // Throws if env vars missing
+rateLimit({ maxRequests, windowMs }): MiddlewareFn // Throws when limit exceeded
 ```
 
 ```ts

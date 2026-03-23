@@ -33,7 +33,7 @@ export type MiddlewareFn = (context: MiddlewareContext) => Promise<MiddlewareRes
 export interface MiddlewareContext {
   page: string;
   params: RouteParams;
-  state: any; // StateContainer — typed as any to avoid circular deps
+  state: Record<string, unknown> | null; // App state, null if no state configured
 }
 
 /** Middleware result — void to continue, redirect to change destination. */

@@ -2,11 +2,11 @@ export interface RequestOptions {
   url: string;
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   headers?: Record<string, string>;
-  body?: any;
+  body?: Record<string, unknown> | string | unknown;
   timeout?: number;
 }
 
-export interface RequestResult<T = any> {
+export interface RequestResult<T = unknown> {
   data: T | null;
   error: Error | null;
   status: number;
