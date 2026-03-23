@@ -1,7 +1,5 @@
 # terminaltui
 
-![hero](assets/recordings/hero.gif)
-
 **Turn any website into a beautiful terminal experience.**
 
 ```bash
@@ -24,18 +22,36 @@ terminaltui convert
 # paste the prompt into Claude Code — done
 ```
 
-![convert](assets/recordings/convert-demo.gif)
-
 ---
 
-## Showcase
+## Demos
 
-| | |
-|---|---|
-| ![portfolio](assets/recordings/hero.gif) **Developer Portfolio** (cyberpunk) | ![restaurant](assets/recordings/restaurant.gif) **Restaurant** (gruvbox) |
-| ![dashboard](assets/recordings/dashboard.gif) **Dashboard** (hacker) | ![conference](assets/recordings/conference.gif) **Conference** (nord) |
-| ![startup](assets/recordings/startup.gif) **Startup** (tokyoNight) | ![band](assets/recordings/band.gif) **Band** (rosePine) |
-| ![cafe](assets/recordings/cafe.gif) **Coffee Shop** (catppuccin) | ![freelancer](assets/recordings/freelancer.gif) **Freelancer** (custom) |
+Run any of these to see the framework in action:
+
+```bash
+# From the repo:
+npx tsx src/cli/index.ts dev demos/developer-portfolio/site.config.ts   # cyberpunk portfolio
+npx tsx src/cli/index.ts dev demos/restaurant/site.config.ts            # gruvbox restaurant
+npx tsx src/cli/index.ts dev demos/dashboard/site.config.ts             # hacker dashboard (live API)
+npx tsx src/cli/index.ts dev demos/startup/site.config.ts               # tokyoNight SaaS landing
+npx tsx src/cli/index.ts dev demos/conference/site.config.ts            # nord conference
+npx tsx src/cli/index.ts dev demos/band/site.config.ts                  # rosePine band page
+npx tsx src/cli/index.ts dev demos/coffee-shop/site.config.ts           # catppuccin cafe
+npx tsx src/cli/index.ts dev demos/freelancer/site.config.ts            # custom earth-tone studio
+npx tsx demos/tetris/index.ts                                           # playable Tetris game
+```
+
+| Demo | Theme | Highlights |
+|------|-------|------------|
+| **Developer Portfolio** | cyberpunk | Gradient banner, 6 project cards, skill bars, sparkline, search |
+| **Restaurant** | gruvbox | 20+ menu items, wine list, reservation form, press quotes |
+| **Dashboard** | hacker | Live API data, reactive state, parameterized routes, bookmarks |
+| **Startup** | tokyoNight | Hero with CTA, pricing table, signup form, accordion quick start |
+| **Conference** | nord | 12 speaker cards, schedule tabs, speaker search, sponsor tiers |
+| **Band** | rosePine | Album search, tour dates, press quotes, mailing list signup |
+| **Coffee Shop** | catppuccin | 19-item menu search, bean origins, catering form |
+| **Freelancer** | custom | Service cards with pricing, portfolio, testimonials, contact form |
+| **Tetris** | cyberpunk | Fully playable Tetris with scoring, levels, hold piece, ghost |
 
 ---
 
@@ -90,13 +106,9 @@ TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchIn
 
 ### 10 Built-in Themes
 
-![themes](assets/recordings/themes.gif)
-
 cyberpunk, dracula, nord, monokai, solarized, gruvbox, catppuccin, tokyoNight, rosePine, hacker. Plus custom themes.
 
 ### Reactive State & Live Data
-
-![dashboard](assets/recordings/dashboard.gif)
 
 `createState`, `computed`, `dynamic` blocks, `fetcher` with auto-refresh, `request` HTTP client, WebSocket/SSE via `liveData`. Build real applications, not just static sites.
 
@@ -177,6 +189,19 @@ When focused on a text input, just start typing — it auto-enters edit mode. Pr
 - **83 exports** — comprehensive but focused
 - **1,500+ tests** — components, state, routing, rendering
 - **Apple Terminal compatible** — auto-detects and falls back to 256-color
+
+---
+
+## Recording Demos
+
+To generate GIF recordings of the demos (requires [VHS](https://github.com/charmbracelet/vhs)):
+
+```bash
+vhs assets/recordings/hero.tape
+vhs assets/recordings/restaurant.tape
+vhs assets/recordings/dashboard.tape
+vhs assets/recordings/themes.tape
+```
 
 ---
 
