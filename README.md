@@ -5,7 +5,7 @@
 **Turn any website into a beautiful terminal experience.**
 
 ```bash
-npx demo-dev-portfolio   # try it now
+npx omar-musayev   # try it now
 ```
 
 ---
