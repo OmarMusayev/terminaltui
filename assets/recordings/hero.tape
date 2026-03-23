@@ -1,54 +1,42 @@
-# hero.gif — The money shot
-# Run: vhs hero.tape
-
-Output hero.gif
+Output assets/recordings/hero.gif
 Set Shell zsh
-Set FontSize 14
-Set Width 1200
-Set Height 800
-Set Padding 20
+Set FontSize 16
+Set Width 1100
+Set Height 700
+Set Padding 15
+Set TypingSpeed 50ms
 Set Theme "Dracula"
 
 Type "npx tsx src/cli/index.ts dev demos/developer-portfolio/site.config.ts"
 Enter
-Sleep 3s
-
-# Boot animation plays
+Sleep 4s
 Sleep 2s
-
-# Navigate to Projects
 Down
+Sleep 400ms
 Down
+Sleep 400ms
 Enter
 Sleep 1.5s
-
-# Scroll through project cards
 Down
-Sleep 0.8s
+Sleep 500ms
 Down
-Sleep 0.8s
-
-# Go back
+Sleep 500ms
+Down
+Sleep 500ms
 Left
 Sleep 1s
-
-# Navigate to Experience
 Down
 Down
 Down
 Enter
 Sleep 1.5s
-
-# Scroll through experience
 Down
-Sleep 0.8s
+Sleep 400ms
 Down
-Sleep 0.8s
-
-# Go back to home
+Sleep 400ms
+Down
+Sleep 400ms
 Left
 Sleep 1s
-
-# Quit
 Type "q"
-Sleep 1s
+Sleep 1.5s

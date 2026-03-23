@@ -1,5 +1,7 @@
 # terminaltui
 
+![terminaltui demo](assets/recordings/hero.gif)
+
 **Turn any website into a beautiful terminal experience.**
 
 ```bash
@@ -40,6 +42,12 @@ npx tsx src/cli/index.ts dev demos/coffee-shop/site.config.ts           # catppu
 npx tsx src/cli/index.ts dev demos/freelancer/site.config.ts            # custom earth-tone studio
 npx tsx demos/tetris/index.ts                                           # playable Tetris game
 ```
+
+### Restaurant Demo (gruvbox theme)
+![restaurant demo](assets/recordings/restaurant.gif)
+
+### Dashboard Demo (hacker theme — live API data)
+![dashboard demo](assets/recordings/dashboard.gif)
 
 | Demo | Theme | Highlights |
 |------|-------|------------|
@@ -105,6 +113,8 @@ TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchIn
 14 fonts, 15 scenes, 32 icons, 12 patterns, 9 shapes, 5 data visualizations. Image-to-ASCII conversion with braille mode. Art composition utilities.
 
 ### 10 Built-in Themes
+
+![theme switching](assets/recordings/themes.gif)
 
 cyberpunk, dracula, nord, monokai, solarized, gruvbox, catppuccin, tokyoNight, rosePine, hacker. Plus custom themes.
 
@@ -189,19 +199,6 @@ When focused on a text input, just start typing — it auto-enters edit mode. Pr
 - **83 exports** — comprehensive but focused
 - **1,500+ tests** — components, state, routing, rendering
 - **Apple Terminal compatible** — auto-detects and falls back to 256-color
-
----
-
-## Recording Demos
-
-To generate GIF recordings of the demos (requires [VHS](https://github.com/charmbracelet/vhs)):
-
-```bash
-vhs assets/recordings/hero.tape
-vhs assets/recordings/restaurant.tape
-vhs assets/recordings/dashboard.tape
-vhs assets/recordings/themes.tape
-```
 
 ---
 

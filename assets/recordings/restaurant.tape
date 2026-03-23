@@ -1,44 +1,42 @@
-# restaurant.gif — Restaurant demo
-# Run: vhs restaurant.tape
-
-Output restaurant.gif
+Output assets/recordings/restaurant.gif
 Set Shell zsh
-Set FontSize 14
-Set Width 1200
-Set Height 800
-Set Padding 20
+Set FontSize 16
+Set Width 1100
+Set Height 700
+Set Padding 15
+Set TypingSpeed 50ms
+Set Theme "Dracula"
 
 Type "npx tsx src/cli/index.ts dev demos/restaurant/site.config.ts"
 Enter
-Sleep 3s
-
-# Browse menu
+Sleep 4s
+Sleep 2s
 Enter
 Sleep 1s
 Down
-Sleep 0.5s
+Sleep 300ms
 Down
-Sleep 0.5s
+Sleep 300ms
 Down
-Sleep 0.5s
+Sleep 300ms
 Down
-Sleep 0.5s
+Sleep 300ms
 Down
-Sleep 0.5s
-
-# Go back
+Sleep 300ms
+Down
+Sleep 300ms
 Left
 Sleep 1s
-
-# Check hours
 Down
 Down
 Down
 Enter
 Sleep 1.5s
-
-# Go back and quit
+Down
+Sleep 400ms
+Down
+Sleep 400ms
 Left
-Sleep 0.5s
+Sleep 1s
 Type "q"
-Sleep 0.5s
+Sleep 1s
