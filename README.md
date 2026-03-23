@@ -110,7 +110,9 @@ TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchIn
 
 ### ASCII Art System
 
-14 fonts, 15 scenes, 32 icons, 12 patterns, 9 shapes, 5 data visualizations. Image-to-ASCII conversion with braille mode. Art composition utilities.
+![fonts and art](assets/recordings/fonts-and-art.gif)
+
+14 fonts (ANSI Shadow, Ogre, Ghost, Electronic, Sub-Zero, Bloody, DOS Rebel, Calvin S, Block, Slant, Small, Colossal, Larry 3D, Isometric1), 15 scenes, 32 icons, 12 patterns, 9 shapes, 5 data visualizations. Image-to-ASCII conversion with braille mode. Art composition utilities.
 
 ### 10 Built-in Themes
 
