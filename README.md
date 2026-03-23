@@ -1,5 +1,7 @@
 # terminaltui
 
+![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![dependencies](https://img.shields.io/badge/dependencies-0-success) ![tests](https://img.shields.io/badge/tests-1500%2B-brightgreen)
+
 ![terminaltui demo](assets/recordings/hero.gif)
 
 **Turn any website into a beautiful terminal experience.**
