@@ -57,6 +57,7 @@ export default defineSite({
 
 | Demo | Run it | Theme |
 |------|--------|-------|
+| **Creator's Portfolio** | **`npx omar-musayev`** | custom |
 | Developer Portfolio | `terminaltui dev demos/developer-portfolio/site.config.ts` | cyberpunk |
 | Restaurant | `npx demo-tui-restaurant` | gruvbox |
 | Coffee Shop | `npx demo-tui-cafe` | catppuccin |
