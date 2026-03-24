@@ -30,6 +30,9 @@ async function main() {
     case "convert":
       await runConvert();
       break;
+    case "create":
+      await runCreateCommand();
+      break;
     case "help":
     case "--help":
     case "-h":
@@ -134,6 +137,11 @@ async function runArtCommand() {
   await runArt(args.slice(1));
 }
 
+async function runCreateCommand() {
+  const { runCreate } = await import("./create.js");
+  await runCreate();
+}
+
 async function runConvert() {
   const { copyFileSync } = await import("node:fs");
 
@@ -222,6 +230,7 @@ function printHelp() {
   Commands:
     dev          Start development preview (default)
     init [tpl]   Scaffold a new project (templates: minimal, portfolio, landing, restaurant, blog, creative)
+    create       Interactive prompt builder — answer questions, get a tailored AI prompt
     convert      Drop terminaltui docs into your project for AI-assisted conversion
     build        Bundle for npm publish
     test         Run automated tests on site in current directory
@@ -237,6 +246,7 @@ function printHelp() {
   Examples:
     terminaltui init portfolio
     terminaltui dev
+    terminaltui create
     terminaltui convert
     terminaltui build
     terminaltui test --sizes --verbose

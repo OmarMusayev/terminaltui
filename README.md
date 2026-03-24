@@ -19,6 +19,13 @@ terminaltui build && npm publish   # now anyone can: npx your-project-name
 
 ---
 
+## Build something new
+
+```bash
+terminaltui create
+# Answer a few questions → get a tailored AI prompt → paste into Claude Code
+```
+
 ## Already have a website?
 
 ```bash

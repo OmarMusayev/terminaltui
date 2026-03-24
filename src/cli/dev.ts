@@ -1,18 +1,19 @@
 import { resolve, dirname } from "node:path";
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { execSync } from "node:child_process";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFileSync, mkdirSync } from "node:fs";
 
 export async function buildAndRun(configPath: string): Promise<void> {
   const absPath = resolve(configPath);
+  const projectDir = dirname(absPath);
 
-  // Compile the TypeScript config to JavaScript using esbuild or tsup
-  const outDir = join(tmpdir(), "terminaltui-dev-" + Date.now());
+  // Compile into the project directory so Node's normal module resolution
+  // finds node_modules/terminaltui without symlink hacks.
+  const outDir = join(projectDir, ".terminaltui");
   mkdirSync(outDir, { recursive: true });
-  const outFile = join(outDir, "site.config.mjs");
+  const outFile = join(outDir, "compiled.mjs");
 
   try {
     // Try using esbuild directly
@@ -42,15 +43,16 @@ export async function buildAndRun(configPath: string): Promise<void> {
         return;
       } catch (e: any) {
         throw new Error(
-          `Cannot compile ${configPath}. Install esbuild as a dev dependency:\n` +
-          `  npm install --save-dev esbuild\n\n` +
+          `Cannot compile ${configPath}. Install esbuild:\n` +
+          `  npm install esbuild\n\n` +
           `Original error: ${e.message}`
         );
       }
     }
   }
 
-  // Import the compiled config
+  // Import the compiled config — it lives inside the project directory
+  // so `import "terminaltui"` resolves via the project's node_modules.
   const fileUrl = pathToFileURL(outFile).href;
   const module = await import(fileUrl);
   const site = module.default;

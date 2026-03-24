@@ -60,5 +60,7 @@
       "optional": true
     }
   },
-  "dependencies": {}
+  "dependencies": {
+    "esbuild": ">=0.17.0"
+  }
 }
