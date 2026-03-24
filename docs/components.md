@@ -387,3 +387,29 @@ asyncContent({
   fallback: [markdown("Failed to load.")],
 })
 ```
+
+---
+
+## Custom Components
+
+You can register custom component renderers using the `componentRegistry`:
+
+```ts
+import { componentRegistry } from "terminaltui";
+import type { RenderContext } from "terminaltui";
+
+componentRegistry.register("myWidget", (block, ctx: RenderContext) => {
+  // Return an array of ANSI-styled lines
+  return [`  ${block.label}: ${block.value}`];
+}, true); // true = focusable
+```
+
+Use your custom component in content arrays by creating a block with a matching `type`:
+
+```ts
+content: [
+  { type: "myWidget", label: "Score", value: "42" } as any,
+]
+```
+
+For architecture details and how to contribute new built-in components, see [ARCHITECTURE.md](../ARCHITECTURE.md).

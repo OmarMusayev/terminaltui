@@ -119,21 +119,24 @@ Create `tui/package.json`:
 }
 ```
 
-**IMPORTANT — Imports:** The terminaltui package is NOT on npm. Import from the local source path:
+**Imports:** Install from npm (`npm install terminaltui`) and import normally:
+```typescript
+import { defineSite, page, card, markdown /* ... */ } from "terminaltui";
+```
+
+If using a local development copy instead, import from the source path:
 ```typescript
 import { defineSite, page, card, markdown /* ... */ } from "__TERMINALTUI_PATH__/src/index.js";
 ```
 
-Replace `__TERMINALTUI_PATH__` with the actual path shown above.
-
 ## Step 5: Generate tui/site.config.ts
 
-Create `tui/site.config.ts`. Import from the local path shown above:
+Create `tui/site.config.ts`:
 
 ```typescript
 import {
   defineSite, page, card, markdown, /* ... */
-} from "__TERMINALTUI_PATH__/src/index.js";
+} from "terminaltui";
 
 export default defineSite({
   name: "Site Name",
@@ -179,7 +182,7 @@ Navigate every page. Check:
 ## Step 7: Fix issues
 
 If there are errors:
-- Check imports match what you're using — they must point to the local source path, NOT `"terminaltui"`
+- Check imports match what you're using
 - Verify prop names against TERMINALTUI_SKILL.md
 - Ensure all page IDs are unique
 - Ensure form field IDs are unique
@@ -191,7 +194,7 @@ If there are errors:
 
 - **NEVER modify, delete, or overwrite files in the original website directory.** All TUI files go in `tui/`.
 - Do NOT invent content. Use exactly what exists on the original site.
-- **Import from the local path**, not from `"terminaltui"` (it's not on npm).
+- **Import from `"terminaltui"`** (npm) or from the local source path if developing locally.
 - If the site has images, describe them in text or use `asciiImage()` if the image file exists locally.
 - If the site has dynamic data (API, database), use `fetcher()` and `dynamic()` to fetch and display it. If the site needs backend logic (shell commands, file reads, database queries), use the `api` field in `defineSite()` to create API routes — no separate server needed.
 - If the site has user preferences, use `createPersistentState()` to remember them across sessions.

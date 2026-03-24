@@ -1870,3 +1870,23 @@ export default defineSite({
 17. **Putting everything inside `section()`.** `section()` adds a header + divider but doesn't change focusability. If you just need a visual label, `divider("Label")` is lighter and doesn't add nesting.
 
 18. **Forgetting the TUI is vertical-first.** Always ask: "can the user reach this content by pressing ↓ repeatedly?" If the answer is no (e.g., content hidden behind a tab or inside a non-focusable block), restructure to be vertically scrollable.
+
+---
+
+## Custom Components (Advanced)
+
+Register custom component renderers using the `componentRegistry`:
+
+```ts
+import { componentRegistry } from "terminaltui";
+import type { RenderContext } from "terminaltui";
+
+// Register a custom block type
+componentRegistry.register("myWidget", (block, ctx: RenderContext) => {
+  return [`  Widget: ${block.label}`];
+}, true /* focusable */);
+```
+
+The registry maps block type strings to render functions. Built-in components are pre-registered. Custom components can be used in content arrays by creating blocks with a matching `type` field.
+
+For internal architecture details, see `ARCHITECTURE.md` in the project root.

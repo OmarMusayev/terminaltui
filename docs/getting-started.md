@@ -127,3 +127,4 @@ Need backend logic? Define API endpoints right in your config — no separate se
 - [Routing](./routing.md) -- parameterized routes and middleware
 - [Testing](./testing.md) -- automated testing with TUIEmulator
 - [CLI Reference](./cli-reference.md) -- all commands and flags
+- [Architecture](../ARCHITECTURE.md) -- internal module map for contributors
