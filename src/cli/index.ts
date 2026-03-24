@@ -33,7 +33,11 @@ async function main() {
     case "create":
       await runCreateCommand();
       break;
+    case "demo":
+      await runDemo(args[1]);
+      break;
     case "help":
+
     case "--help":
     case "-h":
       printHelp();
@@ -142,6 +146,77 @@ async function runCreateCommand() {
   await runCreate();
 }
 
+const DEMO_NAMES = [
+  "restaurant",
+  "dashboard",
+  "band",
+  "coffee-shop",
+  "conference",
+  "developer-portfolio",
+  "freelancer",
+  "startup",
+] as const;
+
+async function runDemo(name?: string) {
+  if (!name) {
+    console.log(`
+  \x1b[1mterminaltui demo\x1b[0m — run a built-in demo site
+
+  Usage:  terminaltui demo <name>
+
+  Available demos:
+    \x1b[36mrestaurant\x1b[0m            Fine dining menu, wine list, reservations
+    \x1b[36mdashboard\x1b[0m             Monitoring dashboard with live data
+    \x1b[36mband\x1b[0m                  Band site with music, shows, merch
+    \x1b[36mcoffee-shop\x1b[0m           Cozy coffee shop with menu and story
+    \x1b[36mconference\x1b[0m            Tech conference with schedule and speakers
+    \x1b[36mdeveloper-portfolio\x1b[0m   Developer portfolio with projects
+    \x1b[36mfreelancer\x1b[0m            Freelancer landing page
+    \x1b[36mstartup\x1b[0m              Startup landing page
+
+  Example:
+    npx terminaltui demo restaurant
+`);
+    return;
+  }
+
+  if (!DEMO_NAMES.includes(name as any)) {
+    console.error(`Unknown demo: ${name}`);
+    console.error(`Available: ${DEMO_NAMES.join(", ")}`);
+    process.exit(1);
+  }
+
+  // Look for pre-compiled demo in dist/demos/
+  const pkgRoot = findPackageRoot();
+  const compiledPath = join(pkgRoot, "dist", "demos", `${name}.js`);
+
+  if (existsSync(compiledPath)) {
+    const { pathToFileURL } = await import("node:url");
+    const module = await import(pathToFileURL(compiledPath).href);
+    const site = module.default;
+    const { runSite } = await import("../core/runtime.js");
+    await runSite(site);
+    return;
+  }
+
+  // Fallback: try source demos/ directory (for development)
+  const srcPath = join(pkgRoot, "demos", name, "site.config.ts");
+  if (existsSync(srcPath)) {
+    try {
+      const { buildAndRun } = await import("./dev.js");
+      await buildAndRun(srcPath);
+    } catch (err: any) {
+      console.error("Error running demo:", err.message);
+      process.exit(1);
+    }
+    return;
+  }
+
+  console.error(`Demo files not found for: ${name}`);
+  console.error("This may be a packaging issue. Try reinstalling terminaltui.");
+  process.exit(1);
+}
+
 async function runConvert() {
   const { copyFileSync } = await import("node:fs");
 
@@ -232,6 +307,7 @@ function printHelp() {
     create       Interactive prompt builder — describe what you want, AI builds it
     convert      Drop terminaltui docs into your project for AI-assisted conversion
     dev          Start development preview (auto-starts API server if routes defined)
+    demo [name]  Run a built-in demo (restaurant, dashboard, band, coffee-shop, conference, etc.)
     build        Bundle for npm publish (includes API routes)
     test         Run automated tests on site in current directory
     art          Manage art assets (list, preview, create, validate)

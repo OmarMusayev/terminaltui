@@ -1,13 +1,13 @@
 {
   "name": "terminaltui",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "dist/index.js",
   "scripts": {
     "test": "npx tsx test/run-all.ts",
     "test:colors": "npx tsx test/test-apple-terminal-colors.ts",
     "test:components": "npx tsx test/test-all-components.ts",
     "test:emulator": "npx tsx test/test-emulator.ts",
-    "build": "tsup src/index.ts src/cli/index.ts src/emulator/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/cli/index.ts src/emulator/index.ts --format esm --dts --clean && npx tsx scripts/bundle-demos.ts",
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit"
   },

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+
+### Added
+- **`terminaltui demo`** command — run built-in demos directly from npm
+  - 8 demos: restaurant, dashboard, band, coffee-shop, conference, developer-portfolio, freelancer, startup
+  - `npx terminaltui demo restaurant` — no setup needed
+  - Demos are pre-compiled and bundled with the package
+
 ## 1.2.0
 
 ### Fixed
