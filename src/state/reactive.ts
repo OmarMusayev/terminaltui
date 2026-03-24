@@ -4,23 +4,44 @@ import type { StateContainer, StateListener, WildcardListener, Unsubscribe } fro
 let _tracking = false;
 let _trackedKeys = new Set<string>();
 let _trackedStateId: string | null = null;
+let _trackedDeps = new Map<string, Set<string>>();
 
-export function startTracking(stateId: string): void {
-  _tracking = true;
-  _trackedKeys.clear();
-  _trackedStateId = stateId;
+// Registry of state containers by ID for auto-subscription in computed()
+const _stateRegistry = new Map<string, StateContainer<any>>();
+
+export function getStateById(id: string): StateContainer<any> | undefined {
+  return _stateRegistry.get(id);
 }
 
-export function stopTracking(): { stateId: string; keys: Set<string> } {
+export function startTracking(stateId?: string): void {
+  _tracking = true;
+  _trackedKeys.clear();
+  _trackedStateId = stateId ?? null;
+  _trackedDeps.clear();
+}
+
+export function stopTracking(): { stateId: string; keys: Set<string>; deps: Map<string, Set<string>> } {
   _tracking = false;
-  const result = { stateId: _trackedStateId!, keys: new Set(_trackedKeys) };
+  const result = {
+    stateId: _trackedStateId ?? '',
+    keys: new Set(_trackedKeys),
+    deps: new Map(_trackedDeps),
+  };
   _trackedKeys.clear();
   _trackedStateId = null;
+  _trackedDeps.clear();
   return result;
 }
 
 export function isTracking(): boolean {
   return _tracking;
+}
+
+function trackAccess(stateId: string, key: string): void {
+  if (!_trackedDeps.has(stateId)) {
+    _trackedDeps.set(stateId, new Set());
+  }
+  _trackedDeps.get(stateId)!.add(key);
 }
 
 let stateIdCounter = 0;
@@ -77,14 +98,22 @@ export function createState<T extends Record<string, any>>(initial: T): StateCon
     get(key?: any): any {
       if (key === undefined) {
         // Track all keys if tracking is active
-        if (_tracking && _trackedStateId === id) {
-          for (const k of Object.keys(data)) _trackedKeys.add(k);
+        if (_tracking) {
+          if (_trackedStateId === null || _trackedStateId === id) {
+            for (const k of Object.keys(data)) {
+              _trackedKeys.add(k);
+              trackAccess(id, k);
+            }
+          }
         }
         return { ...data };
       }
       // Track this key access
-      if (_tracking && _trackedStateId === id) {
-        _trackedKeys.add(key);
+      if (_tracking) {
+        if (_trackedStateId === null || _trackedStateId === id) {
+          _trackedKeys.add(key);
+          trackAccess(id, key);
+        }
       }
       return data[key as keyof T];
     },
@@ -129,5 +158,6 @@ export function createState<T extends Record<string, any>>(initial: T): StateCon
     },
   };
 
+  _stateRegistry.set(id, container);
   return container;
 }

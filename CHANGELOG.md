@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.0
+
+### Fixed
+- **P0: Menu navigation now enforces middleware** — selecting pages via menu or number keys previously bypassed the middleware chain entirely, meaning auth guards, rate limits, and env checks were never enforced for primary navigation
+- **P1: Lifecycle hooks fire on menu navigation** — `onNavigate` hook was only called from programmatic navigation, not from menu selection; now fires on all navigation paths
+- **P2: Route function titles resolve correctly** — parameterized routes with function titles (e.g. `(params) => \`Item: ${params.name}\``) were rendering as raw function text instead of the resolved string
+- **P2: `computed()` auto-invalidates** — computed values now automatically track which state keys they access and re-calculate when those keys change, eliminating the need for manual `state.on()` + `invalidate()` wiring
+- **P2: `section()` gives clear error on wrong args** — calling `section({title, content})` instead of `section(title, content)` now throws a helpful error instead of crashing with `TypeError: blocks is not iterable`
+- **P3: Viewport scrolls past last focusable item** — content below the last focusable item (markdown, ASCII art, dividers) was clipped because the viewport stopped scrolling once the last focusable item was visible; now scrolls to show all content
+- **Emulator: `goHome()` works at all terminal widths** — previously broke at narrow widths (< 60 cols) because `currentPage()` detection was unreliable; now uses direct `← back` text detection
+- **Emulator: `navigateTo()` works from page view** — previously failed when called while viewing a page because it read the menu before navigating home
+
+### Improved
+- Scroll indicators now show "more below" / "more above" for non-focusable trailing content
+- Pages with zero focusable items can now be scrolled with arrow keys
+
 ## 1.1.0
 
 ### Added

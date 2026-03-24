@@ -62,6 +62,11 @@ export function page(id: string, config: Omit<PageConfig, "id">): PageConfig {
 // ─── Content Helpers ───────────────────────────────────────
 
 export function section(title: string, content: ContentBlock[]): SectionBlock {
+  if (typeof title !== "string") {
+    throw new Error(
+      `section() expects (title: string, content: ContentBlock[]), got ${typeof title}. Use section("Title", [...]) instead.`
+    );
+  }
   return { type: "section", title, content };
 }
 

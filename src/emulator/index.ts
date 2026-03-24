@@ -211,6 +211,13 @@ export class TUIEmulator {
    * Figures out the right key presses from current menu state.
    */
   async navigateTo(pageName: string): Promise<void> {
+    // Navigate to home first if we're on a page (menu isn't visible from page view)
+    const currentPage = this.screen.currentPage();
+    if (currentPage && currentPage !== "home") {
+      await this.goHome();
+      await sleep(100);
+    }
+
     const menu = this.screen.menu();
     const targetIdx = menu.items.findIndex(
       item => item.toLowerCase().includes(pageName.toLowerCase())
@@ -220,15 +227,8 @@ export class TUIEmulator {
       throw new Error(`Menu item "${pageName}" not found. Available: [${menu.items.join(", ")}]`);
     }
 
-    // Navigate to home first if we're on a page
-    const currentPage = this.screen.currentPage();
-    if (currentPage && currentPage !== "home") {
-      await this.goHome();
-      await sleep(100);
-    }
-
     // Move to the right menu item
-    const currentIdx = this.screen.menu().selectedIndex;
+    const currentIdx = menu.selectedIndex;
     const diff = targetIdx - currentIdx;
 
     if (diff > 0) {
@@ -249,12 +249,21 @@ export class TUIEmulator {
 
   /** Go to home page. */
   async goHome(): Promise<void> {
-    // Try escape to go back — repeat until home
+    // Try escape to go back — repeat until home.
+    // Use direct "← back" detection instead of currentPage() which can
+    // be unreliable at narrow terminal widths (< 60 cols).
     for (let i = 0; i < 10; i++) {
-      const page = this.screen.currentPage();
-      if (page === "home" || page === null) break;
+      const text = this.screen.text();
+      const hasBackIndicator = text.includes("\u2190 back") || text.includes("<- back") || text.includes("\u2190back");
+      const hasMenu = this.screen.menu().items.length > 0;
+
+      // We're home if we see a menu and don't see a back indicator
+      if (hasMenu && !hasBackIndicator) break;
+      // Also break if there's no back indicator and no menu (e.g. boot screen)
+      if (!hasBackIndicator && !hasMenu) break;
+
       await this.press("escape");
-      await sleep(100);
+      await sleep(150);
     }
   }
 

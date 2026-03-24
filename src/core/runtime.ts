@@ -484,9 +484,7 @@ export class TUIRuntime {
         if (this.router.isHome()) {
           const focusedId = this.focus.focusedId;
           if (focusedId) {
-            this.router.navigate(focusedId);
-            this.scrollOffset = 0;
-            this.enterPage();
+            this.navigateToPage(focusedId);
           }
         } else {
           this.handlePageSelect();
@@ -525,9 +523,7 @@ export class TUIRuntime {
               this.focus.focusIndex = idx;
               const pageId = this.router.getPageId(idx);
               if (pageId) {
-                this.router.navigate(pageId);
-                this.scrollOffset = 0;
-                this.enterPage();
+                this.navigateToPage(pageId);
               }
             }
           }
@@ -1613,17 +1609,31 @@ export class TUIRuntime {
 
   /** Move focus to next item. */
   private pageFocusNext(): void {
-    if (this.pageFocusItems.length === 0) return;
+    if (this.pageFocusItems.length === 0) {
+      // No focusable items — just scroll the viewport down
+      this.pageScrollOffset++;
+      return;
+    }
     if (this.pageFocusIndex < this.pageFocusItems.length - 1) {
       this.pageFocusIndex++;
+    } else {
+      // Already at last focusable item — scroll viewport to reveal trailing content
+      this.pageScrollOffset++;
     }
   }
 
   /** Move focus to previous item. */
   private pageFocusPrev(): void {
-    if (this.pageFocusItems.length === 0) return;
+    if (this.pageFocusItems.length === 0) {
+      // No focusable items — just scroll the viewport up
+      if (this.pageScrollOffset > 0) this.pageScrollOffset--;
+      return;
+    }
     if (this.pageFocusIndex > 0) {
       this.pageFocusIndex--;
+    } else {
+      // Already at first focusable item — scroll viewport up to reveal preceding content
+      if (this.pageScrollOffset > 0) this.pageScrollOffset--;
     }
   }
 
@@ -2022,9 +2032,16 @@ export class TUIRuntime {
     const viewportHeight = Math.max(1, rows - headerLines - footerLines);
 
     if (focusedLineStart >= 0) {
-      if (focusedLineStart < this.pageScrollOffset) {
+      const atLastItem = this.pageFocusItems.length > 0 &&
+        this.pageFocusIndex === this.pageFocusItems.length - 1;
+      const atFirstItem = this.pageFocusItems.length > 0 &&
+        this.pageFocusIndex === 0;
+
+      if (focusedLineStart < this.pageScrollOffset && !atLastItem) {
+        // Focused item above viewport — snap back (unless user scrolled past last item)
         this.pageScrollOffset = Math.max(0, focusedLineStart);
-      } else if (focusedLineEnd > this.pageScrollOffset + viewportHeight) {
+      } else if (focusedLineEnd > this.pageScrollOffset + viewportHeight && !atFirstItem) {
+        // Focused item below viewport — snap forward (unless user scrolled past first item)
         this.pageScrollOffset = Math.max(0, focusedLineEnd - viewportHeight);
       }
     }
@@ -2045,13 +2062,15 @@ export class TUIRuntime {
     const backHint = fgColor(this.theme.subtle) + dim + "\u2190 back" + reset;
     const pageTitle = fgColor(this.theme.accent) + bold +
       (currentPage.icon ? currentPage.icon + " " : "") +
-      currentPage.title + reset;
+      this.resolvePageTitle(currentPage) + reset;
     lines.push(padStr + backHint + "  " + pageTitle);
     lines.push(padStr + fgColor(this.theme.border) + "\u2500".repeat(contentWidth) + reset);
 
     // Scroll-up indicator
     if (this.pageScrollOffset > 0 && itemsAbove > 0) {
       lines.push(padStr + fgColor(this.theme.subtle) + dim + "  \u2191 " + itemsAbove + " item" + (itemsAbove > 1 ? "s" : "") + " above" + reset);
+    } else if (this.pageScrollOffset > 0) {
+      lines.push(padStr + fgColor(this.theme.subtle) + dim + "  \u2191 more above" + reset);
     } else {
       lines.push("");
     }
@@ -2068,8 +2087,11 @@ export class TUIRuntime {
     }
 
     // ── Build footer ──
+    const hasContentBelow = this.pageScrollOffset + viewportHeight < allContentLines.length;
     if (itemsBelow > 0) {
       lines.push(padStr + fgColor(this.theme.subtle) + dim + "  \u2193 " + itemsBelow + " item" + (itemsBelow > 1 ? "s" : "") + " below" + reset);
+    } else if (hasContentBelow) {
+      lines.push(padStr + fgColor(this.theme.subtle) + dim + "  \u2193 more below" + reset);
     } else {
       lines.push("");
     }

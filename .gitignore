@@ -4,3 +4,14 @@ fonts_tmp/
 *.tgz
 .terminaltui/
 *.snap
+test-api-*/
+test-ascii/
+test-create-verify/
+test-create-prompt.ts
+test-forms/
+test-gohome-widths/
+test-integration-*/
+test-routing/
+test-state-data/
+test-themes-nav/
+test-viewport-scroll/
