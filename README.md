@@ -70,19 +70,33 @@ A real portfolio built with terminaltui — AI chat, blog posts with parameteriz
 
 ---
 
-## What people have built
+## Try the demos
 
-| Demo | Run it | Theme |
-|------|--------|-------|
-| Developer Portfolio | `terminaltui dev demos/developer-portfolio/site.config.ts` | cyberpunk |
-| Restaurant | `npx demo-tui-restaurant` | gruvbox |
-| Coffee Shop | `npx demo-tui-cafe` | catppuccin |
-| Live Dashboard | `terminaltui dev demos/dashboard/site.config.ts` | hacker |
-| Startup Landing | `terminaltui dev demos/startup/site.config.ts` | tokyoNight |
-| Conference | `terminaltui dev demos/conference/site.config.ts` | nord |
-| Band Page | `terminaltui dev demos/band/site.config.ts` | rosePine |
-| Freelancer Studio | `terminaltui dev demos/freelancer/site.config.ts` | custom |
-| Tetris | `npx tsx demos/tetris/index.ts` | cyberpunk |
+No setup needed — run any demo straight from npm:
+
+```bash
+npx terminaltui demo restaurant
+npx terminaltui demo dashboard
+npx terminaltui demo band
+npx terminaltui demo coffee-shop
+npx terminaltui demo conference
+npx terminaltui demo developer-portfolio
+npx terminaltui demo freelancer
+npx terminaltui demo startup
+```
+
+Run `npx terminaltui demo` to see the full list.
+
+| Demo | Command | Theme |
+|------|---------|-------|
+| Restaurant | `npx terminaltui demo restaurant` | gruvbox |
+| Live Dashboard | `npx terminaltui demo dashboard` | hacker |
+| Band Page | `npx terminaltui demo band` | rosePine |
+| Coffee Shop | `npx terminaltui demo coffee-shop` | catppuccin |
+| Conference | `npx terminaltui demo conference` | nord |
+| Developer Portfolio | `npx terminaltui demo developer-portfolio` | cyberpunk |
+| Freelancer Studio | `npx terminaltui demo freelancer` | custom |
+| Startup Landing | `npx terminaltui demo startup` | tokyoNight |
 
 ### Restaurant
 ![restaurant demo](assets/recordings/restaurant.gif)
