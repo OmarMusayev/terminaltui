@@ -52,6 +52,7 @@ function buildKey(options: FetcherOptions): string {
 }
 
 /** Destroy all registered fetchers. Called by the runtime on shutdown. */
+/** Stops all active fetcher refresh timers. Called during runtime cleanup. */
 export function destroyAllFetchers(): void {
   const reg = (globalThis as any)[REGISTRY_KEY] as Map<string, FetcherResult<any>> | undefined;
   if (reg) {
@@ -62,6 +63,13 @@ export function destroyAllFetchers(): void {
 
 // ─── Fetcher Factory ─────────────────────────────────────
 
+/**
+ * Creates a declarative data fetcher with automatic caching, refresh, and retry.
+ * Returns a reactive result object whose `data` property updates when fetches complete.
+ *
+ * @param options - URL, refresh interval, cache settings, and error handling
+ * @returns A FetcherResult with data, loading state, and error
+ */
 export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
   // Return existing instance if one exists for this URL
   const key = buildKey(options);

@@ -55,6 +55,16 @@ export function getRenderCallback(): (() => void) | null {
   return _renderCallback;
 }
 
+/**
+ * Creates a reactive state container. Changes trigger UI re-renders automatically.
+ *
+ * @param initial - Initial state values
+ * @returns A state container with get/set/update/batch/subscribe methods
+ *
+ * @example
+ * const counter = createState({ count: 0 });
+ * counter.set("count", counter.get("count") + 1);
+ */
 export function createState<T extends Record<string, any>>(initial: T): StateContainer<T> {
   const id = `state-${stateIdCounter++}`;
   const data = { ...initial };

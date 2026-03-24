@@ -1,6 +1,6 @@
 # terminaltui
 
-![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![dependencies](https://img.shields.io/badge/dependencies-0-success) ![tests](https://img.shields.io/badge/tests-1572-brightgreen)
+![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![dependencies](https://img.shields.io/badge/dependencies-1-success) ![tests](https://img.shields.io/badge/tests-1572-brightgreen)
 
 A framework for building beautiful, interactive terminal websites and apps. Write a config, get a TUI, distribute via `npx`.
 
@@ -219,7 +219,7 @@ When focused on a text input, just start typing — it auto-enters edit mode. Pr
 ## Tech Stack
 
 - **TypeScript** — fully typed with strict mode
-- **Zero dependencies** — pure Node.js 18+
+- **1 dependency** (esbuild) — pure Node.js 18+
 - **1,572 tests** across 10 suites (`npm test`)
 - **Apple Terminal compatible** — auto-detects and falls back to 256-color
 

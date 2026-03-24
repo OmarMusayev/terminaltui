@@ -69,6 +69,7 @@ async function doRequest<T = any>(options: RequestOptions): Promise<RequestResul
 }
 
 // Main request function
+/** Performs an imperative HTTP request. Resolves relative URLs against the API server. */
 export async function request<T = any>(options: RequestOptions): Promise<RequestResult<T>> {
   return doRequest<T>(options);
 }

@@ -1,6 +1,16 @@
 import type { ComputedValue } from "./types.js";
 import { startTracking, stopTracking, getStateById } from "./reactive.js";
 
+/**
+ * Creates a computed value that automatically tracks its state dependencies
+ * and invalidates when they change.
+ *
+ * @param fn - A function that reads from state containers and returns a derived value
+ * @returns A ComputedValue with a `get()` method
+ *
+ * @example
+ * const doubled = computed(() => counter.get("count") * 2);
+ */
 export function computed<T>(fn: () => T): ComputedValue<T> {
   let cached: T | undefined;
   let dirty = true;

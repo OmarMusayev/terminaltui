@@ -28,6 +28,7 @@ export interface LiveDataConnection {
   readonly connected: boolean;
 }
 
+/** Creates a WebSocket or SSE live data connection with optional auto-reconnect. */
 export function liveData(options: WebSocketOptions | SSEOptions): LiveDataConnection {
   if (options.type === "websocket") {
     return createWebSocketConnection(options);

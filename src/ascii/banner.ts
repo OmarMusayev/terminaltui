@@ -17,6 +17,14 @@ export interface BannerOptions {
   width?: number;
 }
 
+/**
+ * Renders text as a large ASCII art banner using a figlet-style font.
+ *
+ * @param text - Text to render (converted to uppercase)
+ * @param options - Font name, gradient colors, alignment, border
+ * @param maxWidth - Maximum width constraint
+ * @returns Array of string lines forming the banner
+ */
 export function renderBanner(text: string, options: BannerOptions = {}, maxWidth?: number): string[] {
   const fontName = options.font ?? "ANSI Shadow";
   // Check registry first (custom fonts), then built-in

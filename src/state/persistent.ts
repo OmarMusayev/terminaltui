@@ -3,6 +3,13 @@ import type { StateContainer, PersistentStateOptions } from "./types.js";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
 
+/**
+ * Creates a state container that persists to disk. Loads existing values
+ * on creation and debounces writes on changes.
+ *
+ * @param options - Path for storage, default values, and debounce interval
+ * @returns A reactive StateContainer backed by a JSON file
+ */
 export function createPersistentState<T extends Record<string, any>>(
   options: PersistentStateOptions<T>,
 ): StateContainer<T> {

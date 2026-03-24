@@ -100,6 +100,10 @@ export type { BorderStyle } from "./style/borders.js";
 // Unicode-aware string measurement
 export { stringWidth, charWidth } from "./components/base.js";
 
+// Component system
+export { componentRegistry } from "./components/base.js";
+export type { Component, ComponentRenderer, RenderContext } from "./components/base.js";
+
 // ASCII Art System
 export { renderBanner, centerBanner, getBannerWidth } from "./ascii/banner.js";
 export type { BannerOptions } from "./ascii/banner.js";

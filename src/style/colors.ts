@@ -55,10 +55,12 @@ export function detectColorSupport(): ColorMode {
 // Auto-detect on module load
 let colorMode: ColorMode = detectColorSupport();
 
+/** Sets the color output mode (truecolor, 256, 16, or none). */
 export function setColorMode(mode: ColorMode): void {
   colorMode = mode;
 }
 
+/** Returns the current color output mode. */
 export function getColorMode(): ColorMode {
   return colorMode;
 }
@@ -114,6 +116,7 @@ function rgbTo16(r: number, g: number, b: number): number {
   return best;
 }
 
+/** Generates an ANSI foreground color escape sequence from a hex color. */
 export function fgColor(hex: string): string {
   if (colorMode === "none") return "";
   const rgb = hexToRgb(hex);
