@@ -1,6 +1,6 @@
 {
   "name": "terminaltui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "scripts": {
     "test": "npx tsx test/run-all.ts",
@@ -11,7 +11,18 @@
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["tui", "terminal", "cli", "ascii", "terminal-ui", "npx", "terminal-website", "ascii-art", "tui-framework", "terminal-app"],
+  "keywords": [
+    "tui",
+    "terminal",
+    "cli",
+    "ascii",
+    "terminal-ui",
+    "npx",
+    "terminal-website",
+    "ascii-art",
+    "tui-framework",
+    "terminal-app"
+  ],
   "author": "Omar Musayev",
   "license": "MIT",
   "homepage": "https://github.com/omarmusayev/terminaltui",
