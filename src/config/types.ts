@@ -2,6 +2,7 @@ import type { Theme, BuiltinThemeName } from "../style/theme.js";
 import type { BorderStyle } from "../style/borders.js";
 import type { RouteConfig, MiddlewareFn, RouteParams } from "../routing/types.js";
 import type { LifecycleHooks } from "../lifecycle/types.js";
+import type { ApiHandler } from "../api/types.js";
 
 // ─── Site Config ───────────────────────────────────────────
 
@@ -20,6 +21,9 @@ export interface SiteConfig {
   footer?: string | ContentBlock;
   statusBar?: boolean | StatusBarConfig;
   artDir?: string | false;
+
+  // API routes — "METHOD /path" → handler
+  api?: Record<string, ApiHandler>;
 
   // Lifecycle hooks
   onInit?: LifecycleHooks["onInit"];

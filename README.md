@@ -121,6 +121,25 @@ cyberpunk, dracula, nord, monokai, solarized, gruvbox, catppuccin, tokyoNight, r
 
 `createState`, `computed`, `dynamic` blocks, `fetcher` with auto-refresh, `request` HTTP client, WebSocket/SSE via `liveData`. Build real applications, not just static sites.
 
+### API Routes (Backend Built In)
+
+Define backend endpoints directly in your config — no separate server needed:
+
+```typescript
+api: {
+  "GET /stats": async () => {
+    const uptime = execSync("uptime -p").toString().trim();
+    return { uptime, timestamp: Date.now() };
+  },
+  "POST /deploy": async (req) => {
+    execSync(`docker run -d ${(req.body as any).image}`);
+    return { success: true };
+  },
+}
+```
+
+Run shell commands, read files, query databases — anything Node can do. The framework starts a local server automatically. `fetcher({ url: "/stats" })` just works. See [API Routes docs](docs/api-routes.md) for the full reference.
+
 ### Parameterized Routes
 
 ```typescript
@@ -171,6 +190,7 @@ When focused on a text input, just start typing — it auto-enters edit mode. Pr
 ## Documentation
 
 - [Getting Started](docs/getting-started.md)
+- [API Routes](docs/api-routes.md)
 - [Components](docs/components.md)
 - [Themes](docs/themes.md)
 - [ASCII Art](docs/ascii-art.md)
@@ -178,6 +198,7 @@ When focused on a text input, just start typing — it auto-enters edit mode. Pr
 - [Routing & Middleware](docs/routing.md)
 - [Testing](docs/testing.md)
 - [CLI Reference](docs/cli-reference.md)
+- [Create Command](docs/create-command.md)
 
 ---
 

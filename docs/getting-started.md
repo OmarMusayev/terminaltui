@@ -19,6 +19,12 @@ Or use it directly without installing:
 npx terminaltui init
 ```
 
+## Three Ways to Start
+
+- **`terminaltui init [template]`** — scaffold from a template with placeholder content
+- **`terminaltui create`** — describe what you want, AI builds it ([details](./create-command.md))
+- **`terminaltui convert`** — convert an existing website to TUI
+
 ## Scaffold a Project
 
 ```bash
@@ -106,8 +112,14 @@ npx terminaltui convert
 
 This drops two reference files into your project directory. Open Claude Code (or any AI assistant), point it at the files, and tell it to convert your site. The AI reads your existing HTML/React/Vue/etc. and produces a `site.config.ts`.
 
+## API Routes
+
+Need backend logic? Define API endpoints right in your config — no separate server needed. See [API Routes](./api-routes.md) for the full reference.
+
 ## What's Next
 
+- [API Routes](./api-routes.md) -- backend endpoints in your config
+- [Create Command](./create-command.md) -- interactive prompt builder
 - [Components](./components.md) -- every content block and input component
 - [Themes](./themes.md) -- built-in themes and custom theme creation
 - [ASCII Art](./ascii-art.md) -- banners, scenes, icons, and data visualization

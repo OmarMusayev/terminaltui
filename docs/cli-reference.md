@@ -16,9 +16,19 @@ Templates: `minimal`, `portfolio`, `landing`, `restaurant`, `blog`, `creative`.
 
 If no template is specified, you'll get an interactive prompt.
 
+### create
+
+Interactive prompt builder for new projects.
+
+```bash
+terminaltui create
+```
+
+Asks 10 questions about your project (name, description, pages, content, theme, style, ASCII art, interactive features, animations, extras), then generates a tailored AI prompt. See [Create Command](./create-command.md) for details.
+
 ### dev
 
-Start the development preview with hot reload.
+Start the development preview. If your config defines API routes, a local HTTP server starts automatically.
 
 ```bash
 terminaltui dev [path]

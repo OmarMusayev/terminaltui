@@ -1,4 +1,5 @@
 import { globalCache } from "./cache.js";
+import { resolveUrl } from "../api/resolve.js";
 
 export interface FetcherOptions<T = any> {
   url?: string;
@@ -25,20 +26,71 @@ export interface FetcherResult<T = any> {
   destroy(): void;
 }
 
+// ─── Fetcher Instance Registry ───────────────────────────
+// Persists fetcher instances across dynamic block re-renders.
+// Without this, every render() call recreates fetchers, leaking
+// timers/connections and causing render storms.
+
+const REGISTRY_KEY = "__terminaltui_fetcher_registry__";
+
+function getRegistry(): Map<string, FetcherResult<any>> {
+  let reg = (globalThis as any)[REGISTRY_KEY] as Map<string, FetcherResult<any>> | undefined;
+  if (!reg) {
+    reg = new Map();
+    (globalThis as any)[REGISTRY_KEY] = reg;
+  }
+  return reg;
+}
+
+/** Build a stable cache key for a fetcher's options. */
+function buildKey(options: FetcherOptions): string {
+  if (options.url) {
+    return `${options.method ?? "GET"}:${options.url}`;
+  }
+  // Custom fetch functions can't be meaningfully keyed — give each a unique id
+  return "custom-" + Math.random().toString(36).slice(2);
+}
+
+/** Destroy all registered fetchers. Called by the runtime on shutdown. */
+export function destroyAllFetchers(): void {
+  const reg = (globalThis as any)[REGISTRY_KEY] as Map<string, FetcherResult<any>> | undefined;
+  if (reg) {
+    for (const f of reg.values()) f.destroy();
+    reg.clear();
+  }
+}
+
+// ─── Fetcher Factory ─────────────────────────────────────
+
 export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
+  // Return existing instance if one exists for this URL
+  const key = buildKey(options);
+  const registry = getRegistry();
+  const existing = registry.get(key);
+  if (existing) return existing as FetcherResult<T>;
+
+  // Create new instance
   let _data: T | null = null;
   let _loading = true;
   let _error: Error | null = null;
   let _refreshTimer: ReturnType<typeof setInterval> | null = null;
   let _destroyed = false;
-  // Use a render callback to trigger UI updates
   let _onChange: (() => void) | null = null;
 
-  const cacheKey = options.url ?? "custom-fetcher-" + Math.random().toString(36).slice(2);
+  const cacheKey = options.url ?? key;
   const useCache = options.cache !== false;
   const cacheTTL = options.cacheTTL ?? 60000;
   const maxRetries = options.retry ?? 0;
   const retryDelay = options.retryDelay ?? 1000;
+
+  function scheduleRender(): void {
+    if (_onChange) {
+      _onChange();
+      return;
+    }
+    const globalCb = (globalThis as any).__terminaltui_render_callback__;
+    if (typeof globalCb === "function") globalCb();
+  }
 
   async function doFetch(): Promise<void> {
     if (_destroyed) return;
@@ -50,13 +102,14 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
         _data = cached;
         _loading = false;
         _error = null;
-        _onChange?.();
+        // Don't schedule render for cache hits during initial construction —
+        // the caller is already reading .data synchronously
         return;
       }
     }
 
-    _loading = _data === null; // Only show loading if no data yet
-    _onChange?.();
+    _loading = _data === null;
+    // Don't notify here — we'll notify after the async fetch completes
 
     let lastError: Error | null = null;
 
@@ -75,7 +128,7 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
             (fetchOpts.headers as any)["Content-Type"] = "application/json";
             fetchOpts.body = JSON.stringify(options.body);
           }
-          const res = await globalThis.fetch(options.url, fetchOpts);
+          const res = await globalThis.fetch(resolveUrl(options.url), fetchOpts);
           if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           raw = await res.json();
         } else {
@@ -93,7 +146,7 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
           globalCache.set(cacheKey, result, cacheTTL);
         }
 
-        _onChange?.();
+        scheduleRender();
         return;
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
@@ -107,7 +160,7 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
     _error = lastError;
     _loading = false;
     if (options.onError && lastError) options.onError(lastError);
-    _onChange?.();
+    scheduleRender();
   }
 
   // Start initial fetch
@@ -121,7 +174,7 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
     }, options.refreshInterval);
   }
 
-  const result: FetcherResult<T> = {
+  const instance: FetcherResult<T> = {
     get data() { return _data; },
     get loading() { return _loading; },
     get error() { return _error; },
@@ -136,7 +189,7 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
       _error = null;
       _loading = false;
       if (useCache) globalCache.set(cacheKey, data, cacheTTL);
-      _onChange?.();
+      scheduleRender();
     },
 
     clear(): void {
@@ -144,19 +197,22 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
       _error = null;
       _loading = false;
       globalCache.delete(cacheKey);
-      _onChange?.();
+      scheduleRender();
     },
 
     destroy(): void {
       _destroyed = true;
       if (_refreshTimer) clearInterval(_refreshTimer);
       _refreshTimer = null;
+      registry.delete(key);
     },
   };
 
-  // IMPORTANT: We expose a way to set the onChange callback.
-  // The runtime will set this when it encounters a fetcher in a dynamic block.
-  (result as any)._setOnChange = (cb: () => void) => { _onChange = cb; };
+  // Expose _setOnChange for the runtime
+  (instance as any)._setOnChange = (cb: () => void) => { _onChange = cb; };
 
-  return result;
+  // Store in registry
+  registry.set(key, instance);
+
+  return instance;
 }

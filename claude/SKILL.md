@@ -878,6 +878,222 @@ ws.connected; // boolean
 
 ---
 
+### API Routes
+
+Define backend endpoints directly in your site config. No Express, no external server — just Node's built-in `http` module on localhost.
+
+```ts
+import { defineSite, page, dynamic, fetcher, request, markdown } from "terminaltui";
+
+export default defineSite({
+  name: "My Dashboard",
+  theme: "hacker",
+
+  api: {
+    // Simple GET
+    "GET /stats": async () => {
+      return { uptime: process.uptime(), timestamp: Date.now() };
+    },
+
+    // GET with URL params
+    "GET /items/:id": async (req) => {
+      return { id: req.params.id, name: `Item ${req.params.id}` };
+    },
+
+    // POST with request body
+    "POST /deploy": async (req) => {
+      const { image, name } = req.body as any;
+      return { success: true, message: `Deployed ${name}` };
+    },
+
+    // Query strings: GET /search?q=hello&page=2
+    "GET /search": async (req) => {
+      return { query: req.query.q, page: req.query.page };
+    },
+  },
+
+  pages: [
+    page("dashboard", {
+      title: "Dashboard",
+      content: [
+        dynamic(["stats"], () => {
+          const stats = fetcher({ url: "/stats", refreshInterval: 5000 });
+          if (stats.loading) return markdown("Loading...");
+          return markdown(`Uptime: ${stats.data?.uptime}s`);
+        }),
+      ],
+    }),
+  ],
+});
+```
+
+#### How It Works
+
+- When `terminaltui dev` or the built `npx` package runs, a localhost HTTP server starts on a random port
+- `fetcher()`, `request.*()`, and `liveData()` calls with relative URLs (starting with `/`) auto-route to this server
+- The server **only** binds to `127.0.0.1` — never exposed to the network
+- Sites without `api` in their config work exactly as before
+
+#### ApiRequest Object
+
+```ts
+interface ApiRequest {
+  method: string;                        // "GET", "POST", etc.
+  path: string;                          // "/items/42"
+  params: Record<string, string>;        // { id: "42" } from :id
+  query: Record<string, string>;         // { q: "hello" } from ?q=hello
+  body: unknown;                         // Parsed JSON body (POST/PUT/PATCH)
+  headers: Record<string, string>;
+}
+```
+
+#### Supported Methods
+
+`GET`, `POST`, `PUT`, `DELETE`, `PATCH` — defined as `"METHOD /path"` keys in the `api` object.
+
+#### Common API Route Patterns
+
+**Shell commands:**
+```ts
+import { execSync } from "child_process";
+
+"GET /uptime": async () => {
+  return { uptime: execSync("uptime -p").toString().trim() };
+},
+```
+
+**File system:**
+```ts
+import { readFileSync, readdirSync } from "fs";
+
+"GET /files": async () => {
+  const files = readdirSync(".").filter(f => !f.startsWith("."));
+  return { files };
+},
+"GET /config": async () => {
+  return { content: readFileSync("./config.yml", "utf-8") };
+},
+```
+
+**Stateful in-memory data:**
+```ts
+let counter = 0;
+// ...inside api:
+"GET /counter": async () => ({ count: ++counter }),
+"POST /counter/reset": async () => { counter = 0; return { count: 0 }; },
+```
+
+**CRUD with POST body:**
+```ts
+const items: any[] = [];
+// ...inside api:
+"GET /items": async () => ({ items }),
+"POST /items": async (req) => {
+  const item = { id: Date.now(), ...(req.body as any) };
+  items.push(item);
+  return { success: true, item };
+},
+"DELETE /items/:id": async (req) => {
+  const idx = items.findIndex(i => i.id === Number(req.params.id));
+  if (idx === -1) return { error: "not found" };
+  items.splice(idx, 1);
+  return { success: true };
+},
+```
+
+**Error handling (throw → 500):**
+```ts
+"GET /risky": async () => {
+  const result = execSync("some-command").toString();
+  if (!result) throw new Error("Command produced no output");
+  return { result };
+},
+// If the handler throws, the framework returns:
+// HTTP 500 { "error": "Command produced no output" }
+```
+
+#### Using API Routes with fetcher/request
+
+Relative URLs in `fetcher()`, `request.*()`, and `liveData()` auto-resolve to the local API server:
+
+```ts
+// In a dynamic block — fetcher with auto-refresh
+dynamic(["stats"], () => {
+  const data = fetcher({ url: "/stats", refreshInterval: 5000 });
+  if (data.loading) return markdown("Loading...");
+  if (data.error) return markdown(`Error: ${data.error.message}`);
+  return markdown(`Uptime: ${data.data.uptime}`);
+}),
+
+// In a form onSubmit — imperative POST
+form({
+  id: "deploy",
+  onSubmit: async (data) => {
+    const res = await request.post("/deploy", { image: data.image });
+    if (res.ok) return { success: "Deployed!" };
+    return { error: (res.data as any)?.error || "Deploy failed" };
+  },
+  fields: [
+    textInput({ id: "image", label: "Docker Image" }),
+    button({ label: "Deploy", style: "primary" }),
+  ],
+}),
+```
+
+#### When to Use API Routes
+
+| Scenario | Solution |
+|---|---|
+| Site needs system info (uptime, disk, CPU) | API route with `execSync` / `os` module |
+| Dashboard with start/stop/restart actions | POST API routes |
+| Contact form that sends email | API route calling email service |
+| Live metrics that update on screen | API route + `fetcher({ refreshInterval })` |
+| Read/write local files | API routes with `fs` module |
+| Docker container management | API routes wrapping `docker` CLI |
+| Database queries | API routes with your DB driver |
+
+#### Security
+
+API routes have full Node.js capabilities (file system, shell commands, etc). They run on the user's machine and are only accessible from localhost. **Never expose the API port to the network.**
+
+---
+
+### `terminaltui create` — Interactive Prompt Builder
+
+Build a new TUI project from scratch using an interactive questionnaire:
+
+```bash
+terminaltui create
+```
+
+Asks 10 questions:
+1. **Project name** — becomes the `npx` command name
+2. **Description** — what the site/app is about (detailed)
+3. **Pages** — list of pages (one per line)
+4. **Content** — real content to include, or "skip" to let AI generate it
+5. **Theme** — pick from 10 themes or "auto"
+6. **Visual style** — bold, minimal, retro, playful, professional
+7. **ASCII art** — scenes to include, or "auto"/"none"
+8. **Interactive features** — contact form, search, reservation, signup, newsletter, custom
+9. **Animations** — full, subtle, or none
+10. **Extra instructions** — anything else
+
+Creates a project directory with:
+- `TERMINALTUI_SKILL.md` — full framework reference
+- `TERMINALTUI_CREATE_PROMPT.md` — tailored AI prompt from your answers
+
+Then open Claude Code in that directory and paste the instructions.
+
+#### When to use create vs init vs convert
+
+| Command | Use when | What it does |
+|---|---|---|
+| `terminaltui init` | You want a template with placeholder content | Scaffolds a project from a template |
+| `terminaltui create` | You want to describe something new and have AI build it | Generates a tailored AI prompt |
+| `terminaltui convert` | You already have a website to convert | Drops conversion docs into your project |
+
+---
+
 ### Themes
 
 10 built-in themes. Use as string name or reference `themes.themeName`.

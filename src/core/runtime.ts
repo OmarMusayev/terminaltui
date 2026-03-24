@@ -29,6 +29,9 @@ import { getTransitionFrameCount } from "../animation/transition.js";
 import { InputModeManager } from "./input-mode.js";
 import { NotificationManager } from "./notifications.js";
 import { AsyncContentManager } from "../data/async-content.js";
+import { ApiServer } from "../api/server.js";
+import { setApiBaseUrl } from "../api/resolve.js";
+import { destroyAllFetchers } from "../data/fetcher.js";
 import { createInputState, type InputFieldState } from "../data/types.js";
 // Component renderers
 import { renderMenu, type MenuItem } from "../components/Menu.js";
@@ -126,6 +129,8 @@ export class TUIRuntime {
   private currentParams: RouteParams = {};
   // Cache for dynamic block render results (same objects used for focus + rendering)
   private dynamicCache: Map<string, ContentBlock[]> = new Map();
+  // API server (started only if config.api is defined)
+  private apiServer: ApiServer | null = null;
 
   constructor(site: Site) {
     this.site = site.config;
@@ -155,12 +160,34 @@ export class TUIRuntime {
     // Load .env files
     loadEnv();
 
+    // Start API server if routes are defined
+    if (this.site.api && Object.keys(this.site.api).length > 0) {
+      this.apiServer = new ApiServer();
+      this.apiServer.registerRoutes(this.site.api);
+      await this.apiServer.start();
+      setApiBaseUrl(this.apiServer.getBaseUrl());
+    }
+
     // Detect terminal capabilities and sync color mode
     const caps = detectTerminal();
     setColorMode(caps.colorDepth);
 
     // Set up reactive state render callback
     setRenderCallback(() => this.render());
+    // Also expose on globalThis so fetchers from external module instances
+    // (e.g. site config compiled with external: ["terminaltui"]) can trigger re-renders.
+    // Uses setTimeout(0) to:
+    //   1. Break synchronous re-entrancy (fetcher created inside render)
+    //   2. Yield to the event loop so input events aren't starved
+    //   3. Coalesce multiple fetcher completions into one render
+    let renderTimer: ReturnType<typeof setTimeout> | null = null;
+    (globalThis as any).__terminaltui_render_callback__ = () => {
+      if (renderTimer) return;
+      renderTimer = setTimeout(() => {
+        renderTimer = null;
+        this.render();
+      }, 0);
+    };
 
     // Set up global navigate handler
     setNavigateHandler((pageId, params) => {
@@ -231,6 +258,15 @@ export class TUIRuntime {
     if (this.bootTimer) clearInterval(this.bootTimer);
     if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
     if (this.notificationTimer) clearInterval(this.notificationTimer);
+    // Destroy all fetcher instances (stops their refresh timers)
+    destroyAllFetchers();
+    // Stop API server
+    if (this.apiServer) {
+      this.apiServer.stop();
+      setApiBaseUrl(null);
+    }
+    // Clean up global render callback
+    delete (globalThis as any).__terminaltui_render_callback__;
     // Show cursor
     process.stdout.write("\x1b[?25h");
     // Exit alternate screen

@@ -167,6 +167,17 @@ api.clear()    // clear cached data
 api.destroy()  // stop auto-refresh and clean up
 ```
 
+#### Using with API Routes
+
+If your config defines API routes, relative URLs automatically resolve to the local API server:
+
+```ts
+// Hits your "GET /stats" API route — no port number needed
+const stats = fetcher({ url: "/stats", refreshInterval: 5000 });
+```
+
+See [API Routes](./api-routes.md) for the full reference.
+
 ### request(options) / request.get / .post / .put / .delete / .patch
 
 Simple HTTP request helper for one-shot requests. Returns a promise.

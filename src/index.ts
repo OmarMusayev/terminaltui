@@ -185,7 +185,7 @@ export { createPersistentState } from "./state/persistent.js";
 export type { StateContainer, ComputedValue, PersistentStateOptions } from "./state/types.js";
 
 // ─── Data Fetching ────────────────────────────────────────
-export { fetcher } from "./data/fetcher.js";
+export { fetcher, destroyAllFetchers } from "./data/fetcher.js";
 export type { FetcherOptions, FetcherResult } from "./data/fetcher.js";
 export { request } from "./data/request.js";
 export type { RequestOptions, RequestResult } from "./data/request.js";
@@ -209,3 +209,8 @@ export type { AppContext, ErrorContext, LifecycleHooks } from "./lifecycle/types
 export { defineConfig } from "./config/define-config.js";
 export type { ConfigField, ConfigSchema, ConfigContainer } from "./config/define-config.js";
 export { loadEnv } from "./config/env-loader.js";
+
+// ─── API Routes ──────────────────────────────────────
+export { ApiServer } from "./api/server.js";
+export { setApiBaseUrl } from "./api/resolve.js";
+export type { ApiRequest, ApiHandler } from "./api/types.js";

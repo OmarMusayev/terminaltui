@@ -228,13 +228,12 @@ function printHelp() {
     terminaltui <command> [options]
 
   Commands:
-    dev          Start development preview (default)
     init [tpl]   Scaffold a new project (templates: minimal, portfolio, landing, restaurant, blog, creative)
-    create       Interactive prompt builder — answer questions, get a tailored AI prompt
+    create       Interactive prompt builder — describe what you want, AI builds it
     convert      Drop terminaltui docs into your project for AI-assisted conversion
-    build        Bundle for npm publish
+    dev          Start development preview (auto-starts API server if routes defined)
+    build        Bundle for npm publish (includes API routes)
     test         Run automated tests on site in current directory
-    preview      Render a single frame to stdout
     art          Manage art assets (list, preview, create, validate)
     help         Show this help message
 

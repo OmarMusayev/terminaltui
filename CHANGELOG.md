@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+### Added
+- **API Routes**: define backend endpoints directly in site.config.ts
+  - Local HTTP server starts automatically when routes are defined
+  - Relative URLs in fetcher/request auto-resolve to local API
+  - Support for GET, POST, PUT, DELETE, PATCH methods
+  - URL params (`:id`), query strings, JSON body parsing
+  - Localhost only (127.0.0.1), random port, clean shutdown
+  - Zero dependencies — uses Node's built-in `http` module
+  - Fetcher instance registry prevents duplicate timers across re-renders
+- **`terminaltui create`**: interactive prompt builder for new projects
+  - 10-question questionnaire (name, description, pages, content, theme, style, art, features, animations, extras)
+  - Assembles a tailored AI prompt from answers (no LLM in the loop)
+  - Outputs TERMINALTUI_SKILL.md + TERMINALTUI_CREATE_PROMPT.md
+  - Paste into Claude Code to build the site
+
 ## 1.0.0 — Initial Release
 
 ### Core Framework

@@ -1,3 +1,5 @@
+import { resolveUrl } from "../api/resolve.js";
+
 export interface WebSocketOptions {
   type: "websocket";
   url: string;
@@ -45,7 +47,8 @@ function createWebSocketConnection(options: WebSocketOptions): LiveDataConnectio
     try {
       // Node 18+ has WebSocket globally, or use ws package
       const WebSocket = globalThis.WebSocket ?? (await import("ws" as any)).default;
-      ws = new WebSocket(options.url, options.protocols);
+      const resolvedUrl = resolveUrl(options.url).replace(/^http/, "ws");
+      ws = new WebSocket(resolvedUrl, options.protocols);
 
       ws.onopen = () => {
         _connected = true;
@@ -101,7 +104,7 @@ function createSSEConnection(options: SSEOptions): LiveDataConnection {
     _controller = new AbortController();
 
     try {
-      const response = await globalThis.fetch(options.url, {
+      const response = await globalThis.fetch(resolveUrl(options.url), {
         headers: { Accept: "text/event-stream", ...options.headers },
         signal: _controller.signal,
       });

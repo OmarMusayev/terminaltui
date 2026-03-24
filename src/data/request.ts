@@ -1,3 +1,5 @@
+import { resolveUrl } from "../api/resolve.js";
+
 export interface RequestOptions {
   url: string;
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -35,7 +37,7 @@ async function doRequest<T = any>(options: RequestOptions): Promise<RequestResul
         : JSON.stringify(options.body);
     }
 
-    const response = await fetch(options.url, fetchOptions);
+    const response = await fetch(resolveUrl(options.url), fetchOptions);
     if (timeoutId) clearTimeout(timeoutId);
 
     let data: T | null = null;

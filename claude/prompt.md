@@ -1,5 +1,7 @@
 # Convert This Website to a Terminal UI
 
+> **Building from scratch instead of converting?** Use `terminaltui create` for an interactive prompt builder that asks about your project and generates a tailored AI prompt.
+
 You are converting an existing website into a fully interactive terminal-style UI using the **terminaltui** framework.
 
 **IMPORTANT: Do NOT modify, delete, or overwrite any files in the original website project.** Create a new `tui/` subdirectory for the TUI version. All generated files go inside `tui/`. The original website must remain completely untouched.
@@ -191,6 +193,7 @@ If there are errors:
 - Do NOT invent content. Use exactly what exists on the original site.
 - **Import from the local path**, not from `"terminaltui"` (it's not on npm).
 - If the site has images, describe them in text or use `asciiImage()` if the image file exists locally.
-- If the site has dynamic data (API, database), use `fetcher()` and `dynamic()` to fetch and display it.
+- If the site has dynamic data (API, database), use `fetcher()` and `dynamic()` to fetch and display it. If the site needs backend logic (shell commands, file reads, database queries), use the `api` field in `defineSite()` to create API routes — no separate server needed.
 - If the site has user preferences, use `createPersistentState()` to remember them across sessions.
+- If the site would benefit from backend logic (forms that send emails, data from the filesystem, system commands), add API routes in the `api` field of `defineSite()`. See the SKILL.md API Routes section for examples.
 - The goal is a **complete, faithful, beautiful** terminal version — not a summary. Make it something worth screenshotting.
