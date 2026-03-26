@@ -7,7 +7,7 @@ Set Padding 20
 Set TypingSpeed 50ms
 Set Theme "Dracula"
 
-Type "npx tsx demos/restaurant/site.config.ts"
+Type "npx tsx src/cli/index.ts dev demos/restaurant/site.config.ts"
 Enter
 Sleep 5s
 Sleep 2s
