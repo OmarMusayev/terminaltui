@@ -35,6 +35,21 @@ import type {
   ButtonBlock,
   FormBlock,
   AsyncContentBlock,
+  PanelConfig,
+  SplitConfig,
+  GridConfig,
+  ColumnsBlock,
+  RowsBlock,
+  SplitBlock,
+  GridBlock,
+  PanelBlock,
+  BoxConfig,
+  BoxBlock,
+  ColConfig,
+  RowBlock,
+  ContainerBlock,
+  MenuBlock,
+  MenuBlockItem,
 } from "./types.js";
 import type { Theme } from "../style/theme.js";
 
@@ -278,6 +293,63 @@ export function form(config: Omit<FormBlock, "type">): FormBlock {
 /** Creates content that loads asynchronously with loading/error states. */
 export function asyncContent(config: Omit<AsyncContentBlock, "type">): AsyncContentBlock {
   return { type: "asyncContent", ...config, _asyncId: `async-${asyncIdCounter++}` };
+}
+
+// ─── Layout Components ───────────────────────────────────
+
+/** Creates side-by-side panel columns. */
+export function columns(panels: PanelConfig[]): ColumnsBlock {
+  return { type: "columns", panels };
+}
+
+/** Creates vertically stacked panel rows. */
+export function rows(panels: PanelConfig[]): RowsBlock {
+  return { type: "rows", panels };
+}
+
+/** Creates a two-panel split with a divider. */
+export function split(config: SplitConfig): SplitBlock {
+  return { type: "split", config };
+}
+
+/** Creates an N×M grid of panels. */
+export function grid(config: GridConfig): GridBlock {
+  return { type: "grid", config };
+}
+
+/** Creates a panel with optional border, title, and independent scrolling. */
+export function panel(config: PanelConfig): PanelBlock {
+  return { type: "panel", config };
+}
+
+/** Creates a flexbox-like layout box — the low-level layout primitive.
+ *  `columns()`, `rows()`, `grid()` are convenience wrappers over this. */
+export function box(config: BoxConfig): BoxBlock {
+  return { type: "box", config };
+}
+
+// ─── Grid System (12-column) ─────────────────────────
+
+/** Creates a column within a row(). Span is 1-12 (default: auto = 12/numCols). */
+export function col(content: ContentBlock[], config?: Omit<ColConfig, "content">): ColConfig {
+  return { content, ...config };
+}
+
+/** Creates a 12-column grid row with responsive columns. */
+export function row(cols: ColConfig[], config?: { gap?: number }): RowBlock {
+  return { type: "row", cols, gap: config?.gap };
+}
+
+/** Creates a centered container with optional max width and padding. */
+export function container(content: ContentBlock[], config?: { maxWidth?: number; padding?: number; center?: boolean }): ContainerBlock {
+  return { type: "container", content, ...config };
+}
+
+// ─── Menu Component ──────────────────────────────────────
+
+/** Creates a menu block. Use { source: "auto" } for auto-generated menu from pages/. */
+export function menu(config: Omit<MenuBlock, "type">): MenuBlock {
+  return { type: "menu", ...config };
 }
 
 // ─── Re-exports from other modules ────────────────────────

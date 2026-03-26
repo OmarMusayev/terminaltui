@@ -2,6 +2,7 @@ import type { RenderContext } from "./base.js";
 import type { FormBlock, ContentBlock } from "../config/types.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
 import { renderBox } from "./Box.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export interface FormRenderState {
   /** The success/error/info message to display after submit. */
@@ -21,6 +22,7 @@ export function renderFormResult(
   if (!state.resultMessage) return [];
 
   const theme = ctx.theme;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.form);
   let icon: string;
   let color: string;
 

@@ -2,6 +2,8 @@ import {
   defineSite, page, card, markdown, divider, spacer, badge, link, table,
   form, textInput, textArea, button, searchInput,
   dynamic, route, createState, createPersistentState, computed, fetcher, request,
+  columns, rows, split, grid, panel,
+  row, col, container,
 } from "../../src/index.js";
 import type { ContentBlock } from "../../src/index.js";
 
@@ -54,6 +56,7 @@ export default defineSite({
   },
 
   pages: [
+    // ─── Home ───────────────────────────────────────────────
     page("home", {
       title: "Dashboard",
       icon: "~",
@@ -68,62 +71,126 @@ export default defineSite({
             return markdown("*Connecting to API...*");
           }
 
-          return table(
-            ["Metric", "Value"],
-            [
-              ["Posts Loaded", String(posts.length)],
-              ["Bookmarks", String(saved)],
-              ["API Status", "Online"],
-              ["Cache TTL", "120s"],
-            ],
-          );
-        }),
-
-        spacer(),
-
-        dynamic(() => {
-          const posts = state.get("posts");
-          if (posts.length === 0) return spacer(0) as ContentBlock;
+          const recentPosts = posts.slice(0, 5);
 
           return [
-            divider("Recent Posts"),
-            ...posts.slice(0, 5).map((post: Post) =>
-              card({
-                title: post.title,
-                subtitle: `#${post.id} by User ${post.userId}`,
-                body: post.body.slice(0, 100) + "...",
-                action: {
-                  navigate: "post",
-                  params: { id: String(post.id) },
-                },
-              })
-            ),
+            // Top row: 4 stat cards in a responsive 12-column grid
+            row([
+              col([
+                card({
+                  title: "Total Posts",
+                  subtitle: String(posts.length),
+                  body: "Loaded from API",
+                  tags: ["live"],
+                }),
+              ], { span: 3, sm: 6, xs: 12 }),
+              col([
+                card({
+                  title: "Active Users",
+                  subtitle: String(new Set(posts.map((p: Post) => p.userId)).size),
+                  body: "Unique authors",
+                  tags: ["users"],
+                }),
+              ], { span: 3, sm: 6, xs: 12 }),
+              col([
+                card({
+                  title: "Uptime",
+                  subtitle: "99.97%",
+                  body: "Last 30 days",
+                  tags: ["healthy"],
+                }),
+              ], { span: 3, sm: 6, xs: 12 }),
+              col([
+                card({
+                  title: "Response Time",
+                  subtitle: "42ms",
+                  body: "Avg latency",
+                  tags: ["fast"],
+                }),
+              ], { span: 3, sm: 6, xs: 12 }),
+            ], { gap: 1 }),
+
+            spacer(),
+
+            // Bottom split: recent posts table on left, status + actions on right
+            split({
+              direction: "horizontal",
+              ratio: 60,
+              first: [
+                divider("Recent Posts"),
+                spacer(),
+                table(
+                  ["#", "Title", "Author"],
+                  recentPosts.map((post: Post) => [
+                    String(post.id),
+                    post.title.length > 35 ? post.title.slice(0, 35) + "..." : post.title,
+                    `User ${post.userId}`,
+                  ]),
+                ),
+                spacer(),
+                ...recentPosts.map((post: Post) =>
+                  card({
+                    title: post.title,
+                    subtitle: `#${post.id} by User ${post.userId}`,
+                    body: post.body.slice(0, 80) + "...",
+                    action: {
+                      navigate: "post",
+                      params: { id: String(post.id) },
+                    },
+                  })
+                ),
+              ],
+              second: [
+                divider("System Status"),
+                spacer(),
+                table(
+                  ["Metric", "Value"],
+                  [
+                    ["Posts Loaded", String(posts.length)],
+                    ["Bookmarks", String(saved)],
+                    ["API Status", "Online"],
+                    ["Cache TTL", "120s"],
+                    ["Fetcher", "OK"],
+                  ],
+                ),
+                spacer(),
+                divider("Quick Actions"),
+                spacer(),
+                button({
+                  label: "Refresh Posts",
+                  style: "primary",
+                  onPress: async () => {
+                    await postsFetcher.refresh();
+                    if (postsFetcher.data) {
+                      state.batch(() => {
+                        state.set("posts", postsFetcher.data!);
+                        state.set("loaded", true);
+                      });
+                    }
+                    return { success: "Posts refreshed" };
+                  },
+                }),
+                spacer(),
+                button({
+                  label: "Clear Bookmarks",
+                  style: "danger",
+                  onPress: () => {
+                    bookmarks.set("saved", []);
+                    return { success: "Bookmarks cleared" };
+                  },
+                }),
+              ],
+            }) as any,
           ] as ContentBlock[];
         }),
       ],
     }),
 
+    // ─── Posts ───────────────────────────────────────────────
     page("posts", {
       title: "Posts",
       icon: "#",
       content: [
-        dynamic(() => {
-          const posts = state.get("posts");
-          return searchInput({
-            id: "post-search",
-            placeholder: "Search posts by title...",
-            items: posts.map((p: Post) => ({
-              label: `#${p.id}: ${p.title}`,
-              value: String(p.id),
-              keywords: [p.body.slice(0, 40), `user-${p.userId}`],
-            })),
-            action: "navigate",
-            maxResults: 10,
-          });
-        }),
-
-        spacer(),
-
         dynamic(() => {
           const posts = state.get("posts");
           const loaded = state.get("loaded");
@@ -131,21 +198,43 @@ export default defineSite({
           if (!loaded) return markdown("*Fetching posts from API...*");
           if (posts.length === 0) return markdown("*No posts available.*");
 
-          return posts.map((post: Post) =>
-            card({
-              title: post.title,
-              subtitle: `Post #${post.id} by User ${post.userId}`,
-              body: post.body.slice(0, 120) + "...",
-              action: {
-                navigate: "post",
-                params: { id: String(post.id) },
-              },
-            })
-          );
+          return [
+            container([
+              dynamic(() => {
+                const currentPosts = state.get("posts");
+                return searchInput({
+                  id: "post-search",
+                  placeholder: "Search posts by title...",
+                  items: currentPosts.map((p: Post) => ({
+                    label: `#${p.id}: ${p.title}`,
+                    value: String(p.id),
+                    keywords: [p.body.slice(0, 40), `user-${p.userId}`],
+                  })),
+                  action: "navigate",
+                  maxResults: 10,
+                });
+              }),
+
+              spacer(),
+
+              ...posts.map((post: Post) =>
+                card({
+                  title: post.title,
+                  subtitle: `Post #${post.id} by User ${post.userId}`,
+                  body: post.body.slice(0, 120) + "...",
+                  action: {
+                    navigate: "post",
+                    params: { id: String(post.id) },
+                  },
+                })
+              ),
+            ], { maxWidth: 95 }),
+          ] as ContentBlock[];
         }),
       ],
     }),
 
+    // ─── Post Detail (Route) ────────────────────────────────
     route("post", {
       title: (p) => `Post #${p.id}`,
       icon: "->",
@@ -165,51 +254,59 @@ export default defineSite({
 
         const isBookmarked = bookmarks.get("saved").includes(Number(p.id));
 
-        const content: ContentBlock[] = [
+        const commentCards: ContentBlock[] = comments.slice(0, 5).map((c: Comment) =>
           card({
-            title: post.title,
-            subtitle: `Post #${post.id} by User ${post.userId}`,
-            body: post.body,
-            tags: isBookmarked ? ["Bookmarked"] : [],
-          }),
-          spacer(),
-          button({
-            label: isBookmarked ? "Remove Bookmark" : "Bookmark This Post",
-            style: isBookmarked ? "secondary" : "primary",
-            onPress: () => {
-              const postId = Number(p.id);
-              if (isBookmarked) {
-                bookmarks.update("saved", (prev: number[]) =>
-                  prev.filter((n: number) => n !== postId),
-                );
-                return { success: "Bookmark removed" };
-              } else {
-                bookmarks.update("saved", (prev: number[]) => [...prev, postId]);
-                return { success: "Post bookmarked!" };
-              }
-            },
-          }),
-          spacer(),
-          divider("Comments"),
-          spacer(),
-          ...comments.slice(0, 5).map((c: Comment) =>
-            card({
-              title: c.name,
-              subtitle: c.email,
-              body: c.body,
-            })
-          ),
-        ];
+            title: c.name,
+            subtitle: c.email,
+            body: c.body,
+          })
+        );
 
         if (comments.length > 5) {
-          content.push(markdown(`*...and ${comments.length - 5} more comments*`));
+          commentCards.push(markdown(`*...and ${comments.length - 5} more comments*`));
         }
 
-        return content;
+        return [
+          split({
+            direction: "horizontal",
+            ratio: 55,
+            first: [
+              card({
+                title: post.title,
+                subtitle: `Post #${post.id} by User ${post.userId}`,
+                body: post.body,
+                tags: isBookmarked ? ["Bookmarked"] : [],
+              }),
+              spacer(),
+              button({
+                label: isBookmarked ? "Remove Bookmark" : "Bookmark This Post",
+                style: isBookmarked ? "secondary" : "primary",
+                onPress: () => {
+                  const postId = Number(p.id);
+                  if (isBookmarked) {
+                    bookmarks.update("saved", (prev: number[]) =>
+                      prev.filter((n: number) => n !== postId),
+                    );
+                    return { success: "Bookmark removed" };
+                  } else {
+                    bookmarks.update("saved", (prev: number[]) => [...prev, postId]);
+                    return { success: "Post bookmarked!" };
+                  }
+                },
+              }),
+            ],
+            second: [
+              divider("Comments"),
+              spacer(),
+              ...commentCards,
+            ],
+          }) as any,
+        ];
       },
       loading: (p) => `Loading post #${p.id}...`,
     }),
 
+    // ─── Bookmarks ──────────────────────────────────────────
     page("bookmarks", {
       title: "Bookmarks",
       icon: "*",
@@ -259,68 +356,95 @@ export default defineSite({
       ],
     }),
 
+    // ─── New Post ───────────────────────────────────────────
     page("new-post", {
       title: "New Post",
       icon: "+",
       content: [
-        markdown("## Create a New Post"),
-        markdown("*Sends a POST request to JSONPlaceholder API (test endpoint).*"),
-        spacer(),
+        split({
+          direction: "horizontal",
+          ratio: 60,
+          first: [
+            markdown("## Create a New Post"),
+            spacer(),
+            form({
+              id: "new-post-form",
+              resetOnSubmit: true,
+              onSubmit: async (data) => {
+                const res = await request.post<Post>(
+                  "https://jsonplaceholder.typicode.com/posts",
+                  {
+                    title: data.title,
+                    body: data.body,
+                    userId: 1,
+                  },
+                );
 
-        form({
-          id: "new-post-form",
-          resetOnSubmit: true,
-          onSubmit: async (data) => {
-            const res = await request.post<Post>(
-              "https://jsonplaceholder.typicode.com/posts",
-              {
-                title: data.title,
-                body: data.body,
-                userId: 1,
+                if (!res.ok) {
+                  return { error: res.error?.message ?? "Failed to create post" };
+                }
+
+                if (res.data) {
+                  state.update("posts", (prev: Post[]) => [
+                    { ...res.data!, id: prev.length + 1 },
+                    ...prev,
+                  ]);
+                }
+
+                return { success: `Post created: "${data.title}"` };
               },
-            );
-
-            if (!res.ok) {
-              return { error: res.error?.message ?? "Failed to create post" };
-            }
-
-            if (res.data) {
-              state.update("posts", (prev: Post[]) => [
-                { ...res.data!, id: prev.length + 1 },
-                ...prev,
-              ]);
-            }
-
-            return { success: `Post created: "${data.title}"` };
-          },
-          fields: [
-            textInput({
-              id: "title",
-              label: "Title",
-              placeholder: "Enter a title...",
-              validate: (v) => (v.trim() ? null : "Title is required"),
+              fields: [
+                textInput({
+                  id: "title",
+                  label: "Title",
+                  placeholder: "Enter a title...",
+                  validate: (v) => (v.trim() ? null : "Title is required"),
+                }),
+                textArea({
+                  id: "body",
+                  label: "Body",
+                  rows: 5,
+                  placeholder: "Write the post content...",
+                  validate: (v) => (v.trim() ? null : "Body is required"),
+                }),
+                button({ label: "Publish Post", style: "primary" }),
+              ],
             }),
-            textArea({
-              id: "body",
-              label: "Body",
-              rows: 5,
-              placeholder: "Write the post content...",
-              validate: (v) => (v.trim() ? null : "Body is required"),
-            }),
-            button({ label: "Publish Post", style: "primary" }),
           ],
-        }),
+          second: [
+            markdown("## Instructions"),
+            spacer(),
+            markdown("*Sends a POST request to JSONPlaceholder API (test endpoint).*"),
+            spacer(),
+            divider("Tips"),
+            spacer(),
+            markdown("- Give your post a descriptive **title**"),
+            markdown("- Write clear, engaging **body** content"),
+            markdown("- Posts appear in the dashboard after creation"),
+            spacer(),
+            divider("Preview"),
+            spacer(),
+            markdown("Your post will be submitted to the API and added to the local post list. It will appear on the Home and Posts pages immediately."),
+            spacer(),
+            badge("API: jsonplaceholder.typicode.com"),
+          ],
+        }) as any,
       ],
     }),
 
+    // ─── About ──────────────────────────────────────────────
     page("about", {
       title: "About",
       icon: "i",
       content: [
-        markdown(`## Dashboard Demo
+        container([
+          markdown(`## Dashboard Demo
 
-This demo showcases the terminaltui application framework:
+This demo showcases the terminaltui application framework with modern spatial layouts:
 
+- **row() + col()** — 12-column responsive grid for stat cards on Home
+- **split()** — horizontal split panels for post detail + comments, form + instructions
+- **container()** — centered content with max width on Posts and About pages
 - **createState / createPersistentState** — reactive + persistent state (bookmarks survive restarts)
 - **dynamic()** — content blocks re-render when state changes
 - **computed()** — bookmark count derives from persistent state
@@ -332,9 +456,10 @@ This demo showcases the terminaltui application framework:
 - **onInit / onNavigate** — lifecycle hooks for pre-fetching and tracking
 
 **API:** jsonplaceholder.typicode.com — posts and comments fetched live.`),
-        spacer(),
-        link("JSONPlaceholder API", "https://jsonplaceholder.typicode.com", { icon: ">" }),
-        link("terminaltui on GitHub", "https://github.com/terminaltui", { icon: ">" }),
+          spacer(),
+          link("JSONPlaceholder API", "https://jsonplaceholder.typicode.com", { icon: ">" }),
+          link("terminaltui on GitHub", "https://github.com/terminaltui", { icon: ">" }),
+        ], { maxWidth: 80, padding: 1 }),
       ],
     }),
   ],

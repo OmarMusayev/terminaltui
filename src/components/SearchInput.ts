@@ -3,6 +3,7 @@ import type { SearchInputBlock } from "../config/types.js";
 import { renderBox } from "./Box.js";
 import { pad, stringWidth, truncate } from "./base.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export interface SearchInputRenderState {
   query: string;
@@ -57,7 +58,8 @@ export function renderSearchInput(
   const lines: string[] = [];
   const isFocused = !!ctx.focused;
   const isEditing = state.editing;
-  const innerWidth = Math.max(1, ctx.width - 4);
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.searchInput);
+  const innerWidth = dims.content;
 
   // Label (with search icon)
   const labelText = config.label ?? "";
@@ -84,9 +86,9 @@ export function renderSearchInput(
 
   // Build content: input line + filtered results
   const contentLines: string[] = [inputLine];
-  const maxResults = config.maxResults ?? 10;
+  const maxResults = config.maxResults ?? 5;
 
-  if (isEditing || state.query.length > 0 || isFocused) {
+  if (isEditing || state.query.length > 0) {
     // Show results
     const filtered = state.filteredItems;
     if (filtered.length === 0) {

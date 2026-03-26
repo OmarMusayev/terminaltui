@@ -28,6 +28,10 @@ Build a complete picture of:
 
 **Default to vertical scrolling with flat card layouts.** TUI navigation is fundamentally up/down arrow keys. Use `divider("Label")` to visually separate sections rather than nesting them inside `tabs()`. Use individual `card()` blocks for anything users need to browse — each card is separately focusable and scrollable.
 
+**Use split-pane layouts for dashboard-style and complex sites.** When the original site has side-by-side content (pricing tiers, hours + location, food + drinks menus, monitoring metrics), use `columns()`, `split()`, or `grid()` instead of stacking everything vertically. Layouts make better use of terminal width and create a more professional look. Don't force layouts on every page — single-column is still best for timelines, forms, and narrative content. See `demos/server-dashboard/` for a comprehensive layout showcase.
+
+**Layout navigation is spatial.** Arrow keys move focus to the nearest focusable item in that direction based on screen position. On pages with layouts, left/right moves between side-by-side panels, up/down navigates vertically. On single-column pages, up/down moves sequentially and left goes back. Enter activates, Escape goes back. No configuration needed -- spatial navigation is automatic for all layout functions.
+
 ### Component Mapping — Prioritize Navigability
 
 | Original Content | Best TUI Pattern | Avoid |
@@ -46,6 +50,9 @@ Build a complete picture of:
 | Blog posts | `card()` per post (subtitle=date, body=excerpt) | |
 | FAQ / expandable content | `accordion()` — each item focusable + expandable | |
 | Toggle between views | `tabs()` — ONLY for mutually exclusive views | Organizing sequential sections |
+| Dashboard with sidebar | `columns([panel({...}), panel({...})])` | Flat single-column layout |
+| Monitoring grid | `grid({ cols: 2, items: [...] })` | Single-column cards |
+| Split pane (editor/preview) | `split({ direction: "horizontal" })` | Tabs (can't see both) |
 | Contact forms | `form()` with `textInput()`, `textArea()`, `button()` | |
 | Search / filter | `searchInput()` with `action: "navigate"` | |
 | Stats / metrics | `asciiArt.barChart()`, `asciiArt.sparkline()` | |

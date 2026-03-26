@@ -36,6 +36,9 @@ async function main() {
     case "demo":
       await runDemo(args[1]);
       break;
+    case "migrate":
+      await runMigrate();
+      break;
     case "help":
 
     case "--help":
@@ -72,8 +75,8 @@ async function runDev() {
   if (!configPath) {
     console.error(explicit
       ? `Error: Config file not found: ${explicit}`
-      : "Error: No site.config.ts found in current directory.");
-    console.error("Run 'terminaltui init' to create one, or pass a path: terminaltui dev path/to/site.config.ts");
+      : "Error: No config.ts (with pages/) or site.config.ts found in current directory.");
+    console.error("Run 'terminaltui init' to create one, or pass a path: terminaltui dev path/to/config.ts");
     process.exit(1);
   }
 
@@ -217,6 +220,37 @@ async function runDemo(name?: string) {
   process.exit(1);
 }
 
+async function runMigrate() {
+  const cwd = process.cwd();
+  try {
+    const { migrateProject } = await import("./migrate.js");
+    const result = await migrateProject(cwd);
+    console.log("");
+    console.log("\x1b[1m\x1b[35m  terminaltui migrate\x1b[0m");
+    console.log("");
+    console.log("  \x1b[32m\u2713\x1b[0m Config:  \x1b[36m" + result.configFile.replace(cwd + "/", "") + "\x1b[0m");
+    for (const f of result.pageFiles) {
+      console.log("  \x1b[32m\u2713\x1b[0m Page:    \x1b[36m" + f.replace(cwd + "/", "") + "\x1b[0m");
+    }
+    for (const f of result.apiFiles) {
+      console.log("  \x1b[32m\u2713\x1b[0m API:     \x1b[36m" + f.replace(cwd + "/", "") + "\x1b[0m");
+    }
+    if (result.warnings.length > 0) {
+      console.log("");
+      for (const w of result.warnings) {
+        console.log("  \x1b[33m\u26a0\x1b[0m " + w);
+      }
+    }
+    console.log("");
+    console.log("  \x1b[1mNext:\x1b[0m Review the generated files, then run:");
+    console.log("    \x1b[36mterminaltui dev\x1b[0m");
+    console.log("");
+  } catch (err: any) {
+    console.error("Migration error:", err.message);
+    process.exit(1);
+  }
+}
+
 async function runConvert() {
   const { copyFileSync } = await import("node:fs");
 
@@ -287,6 +321,12 @@ function findPackageRoot(): string {
 
 function findConfig(): string | null {
   const cwd = process.cwd();
+  // File-based routing: config.ts + pages/
+  const configTs = join(cwd, "config.ts");
+  if (existsSync(configTs) && existsSync(join(cwd, "pages"))) {
+    return configTs;
+  }
+  // Single-file config
   const candidates = ["site.config.ts", "site.config.js", "site.config.mjs"];
   for (const c of candidates) {
     const p = join(cwd, c);
@@ -306,6 +346,7 @@ function printHelp() {
     init [tpl]   Scaffold a new project (templates: minimal, portfolio, landing, restaurant, blog, creative)
     create       Interactive prompt builder — describe what you want, AI builds it
     convert      Drop terminaltui docs into your project for AI-assisted conversion
+    migrate      Convert single-file site.config.ts to file-based routing (config.ts + pages/)
     dev          Start development preview (auto-starts API server if routes defined)
     demo [name]  Run a built-in demo (restaurant, dashboard, band, coffee-shop, conference, etc.)
     build        Bundle for npm publish (includes API routes)

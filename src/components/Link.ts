@@ -1,12 +1,14 @@
 import type { RenderContext } from "./base.js";
 import { truncate, stringWidth } from "./base.js";
 import { fgColor, bold, dim, underline, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderLink(label: string, url: string, ctx: RenderContext, options?: { icon?: string; focused?: boolean }): string[] {
   const theme = ctx.theme;
   const icon = options?.icon ?? "\u2192";
   const isFocused = options?.focused ?? ctx.focused ?? false;
-  const width = ctx.width;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.link);
+  const width = dims.content;
 
   if (isFocused) {
     // Focused format: "  ❯ icon label  url"

@@ -3,16 +3,18 @@ import type { CardBlock } from "../config/types.js";
 import { renderCard } from "./Card.js";
 import { fgColor, dim, reset } from "../style/colors.js";
 import { pad } from "./base.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderGallery(items: CardBlock[], ctx: RenderContext, options?: { columns?: number; scrollIndex?: number }): string[] {
-  let columns = options?.columns ?? Math.min(3, Math.max(1, Math.floor(ctx.width / 30)));
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.gallery);
+  let columns = options?.columns ?? Math.min(3, Math.max(1, Math.floor(dims.content / 30)));
   const scrollIndex = options?.scrollIndex ?? 0;
   const theme = ctx.theme;
 
-  let cardWidth = Math.floor((ctx.width - (columns - 1) * 2) / columns);
+  let cardWidth = Math.floor((dims.content - (columns - 1) * 2) / columns);
   while (cardWidth < 20 && columns > 1) {
     columns--;
-    cardWidth = Math.floor((ctx.width - (columns - 1) * 2) / columns);
+    cardWidth = Math.floor((dims.content - (columns - 1) * 2) / columns);
   }
   const visibleItems = items.slice(scrollIndex, scrollIndex + columns);
 
@@ -38,7 +40,7 @@ export function renderGallery(items: CardBlock[], ctx: RenderContext, options?: 
     const indicator = fgColor(theme.muted) + dim +
       `  \u25c2 ${scrollIndex + 1}-${Math.min(scrollIndex + columns, items.length)} of ${items.length} \u25b8` +
       reset;
-    lines.push(pad(indicator, ctx.width, "center"));
+    lines.push(pad(indicator, dims.content, "center"));
   }
 
   return lines;

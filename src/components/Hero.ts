@@ -1,11 +1,13 @@
 import type { RenderContext } from "./base.js";
 import { fgColor, bold, dim, underline, reset } from "../style/colors.js";
 import { pad, wrapText } from "./base.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderHero(config: { title: string; subtitle?: string; cta?: { label: string; url: string }; art?: string }, ctx: RenderContext): string[] {
   const theme = ctx.theme;
   const lines: string[] = [];
-  const width = ctx.width;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.hero);
+  const width = dims.content;
 
   // Blank spacer
   lines.push("");

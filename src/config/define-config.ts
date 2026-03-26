@@ -1,4 +1,5 @@
 import { loadEnv } from "./env-loader.js";
+import type { FileBasedConfig } from "../router/types.js";
 
 // Eagerly load .env files so defineConfig() works at import time
 let _envLoaded = false;
@@ -46,8 +47,21 @@ export interface ConfigContainer<S extends ConfigSchema> {
  * config.get("apiUrl") // typed as string
  * ```
  */
-export function defineConfig<S extends ConfigSchema>(schema: S): ConfigContainer<S> {
-  // Ensure .env files are loaded before reading env vars
+export function defineConfig<S extends ConfigSchema>(schema: S): ConfigContainer<S>;
+export function defineConfig(config: FileBasedConfig): FileBasedConfig;
+export function defineConfig<S extends ConfigSchema>(
+  schemaOrConfig: S | FileBasedConfig,
+): ConfigContainer<S> | FileBasedConfig {
+  // Detect which overload: FileBasedConfig has a `name` string field
+  if ("name" in schemaOrConfig && typeof (schemaOrConfig as any).name === "string") {
+    // File-based routing config — just validate and pass through
+    const config = schemaOrConfig as FileBasedConfig;
+    if (!config.name) throw new Error("defineConfig() config must have a name");
+    return config;
+  }
+
+  // Environment variable config schema
+  const schema = schemaOrConfig as S;
   ensureEnvLoaded();
 
   const resolved: Record<string, any> = {};
@@ -78,5 +92,5 @@ export function defineConfig<S extends ConfigSchema>(schema: S): ConfigContainer
     getAll(): any {
       return { ...resolved };
     },
-  };
+  } as ConfigContainer<S>;
 }

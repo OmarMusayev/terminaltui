@@ -1,9 +1,11 @@
 import type { RenderContext } from "./base.js";
 import { styled, wrapText, stripAnsi, stringWidth } from "./base.js";
 import { fgColor, bold as boldCode, italic as italicCode, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderText(content: string, ctx: RenderContext, style?: "markdown" | "plain"): string[] {
-  const width = ctx.width;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.text);
+  const width = dims.content;
   const theme = ctx.theme;
 
   if (style === "markdown") {

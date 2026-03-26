@@ -2,7 +2,7 @@
  * Page-level rendering logic: home page, content page, scroll management,
  * and terminal output.
  */
-import type { ContentBlock, AsyncContentBlock, FormBlock } from "../config/types.js";
+import type { ContentBlock, AsyncContentBlock, FormBlock, DynamicBlock } from "../config/types.js";
 import { fgColor, reset, bold, dim, italic } from "../style/colors.js";
 import { gradientLines } from "../style/gradient.js";
 import { renderBanner, centerBanner } from "../ascii/banner.js";
@@ -12,10 +12,13 @@ import { renderMenu, type MenuItem } from "../components/Menu.js";
 import { pad, wrapText, type RenderContext } from "../components/base.js";
 import { renderFormResult } from "../components/Form.js";
 import type { FocusItem } from "./runtime-types.js";
+import type { FocusRect } from "../layout/types.js";
+import { computeFocusPositions } from "../layout/flex-engine.js";
 import {
   renderBlock, renderContentBlocks, resolveDynamic,
   invalidateDynamicCache, isBlockFocusable,
 } from "./runtime-block-render.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 import { writeToTerminal, createRenderContext } from "./runtime-terminal.js";
 
 // Re-export for runtime.ts
@@ -37,6 +40,7 @@ interface RT {
   asyncManager: any;
   accordionState: Map<string, number>;
   dynamicCache: Map<string, ContentBlock[]>;
+  focusRects: FocusRect[];
   getInputState(id: string, defaultValue?: any): any;
   getCurrentPage(): any;
   getPageContent(page: any): ContentBlock[] | null;
@@ -44,6 +48,7 @@ interface RT {
   resolvePageTitle(page: any): string;
   collectFocusItems(blocks: ContentBlock[]): FocusItem[];
   registerForms(blocks: ContentBlock[]): void;
+  currentFocusedBlock?: ContentBlock;
   render(): void;
 }
 
@@ -59,6 +64,15 @@ export function renderMain(rt: RT): void {
       rt.pageFocusItems = rt.collectFocusItems(content);
       rt.pageFocusIndex = Math.min(oldIndex, Math.max(0, rt.pageFocusItems.length - 1));
       rt.registerForms(content);
+
+      // Recompute spatial focus positions for navigation
+      const screenSize = getScreenSize();
+      const contentW = Math.min(120, screenSize.columns - 2);
+      const availH = Math.max(10, screenSize.rows - 8);
+      rt.focusRects = computeFocusPositions(
+        content, contentW, availH,
+        (block: DynamicBlock) => resolveDynamic(rt as any, block),
+      );
     }
   }
 
@@ -136,6 +150,37 @@ function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: nu
 }
 
 /** Render a content page with scroll management. */
+/** Check if a layout block contains a specific target block anywhere in its tree. */
+function containsBlock(layout: ContentBlock, target: ContentBlock): boolean {
+  if (layout === target) return true;
+  if (layout.type === "columns") {
+    for (const p of (layout as any).panels) {
+      for (const b of p.content) if (containsBlock(b, target)) return true;
+    }
+  } else if (layout.type === "rows") {
+    for (const p of (layout as any).panels) {
+      for (const b of p.content) if (containsBlock(b, target)) return true;
+    }
+  } else if (layout.type === "split") {
+    const cfg = (layout as any).config;
+    for (const b of cfg.first) if (containsBlock(b, target)) return true;
+    for (const b of cfg.second) if (containsBlock(b, target)) return true;
+  } else if (layout.type === "grid") {
+    for (const item of (layout as any).config.items) {
+      for (const b of item.content) if (containsBlock(b, target)) return true;
+    }
+  } else if (layout.type === "box") {
+    for (const b of (layout as any).config.children) if (containsBlock(b, target)) return true;
+  } else if (layout.type === "row") {
+    for (const c of (layout as any).cols) {
+      for (const b of c.content) if (containsBlock(b, target)) return true;
+    }
+  } else if (layout.type === "container") {
+    for (const b of (layout as any).content) if (containsBlock(b, target)) return true;
+  }
+  return false;
+}
+
 function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns: number, rows: number): void {
   const currentPage = rt.getCurrentPage();
   if (!currentPage) return;
@@ -170,6 +215,10 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
   let focusedLineStart = -1;
   let focusedLineEnd = -1;
 
+  // Expose the focused block to the layout rendering pipeline so cards inside
+  // panels can show the filled ◆ indicator when focused.
+  (rt as any).currentFocusedBlock = currentFocus?.kind === "block" ? currentFocus.block : undefined;
+
   const isBlockFocusedFn = (block: ContentBlock): boolean =>
     !!currentFocus && currentFocus.kind === "block" && currentFocus.block === block;
 
@@ -181,18 +230,24 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
 
   const indicator = fgColor(rt.theme.accent) + "\u258c" + reset;
 
+  // Block rendering width: 1 less than contentWidth to account for the 1-col
+  // focus prefix (" " or "▌") prepended to every content line.
+  const blockWidth = Math.max(1, contentWidth - 1);
+  const blockCtx: RenderContext = { ...ctx, width: blockWidth };
+
   const renderBlocksRecursive = (blocks: ContentBlock[]) => {
     for (const block of blocks) {
       if (block.type === "section") {
-        allContentLines.push(fgColor(ctx.theme.accent) + bold + "  " + block.title + reset);
-        allContentLines.push(fgColor(ctx.theme.border) + "  " + "\u2500".repeat(Math.max(0, contentWidth - 4)) + reset);
+        const sectionDims = computeBoxDimensions(blockWidth, COMPONENT_DEFAULTS.section);
+        allContentLines.push(fgColor(blockCtx.theme.accent) + bold + "  " + block.title + reset);
+        allContentLines.push(fgColor(blockCtx.theme.border) + "  " + "\u2500".repeat(Math.max(0, sectionDims.content - 4)) + reset);
         allContentLines.push("");
         renderBlocksRecursive(block.content);
       } else if (block.type === "form") {
         renderBlocksRecursive((block as FormBlock).fields);
         const formResult = rt.formResults.get((block as FormBlock).id);
         if (formResult) {
-          for (const rl of renderFormResult({ resultMessage: formResult.message, resultType: formResult.type }, ctx)) {
+          for (const rl of renderFormResult({ resultMessage: formResult.message, resultType: formResult.type }, blockCtx)) {
             allContentLines.push(" " + rl);
           }
           allContentLines.push("");
@@ -201,24 +256,28 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
         renderBlocksRecursive(resolveDynamic(rt as any, block as any));
         continue;
       } else if (block.type === "asyncContent") {
-        renderAsyncContentBlock(rt, block as AsyncContentBlock, allContentLines, ctx, renderBlocksRecursive);
+        renderAsyncContentBlock(rt, block as AsyncContentBlock, allContentLines, blockCtx, renderBlocksRecursive);
       } else if (block.type === "accordion") {
-        renderAccordionInline(rt, block, allContentLines, ctx, contentWidth, focusedAccordionItemIdx, indicator, focusedLineStart, focusedLineEnd, (s, e) => { focusedLineStart = s; focusedLineEnd = e; });
+        renderAccordionInline(rt, block, allContentLines, blockCtx, blockWidth, focusedAccordionItemIdx, indicator, focusedLineStart, focusedLineEnd, (s, e) => { focusedLineStart = s; focusedLineEnd = e; });
       } else if (block.type === "timeline") {
-        renderTimelineInline(rt, block, allContentLines, ctx, contentWidth, currentFocus, indicator, focusedLineStart, focusedLineEnd, (s, e) => { focusedLineStart = s; focusedLineEnd = e; });
+        renderTimelineInline(rt, block, allContentLines, blockCtx, blockWidth, currentFocus, indicator, focusedLineStart, focusedLineEnd, (s, e) => { focusedLineStart = s; focusedLineEnd = e; });
       } else {
         const focused = isBlockFocusedFn(block);
-        if (focused) focusedLineStart = allContentLines.length;
+        // For layout blocks, check if the focused item is inside them
+        const isLayout = block.type === "columns" || block.type === "rows" || block.type === "split" || block.type === "grid" || block.type === "box" || block.type === "row" || block.type === "container";
+        const layoutContainsFocus = isLayout && !focused && !!rt.currentFocusedBlock &&
+          containsBlock(block, rt.currentFocusedBlock);
+        if (focused || layoutContainsFocus) focusedLineStart = allContentLines.length;
         const blockIsFocusableVal = isBlockFocusable(block);
         const isEditing = focused && rt.inputMode.isEditing;
-        const focusCtx = focused ? { ...ctx, focused: true, editing: isEditing } : ctx;
+        const focusCtx = focused ? { ...blockCtx, focused: true, editing: isEditing } : blockCtx;
         const rendered = renderBlock(rt as any, block, focusCtx);
         if (blockIsFocusableVal && focused) {
           for (const line of rendered) allContentLines.push(indicator + line);
         } else {
           for (const line of rendered) allContentLines.push(" " + line);
         }
-        if (focused) focusedLineEnd = allContentLines.length;
+        if (focused || layoutContainsFocus) focusedLineEnd = allContentLines.length;
       }
       allContentLines.push("");
     }
@@ -233,11 +292,10 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
   const viewportHeight = Math.max(1, rows - headerLines - footerLines);
 
   if (focusedLineStart >= 0) {
-    const atLast = rt.pageFocusItems.length > 0 && rt.pageFocusIndex === rt.pageFocusItems.length - 1;
-    const atFirst = rt.pageFocusItems.length > 0 && rt.pageFocusIndex === 0;
-    if (focusedLineStart < rt.pageScrollOffset && !atLast) {
+    // Scroll to keep the focused block fully visible
+    if (focusedLineStart < rt.pageScrollOffset) {
       rt.pageScrollOffset = Math.max(0, focusedLineStart);
-    } else if (focusedLineEnd > rt.pageScrollOffset + viewportHeight && !atFirst) {
+    } else if (focusedLineEnd > rt.pageScrollOffset + viewportHeight) {
       rt.pageScrollOffset = Math.max(0, focusedLineEnd - viewportHeight);
     }
   }
@@ -311,12 +369,13 @@ function renderAccordionInline(
     if (isItemFocused) fls = allContentLines.length;
     const arrow = isItemOpen ? "\u25be" : "\u25b8";
     const labelColor = isItemOpen || isItemFocused ? ctx.theme.accent : ctx.theme.text;
-    const maxLabelW = Math.max(0, contentWidth - 8);
+    const accDims = computeBoxDimensions(contentWidth, COMPONENT_DEFAULTS.accordion);
+    const maxLabelW = Math.max(0, accDims.content - 2);
     const headerLine = fgColor(labelColor) + bold + `  ${arrow} ${item.label.length > maxLabelW ? item.label.substring(0, maxLabelW - 1) + "\u2026" : item.label}` + reset;
     allContentLines.push(isItemFocused ? indicator + headerLine : " " + headerLine);
 
     if (isItemOpen) {
-      const contentCtx = { ...ctx, width: ctx.width - 4, focused: false };
+      const contentCtx = { ...ctx, width: accDims.content, focused: false };
       for (const cb of item.content) {
         for (const rl of renderBlock(rt as any, cb, contentCtx)) allContentLines.push("     " + rl);
       }
@@ -354,7 +413,8 @@ function renderTimelineInline(
       allContentLines.push(" " + fgColor(ctx.theme.border) + "  \u2502 " + reset + fgColor(ctx.theme.muted) + dim + (item.period ?? item.date) + reset);
     }
     if (item.description) {
-      for (const wl of wrapText(item.description, Math.max(0, contentWidth - 6))) {
+      const tlDims = computeBoxDimensions(contentWidth, COMPONENT_DEFAULTS.timeline);
+      for (const wl of wrapText(item.description, tlDims.content)) {
         allContentLines.push(" " + fgColor(ctx.theme.border) + "  \u2502 " + reset + fgColor(ctx.theme.text) + wl + reset);
       }
     }

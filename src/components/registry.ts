@@ -113,4 +113,15 @@ componentRegistry.register("searchInput", (_block, _ctx) =>
 componentRegistry.register("button", (_block, _ctx) =>
   [], true);
 
+// ─── Layout components (rendered by runtime, not registry) ──
+
+componentRegistry.register("columns", (_block, _ctx) => []);
+componentRegistry.register("rows", (_block, _ctx) => []);
+componentRegistry.register("split", (_block, _ctx) => []);
+componentRegistry.register("grid", (_block, _ctx) => []);
+componentRegistry.register("panel", (_block, _ctx) => []);
+componentRegistry.register("box", (_block, _ctx) => []);
+componentRegistry.register("row", (_block, _ctx) => []);
+componentRegistry.register("container", (_block, _ctx) => []);
+
 export { componentRegistry };

@@ -3,6 +3,7 @@ import type { SelectBlock } from "../config/types.js";
 import { renderBox } from "./Box.js";
 import { pad, stringWidth, truncate } from "./base.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export interface SelectRenderState {
   value: string;
@@ -18,7 +19,8 @@ export function renderSelect(
   const theme = ctx.theme;
   const lines: string[] = [];
   const isFocused = !!ctx.focused;
-  const innerWidth = Math.max(1, ctx.width - 4);
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.select);
+  const innerWidth = dims.content;
 
   // Label
   lines.push(fgColor(isFocused ? theme.accent : theme.text) + bold + "  " + config.label + reset);

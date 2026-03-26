@@ -163,8 +163,11 @@ function createChildProcess(
       }
     },
     resize(c: number, r: number) {
-      // child_process doesn't support resize natively
-      // Send SIGWINCH if we can — but just update env for future use
+      // child_process doesn't have a real PTY, but we can signal the child
+      // to re-read dimensions. Send SIGWINCH so Node.js fires 'resize'.
+      if (running && proc.pid) {
+        try { process.kill(proc.pid, "SIGWINCH"); } catch {}
+      }
     },
     kill() {
       if (running) {

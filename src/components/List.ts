@@ -1,8 +1,10 @@
 import type { RenderContext } from "./base.js";
 import { fgColor, reset } from "../style/colors.js";
 import { wrapText } from "./base.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderList(items: string[], ctx: RenderContext, style?: "bullet" | "number" | "dash" | "check" | "arrow"): string[] {
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.list);
   const theme = ctx.theme;
   const listStyle = style ?? "bullet";
 
@@ -21,7 +23,7 @@ export function renderList(items: string[], ctx: RenderContext, style?: "bullet"
     const bullet = getBullet(i);
     const prefix = `  ${bullet} `;
     const indent = " ".repeat(prefix.length);
-    const availWidth = Math.max(1, ctx.width - prefix.length);
+    const availWidth = Math.max(1, dims.content - prefix.length);
     const wrapped = wrapText(items[i], availWidth);
     for (let j = 0; j < wrapped.length; j++) {
       if (j === 0) {

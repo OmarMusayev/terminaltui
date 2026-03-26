@@ -1,14 +1,20 @@
 /**
  * Page navigation and focus management logic extracted from TUIRuntime.
  * All functions take `rt` (the runtime instance) as their first parameter.
+ *
+ * Focus positions are computed using the flex-engine for spatial navigation.
  */
 import type {
   ContentBlock, PageConfig, FormBlock, DynamicBlock,
+  ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock,
 } from "../config/types.js";
 import type { RouteConfig, RouteParams } from "../routing/types.js";
 import { runMiddleware } from "../middleware/index.js";
 import { resolveDynamic } from "./runtime-render.js";
 import type { FocusItem } from "./runtime-types.js";
+import type { FocusRect } from "../layout/types.js";
+import { computeFocusPositions } from "../layout/flex-engine.js";
+import { getScreenSize } from "./screen.js";
 
 // Minimal runtime interface for page navigation functions
 interface RT {
@@ -28,6 +34,7 @@ interface RT {
   dynamicCache: Map<string, ContentBlock[]>;
   feedbackMessage: string;
   feedbackTimer: ReturnType<typeof setTimeout> | null;
+  focusRects: FocusRect[];
   render(): void;
 }
 
@@ -79,6 +86,7 @@ export function enterPage(rt: RT): void {
   rt.pageFocusIndex = 0;
   rt.pageScrollOffset = 0;
   rt.pageFocusItems = [];
+  rt.focusRects = [];
   rt.inputMode.reset();
   rt.formRegistry.clear();
 
@@ -151,16 +159,33 @@ function loadAsyncPageContent(rt: RT, page: PageConfig): void {
         rt.pageFocusItems = collectFocusItems(rt, state.content);
         rt.pageFocusIndex = Math.min(oldIndex, Math.max(0, rt.pageFocusItems.length - 1));
         registerForms(rt, state.content);
+        rebuildFocusPositions(rt, state.content);
       }
       rt.render();
     });
   }
 }
 
-/** Initialize page content: collect focus items and register forms. */
+/** Initialize page content: collect focus items, register forms, compute positions. */
 export function initializePageContent(rt: RT, content: ContentBlock[]): void {
   rt.pageFocusItems = collectFocusItems(rt, content);
   registerForms(rt, content);
+  rebuildFocusPositions(rt, content);
+}
+
+/** Recompute spatial focus positions from content blocks. */
+function rebuildFocusPositions(rt: RT, content: ContentBlock[]): void {
+  const { columns } = getScreenSize();
+  const contentWidth = Math.min(120, columns - 2);
+  const { rows: termRows } = getScreenSize();
+  const availHeight = Math.max(10, termRows - 8);
+
+  rt.focusRects = computeFocusPositions(
+    content,
+    contentWidth,
+    availHeight,
+    (block: DynamicBlock) => resolveDynamic(rt as any, block),
+  );
 }
 
 /** Register form blocks for submission handling. */
@@ -171,6 +196,24 @@ export function registerForms(rt: RT, blocks: ContentBlock[]): void {
       registerForms(rt, (block as FormBlock).fields);
     } else if (block.type === "section") {
       registerForms(rt, block.content);
+    } else if (block.type === "columns") {
+      for (const p of (block as ColumnsBlock).panels) registerForms(rt, p.content);
+    } else if (block.type === "rows") {
+      for (const p of (block as RowsBlock).panels) registerForms(rt, p.content);
+    } else if (block.type === "split") {
+      const s = block as SplitBlock;
+      registerForms(rt, s.config.first);
+      registerForms(rt, s.config.second);
+    } else if (block.type === "grid") {
+      for (const item of (block as GridBlock).config.items) registerForms(rt, item.content);
+    } else if (block.type === "panel") {
+      registerForms(rt, (block as PanelBlock).config.content);
+    } else if (block.type === "box") {
+      registerForms(rt, (block as any).config.children);
+    } else if (block.type === "row") {
+      for (const c of (block as any).cols) registerForms(rt, c.content);
+    } else if (block.type === "container") {
+      registerForms(rt, (block as any).content);
     }
   }
 }
@@ -237,6 +280,55 @@ export function collectFocusItems(rt: RT, blocks: ContentBlock[]): FocusItem[] {
         result.push(...collectFocusItems(rt, dynamicBlocks));
         break;
       }
+      case "columns": {
+        const cols = block as ColumnsBlock;
+        for (const p of cols.panels) {
+          result.push(...collectFocusItems(rt, p.content));
+        }
+        break;
+      }
+      case "rows": {
+        const rowsBlock = block as RowsBlock;
+        for (const p of rowsBlock.panels) {
+          result.push(...collectFocusItems(rt, p.content));
+        }
+        break;
+      }
+      case "split": {
+        const splitBlock = block as SplitBlock;
+        result.push(...collectFocusItems(rt, splitBlock.config.first));
+        result.push(...collectFocusItems(rt, splitBlock.config.second));
+        break;
+      }
+      case "grid": {
+        const gridBlock = block as GridBlock;
+        for (const item of gridBlock.config.items) {
+          result.push(...collectFocusItems(rt, item.content));
+        }
+        break;
+      }
+      case "panel": {
+        const panelBlock = block as PanelBlock;
+        result.push(...collectFocusItems(rt, panelBlock.config.content));
+        break;
+      }
+      case "box": {
+        const boxBlock = block as any;
+        result.push(...collectFocusItems(rt, boxBlock.config.children));
+        break;
+      }
+      case "row": {
+        const rowBlock = block as any;
+        for (const c of rowBlock.cols) {
+          result.push(...collectFocusItems(rt, c.content));
+        }
+        break;
+      }
+      case "container": {
+        const containerBlock = block as any;
+        result.push(...collectFocusItems(rt, containerBlock.content));
+        break;
+      }
       default:
         break;
     }
@@ -244,12 +336,13 @@ export function collectFocusItems(rt: RT, blocks: ContentBlock[]): FocusItem[] {
   return result;
 }
 
-/** Move focus to next item. */
+/** Move focus to next item sequentially. */
 export function pageFocusNext(rt: RT): void {
   if (rt.pageFocusItems.length === 0) {
     rt.pageScrollOffset++;
     return;
   }
+
   if (rt.pageFocusIndex < rt.pageFocusItems.length - 1) {
     rt.pageFocusIndex++;
   } else {
@@ -257,12 +350,13 @@ export function pageFocusNext(rt: RT): void {
   }
 }
 
-/** Move focus to previous item. */
+/** Move focus to previous item sequentially. */
 export function pageFocusPrev(rt: RT): void {
   if (rt.pageFocusItems.length === 0) {
     if (rt.pageScrollOffset > 0) rt.pageScrollOffset--;
     return;
   }
+
   if (rt.pageFocusIndex > 0) {
     rt.pageFocusIndex--;
   } else {

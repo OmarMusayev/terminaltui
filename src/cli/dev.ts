@@ -9,6 +9,58 @@ export async function buildAndRun(configPath: string): Promise<void> {
   const absPath = resolve(configPath);
   const projectDir = dirname(absPath);
 
+  // Detect project type
+  const isFileBased = detectFileBased(projectDir, absPath);
+
+  if (isFileBased) {
+    await buildAndRunFileBased(projectDir);
+  } else {
+    await buildAndRunSingleFile(absPath, projectDir);
+  }
+}
+
+/**
+ * Detect if this is a file-based routing project.
+ * File-based = config.ts + pages/ directory exists.
+ */
+function detectFileBased(projectDir: string, configPath: string): boolean {
+  const configName = configPath.split("/").pop() || "";
+  if (configName === "config.ts" || configName === "config.js") {
+    const pagesDir = join(projectDir, "pages");
+    return existsSync(pagesDir);
+  }
+  return false;
+}
+
+/**
+ * Build and run a file-based routing project.
+ */
+async function buildAndRunFileBased(projectDir: string): Promise<void> {
+  const outDir = join(projectDir, ".terminaltui");
+  mkdirSync(outDir, { recursive: true });
+
+  const configPath = join(projectDir, "config.ts");
+  const pagesDir = join(projectDir, "pages");
+  const apiDir = join(projectDir, "api");
+
+  // Load config
+  const { loadFileBasedConfig } = await import("../router/page-loader.js");
+  const config = await loadFileBasedConfig(configPath, outDir);
+
+  // Run
+  const { runFileBasedSite } = await import("../core/runtime.js");
+  await runFileBasedSite({
+    config,
+    pagesDir,
+    apiDir: existsSync(apiDir) ? apiDir : undefined,
+    outDir,
+  });
+}
+
+/**
+ * Build and run a single-file site.config.ts project (existing behavior).
+ */
+async function buildAndRunSingleFile(absPath: string, projectDir: string): Promise<void> {
   // Compile into the project directory so Node's normal module resolution
   // finds node_modules/terminaltui without symlink hacks.
   const outDir = join(projectDir, ".terminaltui");
@@ -43,7 +95,7 @@ export async function buildAndRun(configPath: string): Promise<void> {
         return;
       } catch (e: any) {
         throw new Error(
-          `Cannot compile ${configPath}. Install esbuild:\n` +
+          `Cannot compile ${absPath}. Install esbuild:\n` +
           `  npm install esbuild\n\n` +
           `Original error: ${e.message}`
         );

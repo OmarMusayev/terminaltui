@@ -1,5 +1,6 @@
 import type { RenderContext } from "./base.js";
 import { fgColor, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export interface ScrollState {
   offset: number;
@@ -8,6 +9,7 @@ export interface ScrollState {
 }
 
 export function renderScrollView(content: string[], visibleHeight: number, scrollOffset: number, ctx: RenderContext): { lines: string[]; scrollState: ScrollState } {
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.scrollView);
   const total = content.length;
   const visible = Math.min(visibleHeight, total);
   const offset = Math.max(0, Math.min(scrollOffset, total - visible));

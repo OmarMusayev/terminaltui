@@ -3,6 +3,7 @@ import type { TextAreaBlock } from "../config/types.js";
 import { renderBox } from "./Box.js";
 import { stringWidth, wrapText } from "./base.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export interface TextAreaRenderState {
   value: string;
@@ -22,7 +23,8 @@ export function renderTextArea(
   const isFocused = !!ctx.focused;
   const isEditing = state.editing;
   const visibleRows = config.rows ?? 4;
-  const innerWidth = Math.max(1, ctx.width - 4); // box borders + padding
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.textArea);
+  const innerWidth = dims.content;
 
   // Label
   lines.push(fgColor(isFocused ? theme.accent : theme.text) + bold + "  " + config.label + reset);

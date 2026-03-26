@@ -2,6 +2,7 @@ import type { RenderContext } from "./base.js";
 import { styled, pad, stringWidth } from "./base.js";
 import { getBorderChars, type BorderStyle } from "../style/borders.js";
 import { fgColor, reset } from "../style/colors.js";
+import { computeBoxDimensions } from "../layout/box-model.js";
 
 export interface BoxConfig {
   width?: number;
@@ -19,13 +20,17 @@ export function renderBox(config: BoxConfig, ctx: RenderContext): string[] {
   const border = config.border ?? (ctx.borderStyle as BorderStyle) ?? "rounded";
   const chars = getBorderChars(border);
   const boxWidth = config.width ?? ctx.width;
-  const padding = config.padding ?? 1;
-  const innerWidth = Math.max(0, boxWidth - 2 - padding * 2);
+  const requestedPadding = config.padding ?? 1;
+  // Clamp padding so border + padding doesn't exceed allocated width
+  const maxPadding = Math.max(0, Math.floor((boxWidth - 2) / 2));
+  const padding = Math.min(requestedPadding, maxPadding);
+  const dims = computeBoxDimensions(boxWidth, { border: true, padding });
+  const innerWidth = dims.content;
   const borderColor = config.borderColor ?? ctx.theme.border;
   const lines: string[] = [];
 
   // Top border
-  const topInner = Math.max(0, boxWidth - 2);
+  const topInner = Math.max(0, dims.allocated - dims.border * 2);
   if (config.title) {
     const titleStr = ` ${config.title} `;
     let rightStr = "";

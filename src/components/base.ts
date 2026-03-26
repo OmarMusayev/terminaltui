@@ -9,6 +9,8 @@ export interface RenderContext {
   selected?: boolean;
   borderStyle?: string;
   editing?: boolean;
+  /** Available height inside a panel cell. Cards use this to fill uniform height. */
+  panelHeight?: number;
 }
 
 /**

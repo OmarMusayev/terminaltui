@@ -49,6 +49,283 @@ my-site/
 
 ---
 
+## File-Based Routing
+
+For larger projects, terminaltui supports a Next.js-style file-based routing system as an alternative to the single `site.config.ts` approach. Each page is its own file, layouts nest automatically, and menus are auto-generated from the filesystem.
+
+### Project Structure
+
+```
+my-site/
+├── config.ts          # Theme, site name, global settings
+├── pages/
+│   ├── layout.ts      # Root layout (wraps all pages)
+│   ├── home.ts        # Home page
+│   ├── about.ts       # /about
+│   └── projects/
+│       ├── index.ts   # /projects
+│       └── [slug].ts  # /projects/:slug
+├── api/
+│   └── stats.ts       # GET /api/stats
+├── components/        # Reusable components
+└── lib/               # Shared data/helpers
+```
+
+### config.ts
+
+Uses `defineConfig()` instead of `createSite()`. Contains only global settings — no pages, no content.
+
+```ts
+import { defineConfig } from "terminaltui";
+
+export default defineConfig({
+  name: "My Site",
+  theme: "cyberpunk",
+  banner: { font: "ANSI Shadow" },
+  boot: { spinner: true },
+
+  // Optional: override auto-generated menu
+  menu: {
+    order: ["home", "projects", "about", "contact"],
+    labels: { projects: "Our Work", about: "About Us" },
+    // Items not listed are excluded from menu
+  },
+
+  // Lifecycle hooks
+  onInit: async () => { /* ... */ },
+  onExit: () => { /* ... */ },
+  onError: (err) => { /* ... */ },
+});
+```
+
+Omit `menu` entirely to let the framework auto-generate it from `pages/`.
+
+### Page Files
+
+Every `.ts` file in `pages/` becomes a page. Default export is a function returning `ContentBlock[]`.
+
+```ts
+// pages/about.ts
+import { text, card } from "terminaltui";
+
+export default function About() {
+  return [
+    card({ title: "About Me", body: "Full-stack developer based in..." }),
+  ];
+}
+```
+
+**Metadata export** — optional, controls menu label, order, transition, visibility:
+
+```ts
+// pages/projects/index.ts
+import { card, row, col } from "terminaltui";
+
+export const metadata = {
+  label: "Projects",      // Menu label (default: filename titlecased)
+  order: 2,               // Menu sort order (default: alphabetical)
+  transition: "slide",    // Page transition
+  icon: "code",           // Menu icon
+  hidden: false,          // If true, excluded from auto-generated menu
+};
+
+export default function Projects() {
+  return [
+    row([
+      col([card({ title: "Project A" })], { span: 6 }),
+      col([card({ title: "Project B" })], { span: 6 }),
+    ]),
+  ];
+}
+```
+
+**Async pages** — for data fetching:
+
+```ts
+// pages/dashboard/index.ts
+import { card, row, col, text } from "terminaltui";
+
+export default async function Dashboard() {
+  const stats = await fetch("/api/stats").then(r => r.json());
+  return [
+    row([
+      col([card({ title: "Revenue", content: [text(stats.revenue)] })], { span: 6 }),
+      col([card({ title: "Users", content: [text(String(stats.users))] })], { span: 6 }),
+    ]),
+  ];
+}
+```
+
+**Dynamic routes** — `[param]` in filename, params passed to function:
+
+```ts
+// pages/projects/[slug].ts
+import { card, text, badge } from "terminaltui";
+
+export const metadata = { hidden: true }; // Dynamic routes excluded from menu
+
+export default async function ProjectDetail({ params }: { params: { slug: string } }) {
+  const project = await fetch(`/api/projects/${params.slug}`).then(r => r.json());
+  return [
+    card({ title: project.name, content: [badge({ text: project.status }), text(project.description)] }),
+  ];
+}
+```
+
+### Layout Files
+
+A `layout.ts` in any directory wraps all sibling and descendant pages. Receives `children` (the rendered page content).
+
+```ts
+// pages/layout.ts — Root layout, wraps everything
+import { split, menu } from "terminaltui";
+import type { ContentBlock } from "terminaltui";
+
+export default function RootLayout({ children }: { children: ContentBlock[] }) {
+  return [
+    split({
+      direction: "horizontal",
+      first: [menu({ source: "auto" })],
+      second: children,
+      ratio: 25,
+    }),
+  ];
+}
+```
+
+```ts
+// pages/dashboard/layout.ts — wraps /dashboard/* pages only
+import { split, menu, text } from "terminaltui";
+import type { ContentBlock } from "terminaltui";
+
+export default function DashboardLayout({ children }: { children: ContentBlock[] }) {
+  return [
+    text("Dashboard"),
+    split({
+      direction: "horizontal",
+      first: [menu({ items: [
+        { label: "Overview", page: "dashboard" },
+        { label: "Analytics", page: "dashboard/analytics" },
+        { label: "Settings", page: "dashboard/settings" },
+      ]})],
+      second: children,
+      ratio: 20,
+    }),
+  ];
+}
+```
+
+**Nesting:** Layouts compose from outside in. For `/dashboard/analytics`:
+`RootLayout` -> `DashboardLayout` -> `AnalyticsPage`
+
+If no `layout.ts` exists at a level, pages use the nearest parent layout.
+
+### API Routes
+
+Export named functions matching HTTP methods. File path maps to endpoint.
+
+```ts
+// api/stats.ts → GET /api/stats
+export async function GET() {
+  return { revenue: "$1.2M", users: 45231 };
+}
+```
+
+```ts
+// api/contact.ts → POST /api/contact
+export async function POST(request: { body: any }) {
+  const { name, email, message } = request.body;
+  return { success: true };
+}
+```
+
+```ts
+// api/projects/[id].ts → /api/projects/:id
+export async function GET({ params }: { params: { id: string } }) {
+  return projects.find(p => p.id === params.id) ?? { error: "Not found" };
+}
+
+export async function DELETE({ params }: { params: { id: string } }) {
+  return { success: true };
+}
+```
+
+Route mapping: `api/stats.ts` -> `/api/stats`, `api/projects/[id].ts` -> `/api/projects/:id`.
+
+### Auto-Generated Menu
+
+When `config.ts` omits `menu`, the framework scans `pages/` and builds the menu automatically.
+
+**Rules:**
+- Every `.ts` file directly in `pages/` becomes a top-level menu item
+- Directories with `index.ts` become a top-level menu item (name from directory)
+- Sub-pages inside directories (other than `index.ts`) are NOT in the top menu
+- `home.ts` is always first
+- `layout.ts` files are never menu items
+- `metadata.hidden = true` pages are excluded
+- Dynamic route files (`[param].ts`) are excluded
+
+**Ordering:** `metadata.order` (lowest first), then alphabetical for unordered items.
+
+**Labels:** `metadata.label` > `metadata.icon` + titlecased filename > titlecased filename (`about.ts` -> "About", `our-team.ts` -> "Our Team").
+
+**Manual override in config.ts:**
+
+```ts
+export default defineConfig({
+  name: "My Site",
+  menu: {
+    items: [
+      { label: "Home", page: "home", icon: "terminal" },
+      { label: "Work", page: "projects" },
+      { label: "About Me", page: "about" },
+    ],
+  },
+});
+```
+
+### menu() Component
+
+Use `menu({ source: "auto" })` in any page or layout to render the auto-generated menu:
+
+```ts
+import { hero, menu } from "terminaltui";
+
+export default function Home() {
+  return [
+    hero({ title: "My Site", subtitle: "Welcome" }),
+    menu({ source: "auto" }), // Resolved at render time from pages/
+  ];
+}
+```
+
+If `home.ts` doesn't exist, the framework auto-generates a home page with `hero()` + `menu({ source: "auto" })`.
+
+### Migration
+
+Convert an existing `site.config.ts` project to file-based routing:
+
+```bash
+npx terminaltui migrate
+```
+
+This command:
+1. Reads `site.config.ts`
+2. Extracts global config into `config.ts`
+3. Creates `pages/` with one file per page
+4. Creates `api/` with one file per endpoint
+5. Preserves all content, themes, and settings
+
+### Backward Compatibility
+
+Both approaches work side by side:
+- **`site.config.ts`** — single-file mode (existing behavior, fully supported)
+- **`config.ts` + `pages/`** — file-based routing mode
+
+The framework auto-detects which mode to use. If `pages/` exists, it uses file-based routing. If only `site.config.ts` exists, it uses single-file mode. You do not need to migrate existing projects.
+
+---
+
 ## Focus & Scroll Model — CRITICAL FOR GOOD UX
 
 TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor between items. The viewport scrolls to follow the focused item. Understanding which components are focusable is essential for building good TUI experiences.
@@ -86,6 +363,11 @@ TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor bet
 | `section()` | No — wrapper | Children inherit their own focusability. |
 | `form()` | No — wrapper | Children (inputs, buttons) are individually focusable. |
 | `dynamic()` | No — wrapper | Children inherit their own focusability. |
+| `columns()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
+| `rows()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
+| `split()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
+| `grid()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
+| `panel()` | No — wrapper | Used inside layout components. Children inherit focusability. |
 
 ### TUI UX Patterns — What to Use When
 
@@ -98,6 +380,10 @@ TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor bet
 | Expandable FAQ / details | `accordion()` | Long `markdown()` blocks |
 | Work history / education | Individual `card()` blocks with period as subtitle | `timeline()` (items aren't actionable) |
 | Skills / tech stack | `skillBar()` or `list()` (passive reference) | Cards (overkill for simple data) |
+| Dashboard with sidebar | `columns()` — sidebar panel + main panel | Flat layout (loses spatial structure) |
+| Monitoring grid | `grid()` with metric panels | Single-column cards (wastes space) |
+| Split editor/preview | `split({ direction: "horizontal" })` | Tabs (can't see both at once) |
+| Log viewer + controls | `rows()` — controls on top, logs below | Interleaved cards |
 
 ### Bad → Good Patterns
 
@@ -122,7 +408,75 @@ card({ title: "BS Computer Science", subtitle: "State University — 2021" }),
 
 **When to use `timeline()`:** Only when you want a visual connected-dot timeline aesthetic AND the items are passive (no action needed on Enter). For anything users need to browse, navigate, or interact with, use `card()` blocks instead.
 
-**When to use `tabs()`:** Only for mutually exclusive views of the same data (e.g., "Grid view" vs "List view", "Day 1" vs "Day 2" of a conference). NOT for organizing sequential sections of a page — use `divider("Label")` for that.
+**When to use `tabs()`:** Only for mutually exclusive views of the same data (e.g., "Grid view" vs "List view"). NOT for organizing sequential sections of a page — use `divider("Label")` for that. If two views should be visible simultaneously (e.g., Day 1 and Day 2 of a conference schedule), use `split()` instead.
+
+### Layout Mapping Guide
+
+| Site Pattern | Layout | Example |
+|---|---|---|
+| Dashboard with sidebar navigation | `columns()` — narrow first panel (20-25%), wide main panel | Server dashboard |
+| Dashboard with multiple data views | `columns()` + nested `grid()` | System monitor with CPU/Memory/Disk metrics |
+| Pricing comparison (2-4 tiers) | `columns()` — one panel per tier | SaaS pricing page |
+| Side-by-side content (text + skills) | `split({ direction: "horizontal" })` | Portfolio about page |
+| Day 1 / Day 2 schedule | `split({ direction: "horizontal" })` | Conference schedule |
+| Food menu (categories) | `columns()` or `split()` — dishes left, drinks right | Restaurant menu |
+| Hours + location info | `columns()` — hours table left, address right | Restaurant/shop hours |
+| Project/portfolio cards | `grid({ cols: 2 })` — cards in a grid | Freelancer work page |
+| Feature cards | `grid({ cols: 2 })` | SaaS features page |
+| Speaker/team bios | `grid({ cols: 2 })` | Conference speakers |
+| Sponsor logos by tier | `grid({ cols: 3 })` per tier | Conference sponsors |
+| Log viewer | `columns()` — service list left, log stream right | Server logs |
+| Container table + details | `split({ direction: "vertical" })` — table top, details bottom | Container management |
+| Precise multi-column layout | `row()` + `col()` — 12-column grid system | Complex dashboards |
+| Responsive card grid | `row()` with `xs:12, sm:6, lg:4` — cards reflow by terminal width | Portfolio, features |
+| Centered narrow content | `container({ maxWidth: 80 })` — centered with max width | Blog posts, forms |
+
+### 12-Column Grid System
+
+`row()`, `col()`, and `container()` provide a Bootstrap-style 12-column grid for precise layouts.
+
+```ts
+import { row, col, container } from "terminaltui";
+
+// Basic: 2 equal columns (span:6 each = 50%)
+row([
+  col([card({ title: "Left" })], { span: 6 }),
+  col([card({ title: "Right" })], { span: 6 }),
+])
+
+// 3-column layout: sidebar + main + aside
+row([
+  col([menu], { span: 3 }),         // 25%
+  col([mainContent], { span: 6 }),   // 50%
+  col([aside], { span: 3 }),         // 25%
+])
+
+// Responsive — cards reflow based on terminal width
+row([
+  col([card1], { span: 4, sm: 6, xs: 12 }),  // 33% wide, 50% medium, full narrow
+  col([card2], { span: 4, sm: 6, xs: 12 }),
+  col([card3], { span: 4, sm: 12, xs: 12 }),
+], { gap: 1 })
+
+// Container — centers content with max width
+container([
+  row([
+    col([hero(...)], { span: 12 }),    // full width
+  ]),
+  row([
+    col([sidebar], { span: 3 }),
+    col([content], { span: 9 }),
+  ]),
+], { maxWidth: 100, padding: 2 })
+```
+
+**ColConfig options:** `span` (1-12), `offset` (0-11), `xs`/`sm`/`md`/`lg` (responsive spans), `padding`.
+**RowConfig options:** `gap` (between cols, default: 1).
+**ContainerConfig options:** `maxWidth`, `padding`, `center` (default: true).
+
+**Responsive breakpoints:** xs (<60 cols), sm (60-89), md (90-119), lg (>=120).
+
+Spatial navigation works automatically — arrow keys move between col content based on screen position.
 
 ---
 
@@ -498,6 +852,222 @@ asyncContent({
   fallback: [markdown("Failed to load.")],
 })
 ```
+
+---
+
+### Box Model
+
+Every component uses a unified box model via `computeBoxDimensions()` from `src/layout/box-model.ts`. One function, one contract, one source of truth for width calculations.
+
+```
++---------------- allocated width -----------------+
+| margin                                           |
+|  +------------ outer width -----------------+   |
+|  | border                                    |   |
+|  |  +-------- inner width ---------------+   |   |
+|  |  | padding                            |   |   |
+|  |  |  +---- content width -----------+  |   |   |
+|  |  |  |                              |  |   |   |
+|  |  |  |  Text wraps here.            |  |   |   |
+|  |  |  |  Children render here.       |  |   |   |
+|  |  |  |                              |  |   |   |
+|  |  |  +------------------------------+  |   |   |
+|  |  +------------------------------------+   |   |
+|  +-------------------------------------------+  |
++--------------------------------------------------+
+
+content = allocated - (margin * 2) - (border * 2) - (padding * 2)
+```
+
+**Width cascade:**
+```
+Terminal width (e.g. 120 cols)
+  -> createRenderContext(): ctx.width = Math.min(terminalWidth, 100)
+    -> renderContentPage(): blockWidth = ctx.width - 1 (focus prefix)
+      -> Component gets blockWidth as ctx.width
+        -> dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.componentType)
+          -> Text wraps at dims.content
+          -> Child blocks receive dims.content as their width
+```
+
+**API:**
+```ts
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "terminaltui";
+import type { BoxDimensions, BoxOptions } from "terminaltui";
+
+const dims = computeBoxDimensions(80, { border: true, padding: 1 });
+// dims.content = 76 (80 - 2 border - 2 padding)
+
+// Using component defaults
+const cardDims = computeBoxDimensions(80, COMPONENT_DEFAULTS.card);
+// cardDims.content = 76
+
+// Override per-instance
+const widePad = computeBoxDimensions(80, { ...COMPONENT_DEFAULTS.card, padding: 2 });
+// widePad.content = 74
+```
+
+**Defaults quick reference:**
+
+| Component    | Border | Padding | Margin | Chrome | Content at w=80 |
+|-------------|--------|---------|--------|--------|-----------------|
+| card         | 1      | 1       | 0      | 4      | 76              |
+| text         | 0      | 0       | 0      | 0      | 80              |
+| hero         | 0      | 0       | 0      | 0      | 80              |
+| table        | 1      | 0       | 0      | 2      | 78              |
+| quote        | 1      | 1       | 1      | 6      | 74              |
+| timeline     | 1      | 1       | 1      | 6      | 74              |
+| accordion    | 0      | 2       | 0      | 4      | 76              |
+| tabs         | 0      | 2       | 0      | 4      | 76              |
+| textInput    | 1      | 1       | 0      | 4      | 76              |
+| select       | 1      | 1       | 0      | 4      | 76              |
+| button       | 1      | 2       | 1      | 8      | 72              |
+| badge        | 0      | 0       | 0      | 0      | 80              |
+| progressBar  | 0      | 0       | 0      | 0      | 80              |
+| divider      | 0      | 0       | 0      | 0      | 80              |
+| image        | 1      | 0       | 0      | 2      | 78              |
+
+**Rules:**
+- Every component calls `computeBoxDimensions()`. No exceptions.
+- Layout components (columns, split, grid, row, col, box, container) divide width among children — they do NOT call `computeBoxDimensions()` for themselves.
+- Text always wraps at `dims.content`.
+- Child blocks receive `dims.content` as their allocated width.
+- No manual `ctx.width - N` in component files. All chrome subtraction goes through the box model.
+
+---
+
+### Layout Components
+
+Layout components divide the terminal into panels — side-by-side, stacked, or in grids. Each panel is an independent area with its own content. Panels can have borders, titles, and content clipping.
+
+**Navigation**: Tab/Shift+Tab switches between panels. Arrow keys navigate within the active panel. The active panel gets an accent-colored border.
+
+**Responsive**: If the terminal is too narrow for side-by-side panels (<20 chars per panel), columns automatically collapse to vertical stacking.
+
+#### columns(panels: PanelConfig[]): ColumnsBlock
+
+Side-by-side panels. Each panel gets a `width` (percentage, fixed chars, or auto).
+
+```ts
+columns([
+  panel({ width: "60%", content: [
+    table(["Name", "Status"], [["nginx", "running"], ["postgres", "running"]]),
+  ]}),
+  panel({ width: "40%", content: [
+    markdown("## Stats"),
+    progressBar("CPU", 45),
+    progressBar("Memory", 72),
+  ]}),
+])
+```
+
+#### rows(panels: PanelConfig[]): RowsBlock
+
+Vertically stacked panels with fixed/flex heights.
+
+```ts
+rows([
+  panel({ height: "30%", content: [
+    markdown("## Active Containers"),
+    table(["Name", "Status"], [["nginx", "up"], ["postgres", "up"]]),
+  ]}),
+  panel({ height: "70%", content: [
+    markdown("## Logs"),
+    markdown("12:00:01 [nginx] GET /health 200"),
+    markdown("12:00:02 [nginx] GET /users 200"),
+  ]}),
+])
+```
+
+#### split(config: SplitConfig): SplitBlock
+
+Two panels with a divider. `direction`: `"horizontal"` (left|right) or `"vertical"` (top|bottom). `ratio`: percentage for first panel (default 50).
+
+```ts
+split({
+  direction: "horizontal",
+  ratio: 30,
+  border: true,
+  first: [
+    markdown("## Sidebar"),
+    link("Dashboard", "#"),
+    link("Settings", "#"),
+  ],
+  second: [
+    markdown("## Main Content"),
+    card({ title: "Welcome", body: "Select an item from the sidebar." }),
+  ],
+})
+```
+
+#### grid(config: GridConfig): GridBlock
+
+N×M grid of panels. `cols`: number of columns. `gap`: character gap between cells (default 1).
+
+```ts
+grid({
+  cols: 2,
+  gap: 1,
+  items: [
+    panel({ title: "CPU", content: [progressBar("Usage", 45)] }),
+    panel({ title: "Memory", content: [progressBar("RAM", 72)] }),
+    panel({ title: "Disk", content: [progressBar("Usage", 31)] }),
+    panel({ title: "Network", content: [markdown("125 Mbps")] }),
+  ],
+})
+```
+
+#### panel(config: PanelConfig): PanelBlock
+
+A single panel with optional border, title, padding, and content clipping. Used inside `columns()`, `rows()`, `grid()`, or standalone.
+
+```ts
+interface PanelConfig {
+  content: ContentBlock[];
+  width?: string | number;      // "50%", "40%", 30 (chars). For columns.
+  height?: string | number;     // "50%", "40%", 10 (rows). For rows.
+  title?: string;               // Title in the top border
+  border?: boolean | BorderStyle; // Show border (default: true in layouts)
+  padding?: number;             // Interior padding (default: 0)
+  scrollable?: boolean;         // Independent scrolling (default: true)
+  focusable?: boolean;          // Can receive focus (default: true if has focusable content)
+}
+```
+
+#### Nested Layouts
+
+Layouts can be nested for complex dashboards:
+
+```ts
+columns([
+  panel({ width: "25%", title: "Navigation", content: [
+    link("Dashboard", "#"),
+    link("Logs", "#"),
+    link("Settings", "#"),
+  ]}),
+  panel({ width: "75%", content: [
+    rows([
+      panel({ height: "60%", content: [
+        markdown("## Main Content"),
+        table(["Name", "Status"], [["nginx", "running"]]),
+      ]}),
+      panel({ height: "40%", title: "Logs", content: [
+        markdown("Log output here..."),
+      ]}),
+    ]),
+  ]}),
+])
+```
+
+#### Sizing Reference
+
+| Context | Property | Values |
+|---------|----------|--------|
+| columns | `width` | `"50%"`, `30` (chars), `"auto"` (default: equal split) |
+| rows | `height` | `"50%"`, `10` (rows), `"auto"` (default: equal split) |
+| split | `ratio` | `50` (percentage for first panel, default: 50) |
+| grid | `cols` | Number of columns |
+| grid | `gap` | Gap in characters (default: 1) |
 
 ---
 
@@ -1502,8 +2072,10 @@ terminaltui art list|preview|create|validate       # Manage ASCII art assets
 | `Escape` / `Backspace` | Go back / exit page |
 | `1`-`9` | Jump to page by number (if `numberJump: true`) |
 | `q` / `Ctrl+C` | Quit |
-| `Tab` | Next focusable element |
-| `Shift+Tab` | Previous focusable element |
+| `Left` / `h` | Previous panel (in layouts) / go back (non-layout pages) |
+| `Right` / `l` | Next panel (in layouts) / select (non-layout pages) |
+| `Tab` | Next panel (in layouts) / next focusable element |
+| `Shift+Tab` | Previous panel (in layouts) / previous focusable element |
 | `Home` | First item |
 | `End` | Last item |
 

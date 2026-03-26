@@ -4,6 +4,7 @@ import type { InputFieldState } from "../data/types.js";
 import { renderBox } from "./Box.js";
 import { pad, stringWidth } from "./base.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export interface TextInputRenderState {
   value: string;
@@ -26,7 +27,8 @@ export function renderTextInput(
   lines.push(fgColor(isFocused ? theme.accent : theme.text) + bold + "  " + config.label + reset);
 
   // Build the display text
-  const innerWidth = Math.max(0, ctx.width - 4); // box borders + padding
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.textInput);
+  const innerWidth = dims.content;
   let displayText: string;
   const rawValue = state.value;
 

@@ -362,6 +362,90 @@ form({
 
 ---
 
+## Layout Components
+
+Layout components divide the terminal into panels. See [layouts.md](layouts.md) for full documentation.
+
+### columns(panels)
+
+Side-by-side panels. Each panel gets a `width` (`"50%"`, `30`, or omit for equal split).
+
+```ts
+columns([
+  panel({ width: "60%", content: [table(["Name", "Status"], [["nginx", "running"]])] }),
+  panel({ width: "40%", content: [progressBar("CPU", 45)] }),
+])
+```
+
+### rows(panels)
+
+Vertically stacked panels with `height` (`"50%"`, `10`, or omit for equal split).
+
+```ts
+rows([
+  panel({ height: "40%", content: [markdown("## Top")] }),
+  panel({ height: "60%", content: [markdown("## Bottom")] }),
+])
+```
+
+### split(config)
+
+Two-panel split. `direction`: `"horizontal"` (left|right) or `"vertical"` (top|bottom). `ratio`: first panel percentage.
+
+```ts
+split({ direction: "horizontal", ratio: 30, border: true, first: [...], second: [...] })
+```
+
+### grid(config)
+
+N×M grid. `cols`: columns. `gap`: character gap (default 1). `items`: array of `panel()` configs.
+
+```ts
+grid({ cols: 2, items: [
+  panel({ title: "CPU", content: [progressBar("Usage", 45)] }),
+  panel({ title: "Mem", content: [progressBar("RAM", 72)] }),
+]})
+```
+
+### panel(config)
+
+Bordered content area with optional `title`, `border`, `padding`, `width`, `height`.
+
+```ts
+panel({ title: "Stats", border: "rounded", padding: 1, content: [progressBar("CPU", 45)] })
+```
+
+### box(config)
+
+Flexbox-like layout primitive with `direction`, `gap`, `padding`, `width`, `height`, `children`.
+
+```ts
+box({ direction: "row", gap: 1, children: [card({ title: "A" }), card({ title: "B" })] })
+```
+
+### row(cols, config?) + col(content, config?)
+
+12-column grid system. `span` is 1-12 (default: auto). Responsive breakpoints: `xs`, `sm`, `md`, `lg`.
+
+```ts
+row([
+  col([sidebar], { span: 3 }),
+  col([content], { span: 9 }),
+], { gap: 1 })
+```
+
+### container(content, config?)
+
+Centers content with optional `maxWidth` and `padding`.
+
+```ts
+container([row([...])], { maxWidth: 100, padding: 2 })
+```
+
+**Navigation**: Arrow keys navigate spatially between focusable items in any layout. No configuration needed.
+
+---
+
 ## Dynamic Components
 
 ### dynamic(renderFn) / dynamic(deps, renderFn)

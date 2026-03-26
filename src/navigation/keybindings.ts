@@ -21,29 +21,28 @@ export function keyToAction(key: KeyPress, isHome: boolean): Action | null {
   if (key.name === "q" && !key.ctrl) return "quit";
   if (key.name === "c" && key.ctrl) return "quit";
 
-  // Back
+  // Back — Escape and Backspace only (not left arrow anymore)
   if (key.name === "escape") return isHome ? "quit" : "back";
   if (key.name === "backspace") return isHome ? null : "back";
-  if (key.name === "left") return isHome ? null : "back";
-  if (key.name === "h" && !key.ctrl) return isHome ? null : "back";
 
-  // Navigation
+  // Directional navigation — all four directions are spatial
   if (key.name === "up" || key.name === "k") return "up";
   if (key.name === "down" || key.name === "j") return "down";
+  if (key.name === "left" || key.name === "h") return "left";
   if (key.name === "right" || key.name === "l") return "right";
 
-  // Select
+  // Select / Activate
   if (key.name === "return") return "select";
 
   // Command mode
   if (key.char === ":" || key.char === "/") return "command";
 
-  // Tab = next, Shift+Tab = prev
+  // Tab = next focusable (sequential, accessibility)
   if (key.name === "tab") return key.shift ? "up" : "down";
 
   // Home/End — g goes to first, G (shift+g) goes to last
   if (key.char === "g" && !key.shift && !key.ctrl) return "home";
-  if (key.char === "G" || (key.char === "g" && key.shift)) return "pageDown"; // G = jump to end
+  if (key.char === "G" || (key.char === "g" && key.shift)) return "pageDown";
 
   // Number jumps
   if (key.char >= "1" && key.char <= "9") {

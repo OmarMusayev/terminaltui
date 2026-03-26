@@ -2,8 +2,9 @@
  * Individual block rendering — the big switch statement that maps
  * block types to component renderers.
  */
-import type { ContentBlock, DynamicBlock, FormBlock } from "../config/types.js";
+import type { ContentBlock, DynamicBlock, FormBlock, ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock, BoxBlock, PanelConfig, RowBlock, ContainerBlock, MenuBlock } from "../config/types.js";
 import { fgColor, reset, bold } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 import { componentRegistry } from "../components/base.js";
 // Initialize the registry (side-effect import)
 import "../components/registry.js";
@@ -33,7 +34,16 @@ import { renderNumberInput } from "../components/NumberInput.js";
 import { renderSearchInput, filterSearchItems } from "../components/SearchInput.js";
 import { renderButton } from "../components/Button.js";
 import { renderFormResult } from "../components/Form.js";
+import { renderMenu as renderMenuComponent, type MenuItem } from "../components/Menu.js";
 import type { RenderContext } from "../components/base.js";
+import { renderColumns, mergeRects } from "../components/layout/Columns.js";
+import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "../layout/grid-system.js";
+import { layoutColumns } from "../layout/panel-layout.js";
+import { renderRows } from "../components/layout/Rows.js";
+import { renderSplit } from "../components/layout/Split.js";
+import { renderGrid } from "../components/layout/Grid.js";
+import { renderPanel } from "../components/layout/Panel.js";
+import { getScreenSize } from "./screen.js";
 
 interface RT {
   galleryState: Map<string, number>;
@@ -42,6 +52,7 @@ interface RT {
   formResults: Map<string, { message: string; type: "success" | "error" | "info" }>;
   buttonLoading: Map<string, boolean>;
   dynamicCache: Map<string, ContentBlock[]>;
+  currentFocusedBlock?: ContentBlock;
   getInputState(id: string, defaultValue?: any): any;
 }
 
@@ -74,7 +85,12 @@ export function isBlockFocusable(block: ContentBlock): boolean {
 export function renderContentBlocks(rt: RT, blocks: ContentBlock[], ctx: RenderContext): string[] {
   const lines: string[] = [];
   for (const block of blocks) {
-    const blockLines = renderBlock(rt, block, ctx);
+    // Pass focused context to blocks inside layouts when they match the current focus
+    let blockCtx = ctx;
+    if (rt.currentFocusedBlock && block === rt.currentFocusedBlock) {
+      blockCtx = { ...ctx, focused: true };
+    }
+    const blockLines = renderBlock(rt, block, blockCtx);
     lines.push(...blockLines);
     lines.push("");
   }
@@ -129,9 +145,10 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     case "spacer":
       return renderSpacer(block.lines);
     case "section": {
+      const sectionDims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.section);
       const sectionLines: string[] = [];
       sectionLines.push(fgColor(ctx.theme.accent) + bold + "  " + block.title + reset);
-      sectionLines.push(fgColor(ctx.theme.border) + "  " + "\u2500".repeat(Math.max(0, ctx.width - 4)) + reset);
+      sectionLines.push(fgColor(ctx.theme.border) + "  " + "\u2500".repeat(Math.max(0, sectionDims.content - 4)) + reset);
       sectionLines.push("");
       sectionLines.push(...renderContentBlocks(rt, block.content, ctx));
       return sectionLines;
@@ -191,7 +208,286 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
       const dynamicBlocks = resolveDynamic(rt, block as DynamicBlock);
       return renderContentBlocks(rt, dynamicBlocks, ctx);
     }
+    case "columns": {
+      const { rows: termRows } = getScreenSize();
+      const availHeight = Math.max(10, termRows - 8);
+      const colsBlock = block as ColumnsBlock;
+      const activeIdx = findActivePanelIndex(colsBlock.panels.map(p => p.content), rt.currentFocusedBlock);
+      return renderColumns(colsBlock, ctx, {
+        availableHeight: availHeight,
+        activePanelIndex: activeIdx,
+        renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
+      });
+    }
+    case "rows": {
+      const { rows: termRows } = getScreenSize();
+      const availHeight = Math.max(10, termRows - 8);
+      const rowsBlk = block as RowsBlock;
+      const activeIdx = findActivePanelIndex(rowsBlk.panels.map(p => p.content), rt.currentFocusedBlock);
+      return renderRows(rowsBlk, ctx, {
+        availableHeight: availHeight,
+        activePanelIndex: activeIdx,
+        renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
+      });
+    }
+    case "split": {
+      const { rows: termRows } = getScreenSize();
+      const availHeight = Math.max(10, termRows - 8);
+      const splitBlk = block as SplitBlock;
+      const activeIdx = findActivePanelIndex([splitBlk.config.first, splitBlk.config.second], rt.currentFocusedBlock);
+      return renderSplit(splitBlk, ctx, {
+        availableHeight: availHeight,
+        activePanelIndex: activeIdx,
+        renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
+      });
+    }
+    case "grid": {
+      const { rows: termRows } = getScreenSize();
+      const availHeight = Math.max(10, termRows - 8);
+      const gridBlk = block as GridBlock;
+      const activeIdx = findActivePanelIndex(gridBlk.config.items.map(i => i.content), rt.currentFocusedBlock);
+      return renderGrid(gridBlk, ctx, {
+        availableHeight: availHeight,
+        activePanelIndex: activeIdx,
+        renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
+      });
+    }
+    case "panel": {
+      const { rows: termRows } = getScreenSize();
+      const availHeight = Math.max(10, termRows - 8);
+      return renderPanel((block as PanelBlock).config, ctx, {
+        width: ctx.width,
+        height: availHeight,
+        renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
+      });
+    }
+    case "box": {
+      return renderBoxBlock(rt, block as BoxBlock, ctx);
+    }
+    case "row": {
+      return renderRowBlock(rt, block as RowBlock, ctx);
+    }
+    case "container": {
+      return renderContainerBlock(rt, block as ContainerBlock, ctx);
+    }
+    case "menu": {
+      // Menu block — render inline menu (auto or manual items)
+      return renderMenuBlock(rt, block as any, ctx);
+    }
     default:
       return [];
   }
+}
+
+/** Find which panel (by content array index) contains the focused block. */
+function findActivePanelIndex(contentArrays: ContentBlock[][], focusedBlock?: ContentBlock): number {
+  if (!focusedBlock) return -1;
+  for (let i = 0; i < contentArrays.length; i++) {
+    if (containsBlockDeep(contentArrays[i], focusedBlock)) return i;
+  }
+  return -1;
+}
+
+/** Check if a block exists anywhere in a content tree. */
+function containsBlockDeep(blocks: ContentBlock[], target: ContentBlock): boolean {
+  for (const block of blocks) {
+    if (block === target) return true;
+    if (block.type === "columns") {
+      for (const p of (block as ColumnsBlock).panels) {
+        if (containsBlockDeep(p.content, target)) return true;
+      }
+    } else if (block.type === "rows") {
+      for (const p of (block as RowsBlock).panels) {
+        if (containsBlockDeep(p.content, target)) return true;
+      }
+    } else if (block.type === "split") {
+      const cfg = (block as SplitBlock).config;
+      if (containsBlockDeep(cfg.first, target) || containsBlockDeep(cfg.second, target)) return true;
+    } else if (block.type === "grid") {
+      for (const item of (block as GridBlock).config.items) {
+        if (containsBlockDeep(item.content, target)) return true;
+      }
+    } else if (block.type === "panel") {
+      if (containsBlockDeep((block as PanelBlock).config.content, target)) return true;
+    } else if (block.type === "section") {
+      if (containsBlockDeep(block.content, target)) return true;
+    } else if (block.type === "form") {
+      if (containsBlockDeep((block as FormBlock).fields, target)) return true;
+    } else if (block.type === "box") {
+      if (containsBlockDeep((block as BoxBlock).config.children, target)) return true;
+    } else if (block.type === "row") {
+      for (const c of (block as RowBlock).cols) {
+        if (containsBlockDeep(c.content, target)) return true;
+      }
+    } else if (block.type === "container") {
+      if (containsBlockDeep((block as ContainerBlock).content, target)) return true;
+    }
+  }
+  return false;
+}
+
+/** Render a box layout block. */
+function renderBoxBlock(rt: RT, block: BoxBlock, ctx: RenderContext): string[] {
+  const { config } = block;
+  const direction = config.direction ?? "column";
+  const gap = config.gap ?? 0;
+  const { rows: termRows } = getScreenSize();
+  const availHeight = Math.max(10, termRows - 8);
+
+  if (direction === "row") {
+    // Convert children to panels and render as columns
+    const panels: PanelConfig[] = config.children.map(child => {
+      if (child.type === "box") {
+        return {
+          content: [child],
+          width: (child as BoxBlock).config.width,
+          height: (child as BoxBlock).config.height,
+          padding: (child as BoxBlock).config.padding,
+        };
+      }
+      return { content: [child] };
+    });
+    const activeIdx = findActivePanelIndex(panels.map(p => p.content), rt.currentFocusedBlock);
+    return renderColumns({ type: "columns", panels }, ctx, {
+      availableHeight: availHeight,
+      activePanelIndex: activeIdx,
+      renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
+    });
+  } else {
+    // Column direction: stack children vertically with gap
+    const lines: string[] = [];
+    for (let i = 0; i < config.children.length; i++) {
+      if (i > 0 && gap > 0) {
+        for (let g = 0; g < gap; g++) lines.push("");
+      }
+      const child = config.children[i];
+      let childCtx = ctx;
+      if (rt.currentFocusedBlock && child === rt.currentFocusedBlock) {
+        childCtx = { ...ctx, focused: true };
+      }
+      lines.push(...renderBlock(rt, child, childCtx));
+    }
+    return lines;
+  }
+}
+
+/** Render a 12-column grid row with responsive wrapping. */
+function renderRowBlock(rt: RT, block: RowBlock, ctx: RenderContext): string[] {
+  const { cols, gap = 1 } = block;
+  if (cols.length === 0) return [];
+
+  const { rows: termRows, columns: termCols } = getScreenSize();
+  const availHeight = Math.max(10, termRows - 8);
+
+  // Resolve effective spans based on current terminal breakpoint
+  const bp = getBreakpoint(termCols);
+  const autoSpan = Math.max(1, Math.floor(12 / cols.length));
+  const spans = cols.map(c => getEffectiveSpan(c, bp, autoSpan));
+
+  // Group columns into wrapped rows (each row gets up to 12 spans)
+  const wrappedRows: { col: typeof cols[number]; span: number }[][] = [[]];
+  let currentRowSpan = 0;
+  for (let i = 0; i < cols.length; i++) {
+    const offset = cols[i].offset ?? 0;
+    const totalSpan = spans[i] + offset;
+    if (currentRowSpan + totalSpan > 12 && wrappedRows[wrappedRows.length - 1].length > 0) {
+      wrappedRows.push([]);
+      currentRowSpan = 0;
+    }
+    wrappedRows[wrappedRows.length - 1].push({ col: cols[i], span: spans[i] });
+    currentRowSpan += totalSpan;
+  }
+
+  // Render each wrapped row independently
+  const allLines: string[] = [];
+  for (const rowCols of wrappedRows) {
+    const rowColConfigs = rowCols.map(r => r.col);
+    const panels = rowColsToPanels(rowColConfigs, ctx.width, gap, termCols);
+    const activeIdx = findActivePanelIndex(panels.map(p => p.content), rt.currentFocusedBlock);
+    const rects = layoutColumns(panels, ctx.width, availHeight);
+    const rowLines = mergeRects(rects, ctx, ctx.width, availHeight, activeIdx,
+      (blocks, c) => renderContentBlocks(rt, blocks, c));
+
+    // Trim trailing blank lines so rows take only as much space as content needs.
+    // Blank lines are those containing only spaces, ANSI codes, and divider chars.
+    while (rowLines.length > 0) {
+      const last = rowLines[rowLines.length - 1];
+      const visual = last.replace(/\x1b\[[0-9;]*m/g, "");
+      if (/^[\s\u2502\u2506\u250a\u2503]*$/.test(visual)) {
+        rowLines.pop();
+      } else {
+        break;
+      }
+    }
+
+    if (allLines.length > 0) allLines.push(""); // gap between wrapped rows
+    allLines.push(...rowLines);
+  }
+  return allLines;
+}
+
+/** Render a menu block (for file-based routing auto-menu or inline manual menu). */
+function renderMenuBlock(rt: RT, block: any, ctx: RenderContext): string[] {
+  let items: MenuItem[] = [];
+
+  if (block.items && block.items.length > 0) {
+    // Manual items
+    items = block.items.map((item: any) => ({
+      label: item.label,
+      icon: item.icon,
+      id: item.page,
+    }));
+  } else if (block.source === "auto") {
+    // Auto-generated from file router or site pages
+    const fileRouter = (rt as any)._fileRouter;
+    if (fileRouter) {
+      const menuItems = fileRouter.getMenuItems();
+      items = menuItems.map((m: any) => ({
+        label: m.label,
+        icon: m.icon,
+        id: m.page,
+      }));
+    } else {
+      // Fallback: use site pages (single-file mode)
+      const site = (rt as any).site;
+      if (site?.pages) {
+        items = site.pages
+          .filter((p: any) => typeof p.title === "string")
+          .map((p: any) => ({ label: p.title, icon: p.icon, id: p.id }));
+      }
+    }
+  }
+
+  // Render using the existing menu renderer
+  return renderMenuComponent(items, 0, ctx);
+}
+
+/** Render a container block (centers content with optional max width). */
+function renderContainerBlock(rt: RT, block: ContainerBlock, ctx: RenderContext): string[] {
+  const padding = block.padding ?? 0;
+  const maxWidth = block.maxWidth ?? ctx.width;
+  const innerWidth = Math.max(1, Math.min(ctx.width, maxWidth) - padding * 2);
+  const containerCtx: RenderContext = { ...ctx, width: innerWidth };
+
+  const lines: string[] = [];
+  for (const child of block.content) {
+    let childCtx = containerCtx;
+    if (rt.currentFocusedBlock && child === rt.currentFocusedBlock) {
+      childCtx = { ...containerCtx, focused: true };
+    }
+    const rendered = renderBlock(rt, child, childCtx);
+
+    // Center if needed and padding
+    const center = block.center !== false;
+    const totalPad = ctx.width - innerWidth;
+    const leftPad = center ? Math.floor(totalPad / 2) : padding;
+    const padStr = " ".repeat(leftPad);
+
+    for (const line of rendered) {
+      lines.push(padStr + line);
+    }
+    lines.push("");
+  }
+  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  return lines;
 }

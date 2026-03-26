@@ -3,12 +3,14 @@ import type { TimelineItem } from "../config/types.js";
 import { styled, wrapText, pad, truncate } from "./base.js";
 import { getBorderChars } from "../style/borders.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderTimeline(items: TimelineItem[], ctx: RenderContext, style?: "connected" | "separated"): string[] {
   const lines: string[] = [];
   const theme = ctx.theme;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.timeline);
   const width = ctx.width;
-  const innerWidth = Math.max(0, width - 6);
+  const innerWidth = dims.content;
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -20,7 +22,7 @@ export function renderTimeline(items: TimelineItem[], ctx: RenderContext, style?
     const connector = fgColor(theme.accent) + "  " + dot + " " + reset;
 
     // Title + subtitle
-    const maxContentWidth = Math.max(0, width - 6);
+    const maxContentWidth = dims.content;
     let titleLine: string;
     if (item.subtitle) {
       const combined = item.title + " \u00b7 " + item.subtitle;

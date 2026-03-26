@@ -1,127 +1,134 @@
 # Changelog
 
-## 1.2.1
+## [1.0.5] - 2026-03-26
 
 ### Added
-- **`terminaltui demo`** command — run built-in demos directly from npm
-  - 8 demos: restaurant, dashboard, band, coffee-shop, conference, developer-portfolio, freelancer, startup
-  - `npx terminaltui demo restaurant` — no setup needed
-  - Demos are pre-compiled and bundled with the package
 
-## 1.2.0
+- **Spatial Navigation Engine** — arrow keys now move to the nearest focusable item by screen position (like a TV remote / Android TV D-pad), replacing the old panel-based Tab cycling
+  - `findNextFocus()` algorithm scores candidates by distance + alignment (2x weight on axis alignment)
+  - Direction-filtered: only items in the arrow direction are candidates
+  - ← from leftmost position goes back; automatic for all layout functions
+  - New `computeFocusPositions()` in flex-engine walks the entire content tree and assigns FocusRect screen coordinates to every focusable item
+
+- **12-Column Responsive Grid System** — Bootstrap-style layout primitives
+  - `container(content, { maxWidth, padding, center })` — centered content wrapper
+  - `row(cols, { gap })` — 12-column grid row with responsive column wrapping
+  - `col(content, { span, offset, xs, sm, md, lg })` — grid column with breakpoint-aware spans
+  - Responsive breakpoints: xs (<60 cols), sm (60-89), md (90-119), lg (≥120)
+  - Rows auto-wrap when effective spans exceed 12 at the current breakpoint
+  - Nesting support — rows inside cols inside rows
+
+- **Unified Box Model** — single source of truth for component width calculation
+  - `computeBoxDimensions(allocatedWidth, { border, padding, margin })` — every component calls this
+  - `COMPONENT_DEFAULTS` — centralized padding/border/margin defaults for all 28+ components
+  - Zero manual `width - N` math remaining in any component file
+
+- **File-Based Routing** — Next.js App Router-style directory-based page routing
+  - `config.ts` + `pages/` directory structure replaces single `site.config.ts` for larger projects
+  - Page files: `export default function About() { return [...] }` with optional `export const metadata`
+  - Layout files: `pages/layout.ts` wraps siblings/descendants, receives `{ children }`
+  - Nested layouts compose from outside in (root → section → page)
+  - Dynamic routes: `pages/projects/[slug].ts` receives `{ params: { slug } }`
+  - Async pages: `export default async function Dashboard() { ... }`
+  - File-based API routes: `api/stats.ts` exports `GET()`, `POST()`, etc.
+  - Auto-generated menu from filesystem (ordering via `metadata.order`, labels via `metadata.label`)
+  - Manual menu override in `defineConfig({ menu: { items: [...] } })`
+  - New `menu({ source: "auto" })` component for inline auto-menu rendering
+  - `MenuBlock` content type added to the block union
+  - `FileRouter` class: scanner → route table → menu builder → page loader → layout chain
+  - 9 router module files: types, scanner, route-table, menu-builder, page-loader, layout-chain, api-loader, resolver, index
+
+- **`terminaltui migrate`** CLI command — converts existing `site.config.ts` to file-based routing structure (config.ts + pages/ + api/)
+
+- **`defineConfig()` overload** — now accepts file-based routing config (`{ name, theme, menu, ... }`) in addition to the existing env-var schema
+
+- **9 demos migrated to file-based routing** — each demo now has both `site.config.ts` (backward compat) and `config.ts` + `pages/` (new structure)
+
+- **169 new router unit tests** across 8 test files (scanner, route-table, menu-builder, page-loader, layout-chain, api-loader, resolver, migrate) plus 1 integration test
+
+- **204 demo navigation tests** — emulator-based tests for all 9 demos
+
+- **103 box model tests** and **41 grid system tests**
+
+### Changed
+
+- **All 9 demos rebuilt with spatial layouts** — split, grid, row/col, container patterns throughout
+  - developer-portfolio: row/col grid for skills, container for centered content
+  - restaurant: tabs for menu, split for contact form, row/col for menu items
+  - startup: row/col for features and pricing, accordion for quickstart
+  - band: row/col for discography and press quotes, container for about
+  - coffee-shop: tabs for menu, row/col for beans and hours
+  - conference: tabs for schedule, row/col for speakers and sponsors
+  - freelancer: row/col for services, work portfolio, and testimonials
+  - dashboard: row/col for stat cards, split for posts
+  - server-dashboard: row/col for resource cards, split for system info
+
+- **Navigation model** — spatial navigation replaces Tab-based panel cycling on all layout pages; Tab still works as sequential fallback
+  - ↑↓/jk move to nearest item above/below by screen position
+  - ←→/hl move to nearest item left/right; ← from leftmost goes back
+
+- **CLI `dev` command** auto-detects project type: file-based (`config.ts` + `pages/`) vs single-file (`site.config.ts`)
+
+- **CLI `findConfig()`** now checks for `config.ts` + `pages/` before falling back to `site.config.ts`
 
 ### Fixed
-- **P0: Menu navigation now enforces middleware** — selecting pages via menu or number keys previously bypassed the middleware chain entirely, meaning auth guards, rate limits, and env checks were never enforced for primary navigation
-- **P1: Lifecycle hooks fire on menu navigation** — `onNavigate` hook was only called from programmatic navigation, not from menu selection; now fires on all navigation paths
-- **P2: Route function titles resolve correctly** — parameterized routes with function titles (e.g. `(params) => \`Item: ${params.name}\``) were rendering as raw function text instead of the resolved string
-- **P2: `computed()` auto-invalidates** — computed values now automatically track which state keys they access and re-calculate when those keys change, eliminating the need for manual `state.on()` + `invalidate()` wiring
-- **P2: `section()` gives clear error on wrong args** — calling `section({title, content})` instead of `section(title, content)` now throws a helpful error instead of crashing with `TypeError: blocks is not iterable`
-- **P3: Viewport scrolls past last focusable item** — content below the last focusable item (markdown, ASCII art, dividers) was clipped because the viewport stopped scrolling once the last focusable item was visible; now scrolls to show all content
-- **Emulator: `goHome()` works at all terminal widths** — previously broke at narrow widths (< 60 cols) because `currentPage()` detection was unreliable; now uses direct `← back` text detection
-- **Emulator: `navigateTo()` works from page view** — previously failed when called while viewing a page because it read the menu before navigating home
 
-### Improved
-- Scroll indicators now show "more below" / "more above" for non-focusable trailing content
-- Pages with zero focusable items can now be scrolled with arrow keys
+- Card height equalization causing excessive whitespace in side-by-side layouts
+- Border clipping at very narrow terminal widths (<10 cols)
+- Search input dropdown filling entire viewport
+- Focus prefix overflow causing content to exceed terminal width
+- Percentage column overflow in layoutColumns
+- Button ignoring ctx.width (labels now truncate to fit)
+- Section/accordion/timeline content overflow beyond allocated width
+- Responsive row wrapping not honoring breakpoints
+- Emulator resize not triggering app re-render (SIGWINCH forwarding)
+- Table cells missing right-padding in truncation
 
-## 1.1.0
+### Removed
+
+- `PanelFocusManager` — no longer imported or used (file still exists as dead code); superseded by spatial navigation
+
+### Breaking Changes
+
+- **Navigation behavior change**: Arrow keys on layout pages now use spatial navigation instead of panel-based Tab cycling. The `panelArrows` config option still exists but has no effect. Users who relied on Tab to switch panels can still use Tab (sequential fallback), but arrow keys now move spatially.
+
+## [1.0.4] - 2025-05-24
+
+### Changed
+- Modularized codebase: split runtime into runtime-input, runtime-pages, runtime-render, runtime-block-render, runtime-forms
+- Lazy-load fonts (reduced startup time)
+- Updated docs: component registry, fixed npm import paths, added ARCHITECTURE.md references
+
+## [1.0.3] - 2025-05-23
 
 ### Added
-- **API Routes**: define backend endpoints directly in site.config.ts
-  - Local HTTP server starts automatically when routes are defined
-  - Relative URLs in fetcher/request auto-resolve to local API
-  - Support for GET, POST, PUT, DELETE, PATCH methods
-  - URL params (`:id`), query strings, JSON body parsing
-  - Localhost only (127.0.0.1), random port, clean shutdown
-  - Zero dependencies — uses Node's built-in `http` module
-  - Fetcher instance registry prevents duplicate timers across re-renders
-- **`terminaltui create`**: interactive prompt builder for new projects
-  - 10-question questionnaire (name, description, pages, content, theme, style, art, features, animations, extras)
-  - Assembles a tailored AI prompt from answers (no LLM in the loop)
-  - Outputs TERMINALTUI_SKILL.md + TERMINALTUI_CREATE_PROMPT.md
-  - Paste into Claude Code to build the site
+- `terminaltui demo` command — run 8 built-in demos from npm
+- Server dashboard demo with nested layouts
 
-## 1.0.0 — Initial Release
+### Changed
+- Rebuilt all 8 demos with split-pane layouts (columns, rows, split, grid)
 
-### Core Framework
-- Declarative site definition via `defineSite()` and `page()`
-- 21+ content block components (Card, Timeline, Table, Hero, Gallery, Tabs, Accordion, Quote, Badge, ProgressBar, Link, List, Section, Divider, Spacer, Image, Custom)
-- Focus-based keyboard navigation with viewport following
-- Content width capped at 100 chars for readability, centered in terminal
+## [1.0.2] - 2025-05-22
 
-### Input Components
-- TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchInput, Button
-- Form system with validation, submission, notifications, and `resetOnSubmit`
-- Auto-enter edit mode when typing on a focused text input
-- `onChange` callbacks on all input types
+### Added
+- Split-pane layouts: `columns()`, `rows()`, `split()`, `grid()`, `panel()`
+- Panel focus management (Tab/Shift+Tab between panels)
+- Active panel border indicator
+- Responsive collapse for narrow terminals
 
-### Themes
-- 10 built-in themes: cyberpunk, dracula, nord, monokai, solarized, gruvbox, catppuccin, tokyoNight, rosePine, hacker
-- Custom theme support via Theme interface
-- 7 border styles: single, double, rounded, heavy, dashed, ascii, none
+## [1.0.1] - 2025-05-21
 
-### ASCII Art System
-- 14 banner fonts with gradient and shadow support
-- 15 pre-built scenes (mountains, cityscape, coffee-cup, rocket, etc.)
-- 32 icons, 12 patterns, 9 shapes
-- 5 data visualizations (barChart, sparkline, heatmap, pieChart, graph)
-- 13 art composition utilities
-- Image-to-ASCII conversion (ascii, braille, blocks, shading modes)
-- Community art pack system (registerScene, registerFont, etc.)
+### Fixed
+- 8 bugs found during full framework verification (P0-P3)
+- Menu navigation now enforces middleware
+- Lifecycle hooks fire on menu navigation
+- Route function titles resolve correctly
+- `computed()` auto-invalidates
+- `section()` gives clear error on wrong args
+- Viewport scrolls past last focusable item
+- Emulator `goHome()` and `navigateTo()` fixes
 
-### State Management
-- `createState()` — reactive state with get/set/update/batch/on
-- `computed()` — cached derived values
-- `dynamic()` — reactive content blocks that re-render on state change
-- `createPersistentState()` — JSON file persistence with debounced writes
+## [1.0.0] - 2025-05-20
 
-### Data Fetching
-- `fetcher()` — declarative data loading with cache, retry, refresh intervals
-- `request()` — imperative HTTP client with shorthand methods
-- `liveData()` — WebSocket and Server-Sent Events with auto-reconnect
-- `asyncContent()` — async content blocks with loading/error states
-
-### Routing & Middleware
-- `route()` — parameterized detail pages with async content
-- `navigate()` — programmatic navigation
-- Card `action: { navigate, params }` for declarative navigation
-- Middleware system (global and per-page)
-- Built-in middleware: requireEnv, rateLimit, cache
-
-### Environment & Config
-- Auto `.env` file loading (.env, .env.local, .env.production)
-- `defineConfig()` — typed config from env vars with validation
-
-### Lifecycle Hooks
-- onInit, onExit, onNavigate, onError
-
-### Animation System
-- Boot sequence (progressive banner reveal + menu stagger)
-- Page transitions (instant, fade, slide, wipe)
-- Exit messages
-- Spinner animations (6 styles)
-
-### CLI
-- `terminaltui init [template]` — scaffold new projects
-- `terminaltui dev [path]` — compile and run in dev mode
-- `terminaltui build` — bundle for npm publish
-- `terminaltui test` — automated testing with emulator
-- `terminaltui art` — manage art assets
-- `terminaltui convert` — AI-assisted website conversion
-
-### TUI Emulator
-- Headless terminal testing (like Puppeteer for TUIs)
-- Virtual terminal with full ANSI parser
-- Screen reader, assertions, snapshots
-- Input simulation (keypress, type, navigation)
-
-### Claude Integration
-- SKILL.md — comprehensive framework reference (1,700+ lines)
-- prompt.md — step-by-step website conversion guide
-- 9 example configs covering different site types
-- `terminaltui convert` CLI command
-
-### Apple Terminal
-- Auto-detection of Apple Terminal
-- 256-color fallback (no truecolor)
-- Unicode-aware string width measurement
+### Added
+- Initial release: 21+ content blocks, 10 themes, ASCII art system, state management, data fetching, routing, middleware, API routes, forms, CLI, emulator, Claude integration

@@ -1,6 +1,7 @@
 import type { RenderContext } from "./base.js";
 import type { RadioGroupBlock } from "../config/types.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export interface RadioGroupRenderState {
   value: string;
@@ -16,6 +17,7 @@ export function renderRadioGroup(
   const theme = ctx.theme;
   const lines: string[] = [];
   const isFocused = !!ctx.focused;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.radioGroup);
 
   // Label
   lines.push(fgColor(isFocused ? theme.accent : theme.text) + bold + "  " + config.label + reset);

@@ -31,9 +31,19 @@ The runtime orchestrator. `TUIRuntime` coordinates all other modules: starts the
 - `runtime-forms.ts` — Form submission, validation, button/card actions
 
 ### `components/`
-One file per visual component. Each exports a `render*()` function that takes a content block and `RenderContext`, returning `string[]` (lines of ANSI text). Includes display components (Card, Timeline, Table), interactive components (Link, Accordion, Tabs), and input components (TextInput, Select, Button).
+One file per visual component. Each exports a `render*()` function that takes a content block and `RenderContext`, returning `string[]` (lines of ANSI text). Includes display components (Card, Timeline, Table), interactive components (Link, Accordion, Tabs), input components (TextInput, Select, Button), and layout components (Columns, Rows, Split, Grid, Panel).
 
 `base.ts` provides shared utilities: `stringWidth()` (Unicode-aware), `wrapText()`, `pad()`, `truncate()`, `stripAnsi()`.
+
+`layout/` subdirectory contains the panel layout components: `Columns.ts` (side-by-side panels), `Rows.ts` (stacked panels), `Split.ts` (two-panel split), `Grid.ts` (N×M grid), and `Panel.ts` (bordered content area with title and clipping).
+
+### `layout/` (src/layout/)
+Layout engine:
+- `panel-layout.ts` — Layout algorithms for columns, rows, split, grid (assigns x, y, width, height)
+- `flex-engine.ts` — Computes FocusRect positions for spatial navigation by walking the content tree
+- `grid-system.ts` — 12-column grid system (row/col layout math, responsive breakpoints)
+- `responsive.ts` — Responsive collapse logic (columns stack when terminal is too narrow)
+- `types.ts` — Layout types including FocusRect for spatial navigation
 
 ### `style/`
 Theme and color system:
@@ -45,7 +55,8 @@ Theme and color system:
 ### `navigation/`
 - `router.ts` — Page stack with back/forward, parameterized routes
 - `focus.ts` — Home menu focus cursor
-- `keybindings.ts` — Maps keystrokes to semantic actions (up/down/select/quit)
+- `spatial.ts` — Spatial navigation algorithm (findNextFocus, spatialScore) for 2D arrow key movement
+- `keybindings.ts` — Maps keystrokes to semantic actions (up/down/left/right/select/quit)
 
 ### `state/`
 Reactive state system:
@@ -123,7 +134,7 @@ cli/
 ## Key Abstractions
 
 ### Content Block
-The fundamental unit. Every piece of UI (card, timeline, text, input) is a content block — a plain object with a `type` field and type-specific properties. Created by helper functions like `card()`, `timeline()`.
+The fundamental unit. Every piece of UI (card, timeline, text, input, layout) is a content block — a plain object with a `type` field and type-specific properties. Created by helper functions like `card()`, `timeline()`, `columns()`, `panel()`.
 
 ### RenderContext
 Passed to every component renderer:

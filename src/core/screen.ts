@@ -15,6 +15,14 @@ class Screen extends EventEmitter {
       this._size = this.measure();
       this.emit("resize", this._size);
     });
+    // Also listen for SIGWINCH directly — handles non-TTY environments
+    // where process.stdout doesn't emit 'resize'
+    if (typeof process.on === "function") {
+      process.on("SIGWINCH", () => {
+        this._size = this.measure();
+        this.emit("resize", this._size);
+      });
+    }
   }
 
   get size(): ScreenSize {

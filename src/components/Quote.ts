@@ -1,11 +1,13 @@
 import type { RenderContext } from "./base.js";
 import { fgColor, italic, dim, bold, reset } from "../style/colors.js";
 import { wrapText, stringWidth } from "./base.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderQuote(text: string, ctx: RenderContext, options?: { attribution?: string; style?: "border" | "indent" | "fancy" }): string[] {
   const theme = ctx.theme;
   const qStyle = options?.style ?? "border";
-  const innerWidth = Math.max(0, ctx.width - 6);
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.quote);
+  const innerWidth = dims.content;
   const lines: string[] = [];
 
   const wrapped = wrapText(`"${text}"`, innerWidth);

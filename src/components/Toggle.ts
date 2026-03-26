@@ -1,6 +1,7 @@
 import type { RenderContext } from "./base.js";
 import type { ToggleBlock } from "../config/types.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderToggle(
   config: ToggleBlock,
@@ -9,6 +10,7 @@ export function renderToggle(
 ): string[] {
   const theme = ctx.theme;
   const isFocused = !!ctx.focused;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.toggle);
 
   const onLabel = config.onLabel ?? "On";
   const offLabel = config.offLabel ?? "Off";

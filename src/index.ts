@@ -36,6 +36,18 @@ export {
   button,
   form,
   asyncContent,
+  // Layout components
+  columns,
+  rows,
+  split,
+  grid,
+  panel,
+  box,
+  col,
+  row,
+  container,
+  // Menu component (file-based routing)
+  menu,
 } from "./config/parser.js";
 
 // Types
@@ -84,6 +96,21 @@ export type {
   ActionResult,
   CardAction,
   DynamicBlock,
+  PanelConfig,
+  SplitConfig,
+  GridConfig,
+  ColumnsBlock,
+  RowsBlock,
+  SplitBlock,
+  GridBlock,
+  PanelBlock,
+  BoxConfig,
+  BoxBlock,
+  ColConfig,
+  RowBlock,
+  ContainerBlock,
+  MenuBlock,
+  MenuBlockItem,
 } from "./config/types.js";
 
 // Theme
@@ -99,6 +126,10 @@ export type { BorderStyle } from "./style/borders.js";
 
 // Unicode-aware string measurement
 export { stringWidth, charWidth } from "./components/base.js";
+
+// Box model
+export { computeBoxDimensions, COMPONENT_DEFAULTS } from "./layout/box-model.js";
+export type { BoxDimensions, BoxOptions } from "./layout/box-model.js";
 
 // Component system
 export { componentRegistry } from "./components/base.js";
@@ -179,7 +210,7 @@ export { createArtPack } from "./art-registry/loader.js";
 export type { ArtPack, SceneData, IconData, PatternData, AssetInfo } from "./art-registry/types.js";
 
 // Runtime
-export { TUIRuntime, runSite } from "./core/runtime.js";
+export { TUIRuntime, runSite, runFileBasedSite } from "./core/runtime.js";
 
 // ─── State System ─────────────────────────────────────────
 export { createState } from "./state/reactive.js";
@@ -218,3 +249,28 @@ export { loadEnv } from "./config/env-loader.js";
 export { ApiServer } from "./api/server.js";
 export { setApiBaseUrl } from "./api/resolve.js";
 export type { ApiRequest, ApiHandler } from "./api/types.js";
+
+// ─── File-Based Router ───────────────────────────────
+export { FileRouter } from "./router/resolver.js";
+export type {
+  Route,
+  RouteTable,
+  PageContext,
+  LayoutContext,
+  PageMetadata,
+  PageFunction,
+  LayoutFunction,
+  PageModule,
+  LayoutModule,
+  ApiModule,
+  ApiMethodHandler,
+  ApiMethodRequest,
+  ApiRoute,
+  AutoMenuItem,
+  MenuConfig,
+  MenuItemConfig,
+  FileBasedConfig,
+  ProjectType,
+  ProjectDetection,
+} from "./router/types.js";
+export { detectProject } from "./router/scanner.js";

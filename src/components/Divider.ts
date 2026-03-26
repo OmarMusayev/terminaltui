@@ -2,11 +2,13 @@ import type { RenderContext } from "./base.js";
 import { fgColor, reset } from "../style/colors.js";
 import { getBorderChars } from "../style/borders.js";
 import type { BorderStyle } from "../style/borders.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderDivider(ctx: RenderContext, options?: { style?: string; label?: string; color?: string }): string[] {
   const theme = ctx.theme;
   const color = options?.color ?? theme.border;
-  const width = ctx.width;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.divider);
+  const width = dims.content;
 
   if (options?.style === "label" && options.label) {
     const maxLabelLen = Math.max(0, width - 8);

@@ -1,8 +1,9 @@
 import type { RenderContext } from "./base.js";
 import type { ButtonBlock } from "../config/types.js";
-import { pad, stringWidth } from "./base.js";
+import { pad, stringWidth, truncate } from "./base.js";
 import { getBorderChars, type BorderStyle } from "../style/borders.js";
 import { fgColor, bgColor, bold, dim, inverse, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderButton(
   config: ButtonBlock,
@@ -44,8 +45,13 @@ export function renderButton(
     label = config.label;
   }
 
-  const labelWidth = stringWidth(label);
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.button);
   const btnPadding = 2;
+  const maxLabelWidth = Math.max(1, dims.content);
+  if (stringWidth(label) > maxLabelWidth) {
+    label = truncate(label, maxLabelWidth);
+  }
+  const labelWidth = stringWidth(label);
   const btnInnerWidth = labelWidth + btnPadding * 2;
   const chars = getBorderChars((ctx.borderStyle as BorderStyle) ?? "rounded");
 

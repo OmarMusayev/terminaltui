@@ -60,6 +60,10 @@ export interface NavigationConfig {
   numberJump?: boolean;
   vim?: boolean;
   commandMode?: boolean;
+  /** When true, left/right arrow keys navigate between panels on layout pages.
+   *  Back = Escape, Select = Enter. Default: true when layouts are present.
+   *  Set to false to keep left=back, right=select even on layout pages. */
+  panelArrows?: boolean;
 }
 
 export interface StatusBarConfig {
@@ -128,7 +132,16 @@ export type ContentBlock =
   | ButtonBlock
   | FormBlock
   | AsyncContentBlock
-  | DynamicBlock;
+  | DynamicBlock
+  | ColumnsBlock
+  | RowsBlock
+  | SplitBlock
+  | GridBlock
+  | PanelBlock
+  | BoxBlock
+  | RowBlock
+  | ContainerBlock
+  | MenuBlock;
 
 export interface TextBlock {
   type: "text";
@@ -399,5 +412,120 @@ export interface CardAction {
 // ─── Link Options ──────────────────────────────────────────
 
 export interface LinkOptions {
+  icon?: string;
+}
+
+// ─── Layout Components ───────────────────────────────────
+
+export interface PanelConfig {
+  content: ContentBlock[];
+  width?: string | number;
+  height?: string | number;
+  title?: string;
+  border?: boolean | "left" | "right" | "top" | "bottom" | BorderStyle;
+  padding?: number;
+  scrollable?: boolean;
+  focusable?: boolean;
+}
+
+export interface SplitConfig {
+  direction: "horizontal" | "vertical";
+  ratio?: number;
+  border?: boolean;
+  first: ContentBlock[];
+  second: ContentBlock[];
+}
+
+export interface GridConfig {
+  cols: number;
+  rows?: number;
+  gap?: number;
+  items: PanelConfig[];
+}
+
+export interface ColumnsBlock {
+  type: "columns";
+  panels: PanelConfig[];
+}
+
+export interface RowsBlock {
+  type: "rows";
+  panels: PanelConfig[];
+}
+
+export interface SplitBlock {
+  type: "split";
+  config: SplitConfig;
+}
+
+export interface GridBlock {
+  type: "grid";
+  config: GridConfig;
+}
+
+export interface PanelBlock {
+  type: "panel";
+  config: PanelConfig;
+}
+
+export interface BoxConfig {
+  direction?: "column" | "row";
+  width?: string | number;
+  height?: string | number;
+  gap?: number;
+  padding?: number;
+  align?: "start" | "center" | "end" | "stretch";
+  justify?: "start" | "center" | "end" | "space-between" | "space-around";
+  wrap?: boolean;
+  children: ContentBlock[];
+}
+
+export interface BoxBlock {
+  type: "box";
+  config: BoxConfig;
+}
+
+// ─── Grid System (12-column) ──────────────────────────
+
+export interface ColConfig {
+  content: ContentBlock[];
+  span?: number;       // 1-12, default: auto (12 / numCols in row)
+  offset?: number;     // 0-11, default: 0
+  xs?: number;         // span at <60 cols
+  sm?: number;         // span at 60-89 cols
+  md?: number;         // span at 90-119 cols
+  lg?: number;         // span at >=120 cols
+  padding?: number;    // inner padding, default: 0
+}
+
+export interface RowBlock {
+  type: "row";
+  cols: ColConfig[];
+  gap?: number;        // gap between cols, default: 1
+}
+
+export interface ContainerBlock {
+  type: "container";
+  content: ContentBlock[];
+  maxWidth?: number;
+  padding?: number;
+  center?: boolean;    // default: true
+}
+
+// ─── Menu Block (for file-based routing) ─────────────────
+
+export interface MenuBlock {
+  type: "menu";
+  /** "auto" = auto-generated from pages/ directory. */
+  source?: "auto";
+  /** Manual items (overrides source). */
+  items?: MenuBlockItem[];
+  /** Filter function for auto-generated items. */
+  filter?: (route: { name: string; depth: number }) => boolean;
+}
+
+export interface MenuBlockItem {
+  label: string;
+  page: string;
   icon?: string;
 }

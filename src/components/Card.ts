@@ -3,10 +3,12 @@ import type { CardBlock } from "../config/types.js";
 import { renderBox } from "./Box.js";
 import { styled, styledDim, pad, wrapText, stripAnsi, truncate, stringWidth } from "./base.js";
 import { fgColor, bold, dim, inverse, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderCard(card: CardBlock, ctx: RenderContext): string[] {
   const theme = ctx.theme;
-  const innerWidth = Math.max(0, ctx.width - 4); // 2 border + 2 padding
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.card);
+  const innerWidth = dims.content;
   const content: string[] = [];
 
   // Title line with optional subtitle on right
@@ -91,5 +93,6 @@ export function renderCard(card: CardBlock, ctx: RenderContext): string[] {
     width: ctx.width,
     border: card.border ?? (ctx.borderStyle as any) ?? "rounded",
     padding: 1,
+    borderColor: ctx.focused ? ctx.theme.accent : undefined,
   }, ctx);
 }

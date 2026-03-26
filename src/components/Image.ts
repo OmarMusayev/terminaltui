@@ -1,12 +1,14 @@
 import type { RenderContext } from "./base.js";
 import { fgColor, reset } from "../style/colors.js";
 import { stringWidth } from "./base.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 // ASCII art rendering of images is a complex topic.
 // This provides a basic placeholder that renders a bordered frame
 // indicating an image would be displayed.
 export function renderImage(path: string, ctx: RenderContext, options?: { width?: number; mode?: string }): string[] {
-  const width = Math.min(options?.width ?? Math.min(40, ctx.width - 4), ctx.width - 2);
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.image);
+  const width = Math.min(options?.width ?? Math.min(40, dims.content), dims.content);
   const height = Math.floor(width / 3);
   const theme = ctx.theme;
   const lines: string[] = [];

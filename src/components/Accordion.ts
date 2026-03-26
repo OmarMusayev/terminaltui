@@ -2,6 +2,7 @@ import type { RenderContext } from "./base.js";
 import type { ContentBlock } from "../config/types.js";
 import { truncate } from "./base.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderAccordion(
   items: { label: string; content: ContentBlock[] }[],
@@ -12,6 +13,7 @@ export function renderAccordion(
   const theme = ctx.theme;
   const isFocused = ctx.focused ?? false;
   const lines: string[] = [];
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.accordion);
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -20,7 +22,7 @@ export function renderAccordion(
     // When the accordion is focused, highlight the open item (or first if none open)
     const isActiveItem = isFocused && (isOpen || (openIndex < 0 && i === 0));
 
-    const maxLabelWidth = Math.max(0, ctx.width - 6);
+    const maxLabelWidth = Math.max(0, dims.content - 2);
     const truncatedLabel = truncate(item.label, maxLabelWidth);
 
     const labelColor = isOpen ? theme.accent : (isActiveItem ? theme.accent : theme.text);
@@ -31,7 +33,7 @@ export function renderAccordion(
     );
 
     if (isOpen) {
-      const contentLines = renderContent(item.content, { ...ctx, width: ctx.width - 4, focused: false });
+      const contentLines = renderContent(item.content, { ...ctx, width: dims.content, focused: false });
       for (const cl of contentLines) {
         lines.push("    " + cl);
       }

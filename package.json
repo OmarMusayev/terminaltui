@@ -1,6 +1,6 @@
 {
   "name": "terminaltui",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "dist/index.js",
   "scripts": {
     "test": "npx tsx test/run-all.ts",
@@ -21,7 +21,13 @@
     "terminal-website",
     "ascii-art",
     "tui-framework",
-    "terminal-app"
+    "terminal-app",
+    "grid",
+    "spatial-navigation",
+    "file-based-routing",
+    "interactive",
+    "dashboard",
+    "typescript"
   ],
   "author": "Omar Musayev",
   "license": "MIT",
@@ -33,7 +39,7 @@
   "bugs": {
     "url": "https://github.com/omarmusayev/terminaltui/issues"
   },
-  "description": "Turn any website into a beautiful terminal experience",
+  "description": "Framework for building interactive terminal websites and apps — 30+ components, grid system, spatial navigation, themes, ASCII art, file-based routing",
   "type": "module",
   "types": "dist/index.d.ts",
   "exports": {

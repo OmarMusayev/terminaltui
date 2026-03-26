@@ -22,6 +22,7 @@ import { input, type KeyPress } from "./input.js";
 import { screen, getScreenSize } from "./screen.js";
 import { Router } from "../navigation/router.js";
 import { FocusManager } from "../navigation/focus.js";
+import type { FocusRect } from "../layout/types.js";
 import { animationEngine } from "../animation/engine.js";
 import { InputModeManager } from "./input-mode.js";
 import { NotificationManager } from "./notifications.js";
@@ -73,6 +74,7 @@ export class TUIRuntime {
   /** @internal */ currentParams: RouteParams = {};
   /** @internal */ dynamicCache: Map<string, ContentBlock[]> = new Map();
   /** @internal */ apiServer: ApiServer | null = null;
+  /** @internal */ focusRects: FocusRect[] = [];
 
   constructor(site: Site) {
     this.site = site.config;
@@ -284,5 +286,67 @@ export class TUIRuntime {
 
 export async function runSite(site: Site): Promise<void> {
   const runtime = new TUIRuntime(site);
+  await runtime.start();
+}
+
+/**
+ * Run a file-based routing project.
+ * Scans pages/, builds route table, and converts to SiteConfig before starting.
+ */
+export async function runFileBasedSite(opts: {
+  config: import("../router/types.js").FileBasedConfig;
+  pagesDir: string;
+  apiDir?: string;
+  outDir: string;
+}): Promise<void> {
+  const { FileRouter } = await import("../router/resolver.js");
+
+  const router = new FileRouter({
+    config: opts.config,
+    pagesDir: opts.pagesDir,
+    apiDir: opts.apiDir,
+    outDir: opts.outDir,
+  });
+
+  await router.initialize();
+
+  // Build pages array from file-based routes
+  const pages = await router.buildPagesArray();
+
+  // Load API routes
+  const apiRoutes = await router.loadApiRoutes();
+
+  // Build SiteConfig
+  const siteConfig: SiteConfig = {
+    name: opts.config.name,
+    handle: opts.config.handle,
+    tagline: opts.config.tagline,
+    banner: opts.config.banner,
+    theme: opts.config.theme,
+    borders: opts.config.borders,
+    animations: opts.config.animations,
+    navigation: opts.config.navigation,
+    easterEggs: opts.config.easterEggs,
+    footer: opts.config.footer,
+    statusBar: opts.config.statusBar,
+    artDir: opts.config.artDir,
+    middleware: opts.config.middleware,
+    pages,
+    api: {
+      ...(apiRoutes || {}),
+    },
+    onInit: opts.config.onInit,
+    onExit: opts.config.onExit,
+    onNavigate: opts.config.onNavigate,
+    onError: opts.config.onError,
+  };
+
+  // Store the menu items from the router on the runtime for menu rendering
+  const site: Site = { config: siteConfig };
+  const runtime = new TUIRuntime(site);
+
+  // Attach file router for menu({ source: "auto" }) resolution
+  (runtime as any)._fileRouter = router;
+
   await runtime.start();
 }

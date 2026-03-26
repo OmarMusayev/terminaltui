@@ -3,11 +3,13 @@ import { fgColor, bold, dim, reset } from "../style/colors.js";
 import { pad, stripAnsi, truncate, stringWidth } from "./base.js";
 import { getBorderChars } from "../style/borders.js";
 import type { BorderStyle } from "../style/borders.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderTable(headers: string[], rows: string[][], ctx: RenderContext): string[] {
   const theme = ctx.theme;
   const lines: string[] = [];
   const colCount = headers.length;
+  const dims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.table);
 
   // Calculate column widths
   const colWidths: number[] = headers.map((h, i) => {
@@ -15,8 +17,8 @@ export function renderTable(headers: string[], rows: string[][], ctx: RenderCont
     return maxData + 2; // padding
   });
 
-  // Fit to available width
-  const available = Math.max(colCount, ctx.width - colCount - 1);
+  // Fit to available width (dims.content minus column separators)
+  const available = Math.max(colCount, dims.content - (colCount - 1));
   const totalContent = colWidths.reduce((a, b) => a + b, 0);
   if (totalContent > available) {
     // Proportional scaling
@@ -51,7 +53,9 @@ export function renderTable(headers: string[], rows: string[][], ctx: RenderCont
   // Header row
   const headerCells = headers.map((h, i) => {
     const cellText = " " + h;
-    const fitted = stringWidth(cellText) > colWidths[i] ? truncate(cellText, colWidths[i]) : pad(cellText, colWidths[i]);
+    // Reserve 1 char for right padding; truncate content to colWidth - 1, then pad to full width
+    const maxContent = colWidths[i] - 1;
+    const fitted = stringWidth(cellText) > maxContent ? truncate(cellText, maxContent) + " " : pad(cellText, colWidths[i]);
     return fgColor(theme.accent) + bold + fitted + reset;
   });
   lines.push(
@@ -73,7 +77,9 @@ export function renderTable(headers: string[], rows: string[][], ctx: RenderCont
   for (const row of rows) {
     const cells = row.map((cell, i) => {
       const cellText = " " + (cell ?? "");
-      const fitted = stringWidth(cellText) > colWidths[i] ? truncate(cellText, colWidths[i]) : pad(cellText, colWidths[i]);
+      // Reserve 1 char for right padding; truncate content to colWidth - 1, then pad to full width
+      const maxContent = colWidths[i] - 1;
+      const fitted = stringWidth(cellText) > maxContent ? truncate(cellText, maxContent) + " " : pad(cellText, colWidths[i]);
       return fgColor(theme.text) + fitted + reset;
     });
     lines.push(
