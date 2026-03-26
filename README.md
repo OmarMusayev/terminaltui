@@ -191,11 +191,20 @@ npx terminaltui demo startup
 | Startup | tokyoNight | Pricing tiers, feature accordion |
 | Server Dashboard | hacker | System metrics, container table, log stream |
 
-### Restaurant
+### Developer Portfolio (cyberpunk)
+![developer portfolio demo](assets/recordings/developer-portfolio.gif)
+
+### Restaurant (gruvbox)
 ![restaurant demo](assets/recordings/restaurant.gif)
 
-### Dashboard (live API data)
+### Dashboard (hacker)
 ![dashboard demo](assets/recordings/dashboard.gif)
+
+### Band (rosePine)
+![band demo](assets/recordings/band.gif)
+
+### Server Dashboard (hacker)
+![server dashboard demo](assets/recordings/server-dashboard.gif)
 
 ### Tetris (yes, really)
 ![tetris](assets/recordings/tetris.gif)
