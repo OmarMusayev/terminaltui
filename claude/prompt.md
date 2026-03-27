@@ -111,12 +111,10 @@ card({ title: "BS Computer Science", subtitle: "State University — 2021" }),
 
 ## Step 4: Set up the TUI project
 
-**For larger sites (5+ pages)**, consider using file-based routing instead of a single config file. See `claude/SKILL.md` → "File-Based Routing" section for the `config.ts` + `pages/` directory structure. For most conversions, the single-file approach below is simpler.
-
-**Do NOT modify any existing files.** Create a `tui/` subdirectory:
+**Do NOT modify any existing files.** Create a `tui/` subdirectory with file-based routing:
 
 ```bash
-mkdir -p tui
+mkdir -p tui/pages
 ```
 
 Create `tui/package.json`:
@@ -125,55 +123,129 @@ Create `tui/package.json`:
   "name": "my-tui-site",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "terminaltui": "latest"
+  },
   "scripts": {
-    "dev": "npx tsx __TERMINALTUI_PATH__/src/cli/index.ts dev"
+    "dev": "npx terminaltui dev"
   }
 }
 ```
 
-**Imports:** Install from npm (`npm install terminaltui`) and import normally:
-```typescript
-import { defineSite, page, card, markdown /* ... */ } from "terminaltui";
+Then install:
+```bash
+cd tui && npm install
 ```
 
-If using a local development copy instead, import from the source path:
+All imports use the npm package:
 ```typescript
-import { defineSite, page, card, markdown /* ... */ } from "__TERMINALTUI_PATH__/src/index.js";
+import { defineConfig } from "terminaltui";
+import { card, markdown, row, col } from "terminaltui";
 ```
 
-## Step 5: Generate tui/site.config.ts
+## Step 5: Generate tui/config.ts + tui/pages/
 
-Create `tui/site.config.ts`:
+**File-based routing** — each page is its own file. The `config.ts` has global settings only (no pages, no content).
+
+### 5a. Create `tui/config.ts`
 
 ```typescript
-import {
-  defineSite, page, card, markdown, row, col, container,
-  split, columns, grid, panel, /* ... */
-} from "terminaltui";
+import { defineConfig } from "terminaltui";
 
-export default defineSite({
+export default defineConfig({
   name: "Site Name",
   tagline: "description",
   banner: { text: "SITE", font: "ANSI Shadow", gradient: ["#color1", "#color2"] },
   theme: "dracula",
   borders: "rounded",
   animations: { boot: true, exitMessage: "Goodbye!" },
-  pages: [
-    page("home", { title: "Home", icon: "◆", content: [ /* ... */ ] }),
-    // ... more pages
-  ],
 });
 ```
 
-**Guidelines:**
+### 5b. Create a page file for each page
+
+Every page is a `.ts` file in `tui/pages/`. Each exports a default function returning content blocks, and an optional `metadata` export.
+
+**tui/pages/home.ts** — the landing page:
+```typescript
+import { hero, menu } from "terminaltui";
+
+export const metadata = { order: 0 };
+
+export default function Home() {
+  return [
+    hero({ title: "Site Name", subtitle: "Welcome" }),
+    menu({ source: "auto" }),  // auto-generated from other pages
+  ];
+}
+```
+
+**tui/pages/about.ts** — example content page:
+```typescript
+import { card, markdown, divider, link, row, col } from "terminaltui";
+
+export const metadata = { label: "About", icon: "?" };
+
+export default function About() {
+  return [
+    card({ title: "About Us", body: "Full description here..." }),
+    divider("Links"),
+    link("GitHub", "https://github.com/example"),
+  ];
+}
+```
+
+**tui/pages/contact.ts** — example form page:
+```typescript
+import { form, textInput, textArea, button } from "terminaltui";
+
+export const metadata = { label: "Contact", icon: ">" };
+
+export default function Contact() {
+  return [
+    form({
+      id: "contact",
+      onSubmit: async (data) => ({ success: "Message sent!" }),
+      fields: [
+        textInput({ id: "name", label: "Name", placeholder: "Your name" }),
+        textInput({ id: "email", label: "Email", placeholder: "you@email.com" }),
+        textArea({ id: "message", label: "Message", placeholder: "Your message..." }),
+        button({ label: "Send", style: "primary" }),
+      ],
+    }),
+  ];
+}
+```
+
+### 5c. API routes (if the site has backend features)
+
+Create `tui/api/` for backend endpoints:
+
+```typescript
+// tui/api/stats.ts → GET /api/stats
+export async function GET() {
+  return { visitors: 1234 };
+}
+
+// tui/api/contact.ts → POST /api/contact
+export async function POST(request: { body: any }) {
+  const { name, email, message } = request.body;
+  return { success: true };
+}
+```
+
+### Guidelines
+
 - **Preserve ALL content** from the original site verbatim. Do not skip or summarize.
-- **Every page** becomes a `page()`. First page is the home/landing.
+- **Every page on the original site** becomes a file in `tui/pages/`.
 - **Use the right component** for each content type — don't dump everything into `markdown()`.
 - **Keep the original voice** and copy. This is a faithful conversion, not a rewrite.
 - **Add forms** where the original has them (contact, signup, reservation, etc.).
 - **Add searchInput** if the site has lists of items worth searching (menu, blog posts, team).
 - **Use ASCII art** for visual polish: banner with gradient, scenes on hero pages, icons for section headers.
 - **Choose meaningful page icons** using Unicode: ◆ ◉ ★ ✦ ♫ # + > ~ * etc.
+- **Set `metadata.order`** on pages to control menu ordering (lowest first). Pages without `order` sort alphabetically after ordered pages.
+- **Set `metadata.hidden = true`** on pages that shouldn't appear in the auto-generated menu (e.g., detail pages, utility pages).
 
 ## Step 6: Test it
 
@@ -187,6 +259,7 @@ npm run dev
 Navigate every page. Check:
 - All pages render without errors
 - All content is present and matches the original
+- Menu shows all pages in the right order
 - Forms work (can type, submit)
 - Search filters correctly
 - Theme looks good
@@ -197,8 +270,9 @@ Navigate every page. Check:
 If there are errors:
 - Check imports match what you're using
 - Verify prop names against TERMINALTUI_SKILL.md
-- Ensure all page IDs are unique
-- Ensure form field IDs are unique
+- Ensure all form/input field IDs are unique across all page files
+- Check that `config.ts` uses `defineConfig()` (not `defineSite()`)
+- Check that page files export a default **function** (not an object)
 - Fix and re-run
 
 ---
@@ -207,9 +281,8 @@ If there are errors:
 
 - **NEVER modify, delete, or overwrite files in the original website directory.** All TUI files go in `tui/`.
 - Do NOT invent content. Use exactly what exists on the original site.
-- **Import from `"terminaltui"`** (npm) or from the local source path if developing locally.
+- **Import from `"terminaltui"`** — the npm package.
 - If the site has images, describe them in text or use `asciiImage()` if the image file exists locally.
-- If the site has dynamic data (API, database), use `fetcher()` and `dynamic()` to fetch and display it. If the site needs backend logic (shell commands, file reads, database queries), use the `api` field in `defineSite()` to create API routes — no separate server needed.
+- If the site has dynamic data (API, database), use `fetcher()` and `dynamic()` to fetch and display it. For backend logic (shell commands, file reads, database queries), create files in `tui/api/` with named HTTP method exports — no separate server needed.
 - If the site has user preferences, use `createPersistentState()` to remember them across sessions.
-- If the site would benefit from backend logic (forms that send emails, data from the filesystem, system commands), add API routes in the `api` field of `defineSite()`. See the SKILL.md API Routes section for examples.
 - The goal is a **complete, faithful, beautiful** terminal version — not a summary. Make it something worth screenshotting.
