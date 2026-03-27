@@ -22,6 +22,11 @@ export interface SiteConfig {
   statusBar?: boolean | StatusBarConfig;
   artDir?: string | false;
 
+  // Menu config (file-based routing) — explicit menu overrides auto-generation
+  menu?: {
+    items?: { label: string; page: string; icon?: string }[];
+  };
+
   // API routes — "METHOD /path" → handler
   api?: Record<string, ApiHandler>;
 
@@ -45,6 +50,8 @@ export interface PageConfig {
   refreshInterval?: number;
   onError?: (err: Error) => ContentBlock[];
   middleware?: MiddlewareFn[];
+  /** @internal Hide from auto-generated menu (page still navigable). */
+  _hidden?: boolean;
 }
 
 // ─── Animation Config ──────────────────────────────────────
@@ -141,7 +148,8 @@ export type ContentBlock =
   | BoxBlock
   | RowBlock
   | ContainerBlock
-  | MenuBlock;
+  | MenuBlock
+  | ChatBlock;
 
 export interface TextBlock {
   type: "text";
@@ -528,4 +536,17 @@ export interface MenuBlockItem {
   label: string;
   page: string;
   icon?: string;
+}
+
+// ─── Chat Block ──────────────────────────────────────────
+
+export interface ChatBlock {
+  type: "chat";
+  id: string;
+  /** POST endpoint that receives { message, history } and returns { response }. */
+  endpoint: string;
+  placeholder?: string;
+  suggestedQuestions?: string[];
+  systemPrompt?: string;
+  maxHistory?: number;
 }

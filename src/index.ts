@@ -48,6 +48,8 @@ export {
   container,
   // Menu component (file-based routing)
   menu,
+  // Chat component
+  chat,
 } from "./config/parser.js";
 
 // Types
@@ -111,6 +113,7 @@ export type {
   ContainerBlock,
   MenuBlock,
   MenuBlockItem,
+  ChatBlock,
 } from "./config/types.js";
 
 // Theme
@@ -241,7 +244,7 @@ export type { MiddlewareFn, MiddlewareContext, MiddlewareResult } from "./middle
 export type { AppContext, ErrorContext, LifecycleHooks } from "./lifecycle/types.js";
 
 // ─── Config ──────────────────────────────────────────────
-export { defineConfig } from "./config/define-config.js";
+export { defineConfig, defineEnv } from "./config/define-config.js";
 export type { ConfigField, ConfigSchema, ConfigContainer } from "./config/define-config.js";
 export { loadEnv } from "./config/env-loader.js";
 

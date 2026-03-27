@@ -40,8 +40,25 @@ interface RT {
 
 /** Navigate to a page or route, with optional params and middleware. */
 export function navigateToPage(rt: RT, pageId: string, params?: RouteParams): void {
-  const pageConfig = rt.site.pages.find((p: any) => p.id === pageId);
-  if (!pageConfig) return;
+  // Exact match first
+  let pageConfig = rt.site.pages.find((p: any) => p.id === pageId);
+
+  // If not found, try dynamic route match (e.g., pageId="blogs" matches "blogs/[slug]")
+  if (!pageConfig) {
+    pageConfig = rt.site.pages.find((p: any) => {
+      if (!p.id.includes("[")) return false;
+      const staticPart = p.id.replace(/\/\[.*?\].*$/, "");
+      return pageId === staticPart || pageId.startsWith(staticPart + "/");
+    });
+  }
+
+  if (!pageConfig) {
+    // Bug #8: warn on navigation failure instead of silent no-op
+    if (typeof process !== "undefined" && process.stderr) {
+      process.stderr.write(`[terminaltui] navigate: page '${pageId}' not found. Available: ${rt.site.pages.map((p: any) => p.id).join(", ")}\n`);
+    }
+    return;
+  }
 
   const middlewareChain = [
     ...(rt.site.middleware ?? []),
@@ -254,6 +271,7 @@ export function collectFocusItems(rt: RT, blocks: ContentBlock[]): FocusItem[] {
       case "numberInput":
       case "searchInput":
       case "button":
+      case "chat":
         result.push({ kind: "block", block });
         break;
       case "accordion":

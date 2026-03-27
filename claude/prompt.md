@@ -6,6 +6,23 @@ You are converting an existing website into a fully interactive terminal-style U
 
 **IMPORTANT: Do NOT modify, delete, or overwrite any files in the original website project.** Create a new `tui/` subdirectory for the TUI version. All generated files go inside `tui/`. The original website must remain completely untouched.
 
+## Quick-Reference Imports
+
+```ts
+// Content
+import { card, text, divider, markdown, link, hero, quote, badge, list, table, image, timeline, progressBar, skillBar, spacer } from "terminaltui";
+// Layout
+import { row, col, split, container, columns, grid, box } from "terminaltui";
+// Interactive
+import { menu, accordion, tabs, searchInput, gallery } from "terminaltui";
+// Forms & Input
+import { form, textInput, textArea, button, select, checkbox, toggle, radioGroup, numberInput } from "terminaltui";
+// State & Data
+import { createState, computed, dynamic, fetcher, request, navigate, createPersistentState } from "terminaltui";
+// Config
+import { defineConfig } from "terminaltui";
+```
+
 ## Step 1: Read the existing website FIRST (before creating anything)
 
 Scan **all files** in the current directory to understand the website:
@@ -190,7 +207,28 @@ card({ title: "BS Computer Science", subtitle: "State University — 2021" }),
 - Nature: `mountains`, `forest`, `ocean`, `clouds`
 - Fun: `cat`, `gameboy`, `floppy-disk`, `cityscape`
 
-## Step 4: Set up the TUI project
+## Step 4: Plan the File Tree
+
+Before writing any code, list the exact files you will create:
+
+```
+tui/
+├── package.json
+├── config.ts
+├── pages/
+│   ├── home.ts
+│   ├── about.ts
+│   ├── projects.ts
+│   ├── project-1.ts    (hidden: true — detail page)
+│   ├── project-2.ts    (hidden: true — detail page)
+│   └── contact.ts
+└── api/
+    └── contact.ts      (if needed)
+```
+
+For each page, note: label, order, hidden, and what content it will contain. Detail pages (blog posts, project details) should have `hidden: true` — they're navigated to from list pages, not from the menu.
+
+## Step 5: Set up the TUI project
 
 **Do NOT modify any existing files.** Create a `tui/` subdirectory with file-based routing:
 
@@ -247,16 +285,17 @@ export default defineConfig({
 
 Every page is a `.ts` file in `tui/pages/`. Each exports a default function returning content blocks, and an optional `metadata` export.
 
-**tui/pages/home.ts** — the landing page:
+**tui/pages/home.ts** — the landing page. The framework renders the navigation menu automatically on the home screen — do NOT add `menu({ source: "auto" })` here (it creates a duplicate):
 ```typescript
-import { hero, menu } from "terminaltui";
+import { hero, text } from "terminaltui";
 
 export const metadata = { order: 0 };
 
 export default function Home() {
   return [
     hero({ title: "Site Name", subtitle: "Welcome" }),
-    menu({ source: "auto" }),  // auto-generated from other pages
+    // The navigation menu is rendered automatically by the framework.
+    // Add any extra home page content here (intro text, featured cards, etc.)
   ];
 }
 ```
@@ -298,7 +337,67 @@ export default function Contact() {
 }
 ```
 
-### 5c. API routes (if the site has backend features)
+### 5c. List → Detail Pages
+
+For clickable cards that open a detail page (blog posts, project details, etc.):
+
+1. Create the list page: `pages/blogs.ts`
+2. Create a detail page for each item: `pages/blog-1.ts`, `pages/blog-2.ts`, etc.
+3. Set `metadata = { hidden: true }` on detail pages so they don't appear in the menu
+4. Use `action: { navigate: "blog-1" }` on cards in the list page
+
+**List page** (`pages/blogs.ts`):
+```typescript
+import { card, text } from "terminaltui";
+
+export const metadata = { label: "Blog", order: 3 };
+
+export default function Blogs() {
+  return [
+    card({
+      title: "My First Post",
+      subtitle: "March 2026",
+      body: "A post about building terminal UIs...",
+      action: { navigate: "blog-1" },
+    }),
+    card({
+      title: "My Second Post",
+      subtitle: "February 2026",
+      body: "Another post about TypeScript...",
+      action: { navigate: "blog-2" },
+    }),
+  ];
+}
+```
+
+**Detail page** (`pages/blog-1.ts`):
+```typescript
+import { markdown } from "terminaltui";
+
+export const metadata = { hidden: true };
+
+export default function Blog1() {
+  return [
+    markdown(`# My First Post
+
+Full blog post content here. Pressing Escape or ← goes back to the blog list.
+
+Write the full content — don't summarize.`),
+  ];
+}
+```
+
+**Navigation** — two ways to navigate between pages:
+```typescript
+// Declarative (on cards):
+card({ title: "Read More", action: { navigate: "blog-1" } })
+
+// Programmatic (in event handlers):
+import { navigate } from "terminaltui";
+button({ label: "Go", onPress: () => navigate("blog-1") })
+```
+
+### 5d. API routes (if the site has backend features)
 
 Create `tui/api/` for backend endpoints:
 
@@ -328,7 +427,7 @@ export async function POST(request: { body: any }) {
 - **Set `metadata.order`** on pages to control menu ordering (lowest first). Pages without `order` sort alphabetically after ordered pages.
 - **Set `metadata.hidden = true`** on pages that shouldn't appear in the auto-generated menu (e.g., detail pages, utility pages).
 
-## Step 6: Test it
+## Step 7: Test it
 
 From inside the `tui/` directory:
 
@@ -346,7 +445,7 @@ Navigate every page. Check:
 - Theme looks good
 - No text overflows at 80-column width
 
-## Step 7: Fix issues
+## Step 8: Fix issues
 
 If there are errors:
 - Check imports match what you're using

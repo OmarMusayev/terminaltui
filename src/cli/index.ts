@@ -39,6 +39,9 @@ async function main() {
     case "migrate":
       await runMigrate();
       break;
+    case "validate":
+      await runValidate();
+      break;
     case "help":
 
     case "--help":
@@ -220,6 +223,50 @@ async function runDemo(name?: string) {
   process.exit(1);
 }
 
+async function runValidate() {
+  const cwd = process.cwd();
+  const configTs = join(cwd, "config.ts");
+  const pagesDir = join(cwd, "pages");
+
+  if (!existsSync(configTs) || !existsSync(pagesDir)) {
+    console.error("Error: No config.ts + pages/ found. Validate only works with file-based routing projects.");
+    process.exit(1);
+  }
+
+  try {
+    const { mkdirSync } = await import("node:fs");
+    const outDir = join(cwd, ".terminaltui");
+    mkdirSync(outDir, { recursive: true });
+
+    const { loadFileBasedConfig } = await import("../router/page-loader.js");
+    const { FileRouter } = await import("../router/resolver.js");
+
+    const config = await loadFileBasedConfig(configTs, outDir);
+    const router = new FileRouter({
+      config,
+      pagesDir,
+      apiDir: existsSync(join(cwd, "api")) ? join(cwd, "api") : undefined,
+      outDir,
+    });
+
+    await router.initialize();
+    const warnings = router.validate();
+
+    if (warnings.length === 0) {
+      console.log("\n  \x1b[32m✓\x1b[0m No issues found.\n");
+      process.exit(0);
+    } else {
+      const { printValidationWarnings } = await import("../router/validate.js");
+      printValidationWarnings(warnings);
+      const hasErrors = warnings.some(w => w.level === "error");
+      process.exit(hasErrors ? 1 : 0);
+    }
+  } catch (err: any) {
+    console.error("Validation error:", err.message);
+    process.exit(1);
+  }
+}
+
 async function runMigrate() {
   const cwd = process.cwd();
   try {
@@ -347,6 +394,7 @@ function printHelp() {
     create       Interactive prompt builder — describe what you want, AI builds it
     convert      Drop terminaltui docs into your project for AI-assisted conversion
     migrate      Convert single-file site.config.ts to file-based routing (config.ts + pages/)
+    validate     Check file-based routing project for common issues
     dev          Start development preview (auto-starts API server if routes defined)
     demo [name]  Run a built-in demo (restaurant, dashboard, band, coffee-shop, conference, etc.)
     build        Bundle for npm publish (includes API routes)

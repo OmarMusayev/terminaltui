@@ -90,6 +90,14 @@ export default defineConfig({
     labels: { projects: "Our Work", about: "About Us" },
     // Items not listed are excluded from menu
   },
+  // MenuConfig type:
+  // interface MenuConfig {
+  //   items?: Array<{ label: string; page: string; icon?: string }>;
+  //   order?: string[];
+  //   labels?: Record<string, string>;
+  //   icons?: Record<string, string>;
+  //   exclude?: string[];
+  // }
 
   // Lifecycle hooks
   onInit: async () => { /* ... */ },
@@ -298,6 +306,8 @@ export default function Home() {
   ];
 }
 ```
+
+**Important:** The framework renders the navigation menu automatically on the home screen. Do NOT add `menu({ source: 'auto' })` to your `home.ts` -- it creates a duplicate menu.
 
 If `home.ts` doesn't exist, the framework auto-generates a home page with `hero()` + `menu({ source: "auto" })`.
 
@@ -641,6 +651,25 @@ card({
   url: "https://github.com/user/repo",
   action: { navigate: "project", params: { name: "my-project" } },
 })
+```
+
+**List-to-Detail navigation pattern:** Use `action.navigate` on cards to link to detail pages. Mark detail pages as hidden so they don't appear in the menu.
+
+```ts
+// List page (pages/blog.ts)
+export default function Blog() {
+  return [
+    card({ title: "First Post", action: { navigate: "blog-1" } }),
+    card({ title: "Second Post", action: { navigate: "blog-2" } }),
+  ];
+}
+
+// Detail page (pages/blog-1.ts)
+export const metadata = { hidden: true };
+
+export default function BlogPost1() {
+  return [card({ title: "First Post", body: "Full content here..." })];
+}
 ```
 
 #### timeline(items: TimelineItem[]): TimelineBlock
@@ -1229,6 +1258,32 @@ searchInput({
     { label: "Projects", value: "projects", keywords: ["work", "code"] },
   ],
   action: "navigate",
+})
+```
+
+#### chat(config): ChatBlock
+
+Interactive chat widget that sends messages to an API endpoint. Supports conversation history, suggested questions, and a system prompt.
+
+```ts
+interface ChatBlock {
+  id: string;                        // Unique chat ID
+  endpoint: string;                  // POST endpoint — receives { message, history }, returns { response }
+  placeholder?: string;              // Input placeholder
+  suggestedQuestions?: string[];      // Quick-start prompts shown before first message
+  systemPrompt?: string;             // System prompt sent with every request
+  maxHistory?: number;               // Max messages to keep in history (default: 50)
+}
+```
+
+```ts
+chat({
+  id: "ai-chat",
+  endpoint: "/api/chat",
+  placeholder: "Ask a question...",
+  suggestedQuestions: ["What do you do?", "Tell me about projects"],
+  systemPrompt: "You are a helpful assistant.",
+  maxHistory: 50,
 })
 ```
 
@@ -1994,15 +2049,19 @@ defineSite({
 
 `.env` files are auto-loaded on startup.
 
+**`defineEnv()`** is for environment variables. Do not confuse with `defineConfig()` which is for site config (file-based routing).
+
 ```ts
-// Typed config from environment variables
-const config = defineConfig({
-  apiUrl: { env: "API_URL", default: "https://api.example.com" },
+import { defineEnv } from "terminaltui";
+
+const env = defineEnv({
+  apiUrl: { env: "API_URL", default: "http://localhost:3000" },
   apiKey: { env: "API_KEY", required: true },
   debug: { env: "DEBUG", default: false, transform: (v) => v === "true" },
 });
-config.get("apiUrl"); // string
-config.get("debug");  // boolean
+env.get("apiUrl"); // string
+env.get("apiKey"); // string
+env.get("debug");  // boolean
 ```
 
 ```ts
@@ -2013,6 +2072,8 @@ interface ConfigField<T> {
   transform?: (value: string) => T;              // Transform string value
 }
 ```
+
+**Summary:** `defineConfig()` = site config (file-based routing, theme, menu). `defineEnv()` = environment variables (API keys, URLs, feature flags).
 
 ---
 
@@ -2056,6 +2117,7 @@ terminaltui dev [path]                   # Dev preview with hot reload
 terminaltui build                        # Bundle for npm publish
 terminaltui test [--cols=N] [--sizes] [--verbose]  # Run tests
 terminaltui art list|preview|create|validate       # Manage ASCII art assets
+terminaltui validate                               # Check for common issues (duplicate menus, missing pages, etc.)
 ```
 
 ---

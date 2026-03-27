@@ -50,6 +50,7 @@ import type {
   ContainerBlock,
   MenuBlock,
   MenuBlockItem,
+  ChatBlock,
 } from "./types.js";
 import type { Theme } from "../style/theme.js";
 
@@ -350,6 +351,11 @@ export function container(content: ContentBlock[], config?: { maxWidth?: number;
 /** Creates a menu block. Use { source: "auto" } for auto-generated menu from pages/. */
 export function menu(config: Omit<MenuBlock, "type">): MenuBlock {
   return { type: "menu", ...config };
+}
+
+/** Creates a chat interface that sends messages to an API endpoint. */
+export function chat(config: Omit<ChatBlock, "type">): ChatBlock {
+  return { type: "chat", ...config };
 }
 
 // ─── Re-exports from other modules ────────────────────────

@@ -15,6 +15,7 @@ import { buildMenu } from "./menu-builder.js";
 import { scanPages, scanApiDirectory } from "./scanner.js";
 import { buildRouteTable } from "./route-table.js";
 import { buildApiRoutes, loadApiRoutes } from "./api-loader.js";
+import { validateProject, printValidationWarnings, type ValidationWarning } from "./validate.js";
 
 /** Cached page modules and metadata. */
 const pageModuleCache = new Map<string, PageModule>();
@@ -202,6 +203,7 @@ export class FileRouter {
         id: route.name,
         title: meta?.label ?? route.name,
         icon: meta?.icon,
+        _hidden: true,
         content: this.createPageContentLoader(route),
       });
     }
@@ -212,14 +214,27 @@ export class FileRouter {
   /**
    * Create a content loader function for a route.
    * Returns an async function that loads, executes, and applies layouts.
+   * For dynamic routes, the loader is called with no args but the runtime
+   * passes params via rt.currentParams which the route content handler reads.
    */
   private createPageContentLoader(route: Route): () => Promise<ContentBlock[]> {
+    const self = this;
     return async () => {
-      const mod = await this.getPageModule(route);
-      let content = await mod.default();
+      const mod = await self.getPageModule(route);
+
+      // For dynamic routes, pass params from the runtime context
+      let context: PageContext | undefined;
+      if (route.isDynamic) {
+        // Params are set on rt.currentParams before this loader is called
+        // We can't access rt here, but the runtime calls this as page.content()
+        // The params will be passed through the existing route/async content system
+        context = undefined; // Will be handled by the runtime's existing route param system
+      }
+
+      let content = await mod.default(context);
 
       if (route.layoutChain.length > 0) {
-        content = await applyLayoutChain(content, route.layoutChain, this.outDir);
+        content = await applyLayoutChain(content, route.layoutChain, self.outDir);
       }
 
       return content;
@@ -242,6 +257,26 @@ export class FileRouter {
    */
   getMetadata(routeName: string): PageMetadata | undefined {
     return this.metadataMap.get(routeName);
+  }
+
+  /**
+   * Validate the project and return warnings.
+   */
+  validate(): ValidationWarning[] {
+    if (!this.routeTable) return [];
+    const pageFiles = new Map<string, string>();
+    for (const route of this.routeTable.routes) {
+      pageFiles.set(route.name, route.filePath);
+    }
+    return validateProject(this.routeTable, this.metadataMap, pageFiles);
+  }
+
+  /**
+   * Validate and print warnings to stderr.
+   */
+  validateAndPrint(): void {
+    const warnings = this.validate();
+    printValidationWarnings(warnings);
   }
 
   /**

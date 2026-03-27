@@ -125,18 +125,47 @@ function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: nu
   lines.push(padStr + fgColor(rt.theme.border) + "\u2500".repeat(contentWidth) + reset);
   lines.push("");
 
-  const menuItems: MenuItem[] = rt.site.pages
-    .filter((p: any) => typeof p.title === "string")
-    .map((p: any) => ({ label: p.title, icon: p.icon, id: p.id }));
+  // Check if home page content already contains a menu block (avoid duplicates)
+  const homePage = rt.site.pages.find((p: any) => p.id === "home");
+  const homeContent = homePage ? rt.getPageContent(homePage) : null;
+  const homeHasMenuBlock = homeContent ? containsMenuBlock(homeContent) : false;
 
-  let menuLines: string[];
-  if (!rt.bootComplete && rt.site.animations?.boot) {
-    const visibleCount = Math.max(0, Math.floor((rt.bootFrame - 15) / 3));
-    menuLines = renderMenu(menuItems.slice(0, visibleCount), rt.focus.focusIndex, ctx);
-  } else {
-    menuLines = renderMenu(menuItems, rt.focus.focusIndex, ctx);
+  if (!homeHasMenuBlock) {
+    // Build menu items: explicit menu config > file router > fallback to pages
+    let menuItems: MenuItem[];
+    if (rt.site.menu?.items && rt.site.menu.items.length > 0) {
+      menuItems = rt.site.menu.items.map((item: any) => ({
+        label: item.label, icon: item.icon, id: item.page,
+      }));
+    } else if ((rt as any)._fileRouter) {
+      const fileMenuItems = (rt as any)._fileRouter.getMenuItems();
+      menuItems = fileMenuItems.map((m: any) => ({
+        label: m.label, icon: m.icon, id: m.page,
+      }));
+    } else {
+      menuItems = rt.site.pages
+        .filter((p: any) => typeof p.title === "string" && !(p as any)._hidden)
+        .map((p: any) => ({ label: p.title, icon: p.icon, id: p.id }));
+    }
+
+    let menuLines: string[];
+    if (!rt.bootComplete && rt.site.animations?.boot) {
+      const visibleCount = Math.max(0, Math.floor((rt.bootFrame - 15) / 3));
+      menuLines = renderMenu(menuItems.slice(0, visibleCount), rt.focus.focusIndex, ctx);
+    } else {
+      menuLines = renderMenu(menuItems, rt.focus.focusIndex, ctx);
+    }
+    for (const ml of menuLines) lines.push(padStr + ml);
+  } else if (homeContent) {
+    // Home page has its own menu block — render the page content instead
+    const blockWidth = Math.max(1, contentWidth - 1);
+    const blockCtx: RenderContext = { ...ctx, width: blockWidth };
+    for (const block of homeContent) {
+      const rendered = renderBlock(rt as any, block, blockCtx);
+      for (const line of rendered) lines.push(padStr + " " + line);
+      lines.push("");
+    }
   }
-  for (const ml of menuLines) lines.push(padStr + ml);
 
   lines.push("");
   lines.push(padStr + fgColor(rt.theme.border) + "\u2500".repeat(contentWidth) + reset);
@@ -150,6 +179,22 @@ function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: nu
 }
 
 /** Render a content page with scroll management. */
+/** Check if content blocks contain a menu block anywhere in the tree. */
+function containsMenuBlock(blocks: ContentBlock[]): boolean {
+  for (const block of blocks) {
+    if (block.type === "menu") return true;
+    if (block.type === "section" && containsMenuBlock((block as any).content)) return true;
+    if (block.type === "columns") {
+      for (const p of (block as any).panels) if (containsMenuBlock(p.content)) return true;
+    }
+    if (block.type === "split") {
+      const cfg = (block as any).config;
+      if (containsMenuBlock(cfg.first) || containsMenuBlock(cfg.second)) return true;
+    }
+  }
+  return false;
+}
+
 /** Check if a layout block contains a specific target block anywhere in its tree. */
 function containsBlock(layout: ContentBlock, target: ContentBlock): boolean {
   if (layout === target) return true;

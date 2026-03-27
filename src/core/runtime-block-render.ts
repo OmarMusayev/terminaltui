@@ -2,7 +2,8 @@
  * Individual block rendering — the big switch statement that maps
  * block types to component renderers.
  */
-import type { ContentBlock, DynamicBlock, FormBlock, ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock, BoxBlock, PanelConfig, RowBlock, ContainerBlock, MenuBlock } from "../config/types.js";
+import type { ContentBlock, DynamicBlock, FormBlock, ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock, BoxBlock, PanelConfig, RowBlock, ContainerBlock, MenuBlock, ChatBlock } from "../config/types.js";
+import { renderChat, type ChatState, type ChatMessage } from "../components/Chat.js";
 import { fgColor, reset, bold } from "../style/colors.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 import { componentRegistry } from "../components/base.js";
@@ -273,6 +274,24 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     case "menu": {
       // Menu block — render inline menu (auto or manual items)
       return renderMenuBlock(rt, block as any, ctx);
+    }
+    case "chat": {
+      const chatBlock = block as ChatBlock;
+      const state = rt.getInputState(chatBlock.id, {
+        messages: [] as ChatMessage[],
+        input: "",
+        cursorPos: 0,
+        loading: false,
+        error: null,
+      });
+      const chatState: ChatState = {
+        messages: (state.value as any)?.messages ?? [],
+        input: (state.value as any)?.input ?? state.value as string ?? "",
+        cursorPos: state.cursorPos ?? 0,
+        loading: (state.value as any)?.loading ?? false,
+        error: (state.value as any)?.error ?? null,
+      };
+      return renderChat(chatBlock, chatState, ctx);
     }
     default:
       return [];

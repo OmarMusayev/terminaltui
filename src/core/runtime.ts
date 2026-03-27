@@ -87,7 +87,7 @@ export class TUIRuntime {
     this.router.registerPages(allIds);
 
     const menuIds = site.config.pages
-      .filter(p => typeof p.title === "string")
+      .filter(p => typeof p.title === "string" && !(p as any)._hidden)
       .map(p => p.id);
     this.focus.setItems(menuIds);
   }
@@ -310,6 +310,9 @@ export async function runFileBasedSite(opts: {
 
   await router.initialize();
 
+  // Validate project structure and warn about issues
+  router.validateAndPrint();
+
   // Build pages array from file-based routes
   const pages = await router.buildPagesArray();
 
@@ -331,6 +334,7 @@ export async function runFileBasedSite(opts: {
     statusBar: opts.config.statusBar,
     artDir: opts.config.artDir,
     middleware: opts.config.middleware,
+    menu: opts.config.menu,
     pages,
     api: {
       ...(apiRoutes || {}),

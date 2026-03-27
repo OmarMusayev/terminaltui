@@ -94,3 +94,49 @@ export function defineConfig<S extends ConfigSchema>(
     },
   } as ConfigContainer<S>;
 }
+
+/**
+ * Define typed application config from environment variables.
+ * Dedicated function for env config (avoids overloading with defineConfig).
+ *
+ * ```typescript
+ * const env = defineEnv({
+ *   apiUrl: { env: "API_URL", default: "http://localhost:3000" },
+ *   apiKey: { env: "API_KEY", required: true },
+ * });
+ * env.get("apiUrl") // typed as string
+ * ```
+ */
+export function defineEnv<S extends ConfigSchema>(schema: S): ConfigContainer<S> {
+  ensureEnvLoaded();
+
+  const resolved: Record<string, any> = {};
+  const errors: string[] = [];
+
+  for (const [key, field] of Object.entries(schema)) {
+    const envValue = process.env[field.env];
+
+    if (envValue !== undefined) {
+      resolved[key] = field.transform ? field.transform(envValue) : envValue;
+    } else if (field.default !== undefined) {
+      resolved[key] = field.default;
+    } else if (field.required) {
+      errors.push(`Missing required environment variable: ${field.env} (config key: ${key})`);
+    } else {
+      resolved[key] = undefined;
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`[terminaltui] Configuration errors:\n  ${errors.join("\n  ")}`);
+  }
+
+  return {
+    get(key: any): any {
+      return resolved[key as string];
+    },
+    getAll(): any {
+      return { ...resolved };
+    },
+  };
+}
