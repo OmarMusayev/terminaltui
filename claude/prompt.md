@@ -24,13 +24,94 @@ Build a complete picture of:
 - **Tone/vibe:** professional, playful, dark, minimal, bold, retro, creative
 - **Interactive features:** contact forms, search, filters, login, dynamic data
 
-## Step 2: TUI Layout Philosophy
+## Step 2: Choose a Layout Strategy
 
-**Default to vertical scrolling with flat card layouts.** TUI navigation is fundamentally up/down arrow keys. Use `divider("Label")` to visually separate sections rather than nesting them inside `tabs()`. Use individual `card()` blocks for anything users need to browse — each card is separately focusable and scrollable.
+You have two layout strategies. Choose per page based on the content.
 
-**Use split-pane layouts for dashboard-style and complex sites.** When the original site has side-by-side content (pricing tiers, hours + location, food + drinks menus, monitoring metrics), use `columns()`, `split()`, or `grid()` instead of stacking everything vertically. Layouts make better use of terminal width and create a more professional look. Don't force layouts on every page — single-column is still best for timelines, forms, and narrative content. See `demos/server-dashboard/` for a comprehensive layout showcase.
+### Option A: Single-Column (vertical scroll)
 
-**Layout navigation is spatial.** Arrow keys move focus to the nearest focusable item in that direction based on screen position. On pages with layouts, left/right moves between side-by-side panels, up/down navigates vertically. On single-column pages, up/down moves sequentially and left goes back. Enter activates, Escape goes back. No configuration needed -- spatial navigation is automatic for all layout functions.
+Stack everything vertically. User navigates with up/down arrows.
+
+```ts
+export default function About() {
+  return [
+    card({ title: "About Us", body: "..." }),
+    divider("Team"),
+    card({ title: "Alice", subtitle: "CEO", body: "..." }),
+    card({ title: "Bob", subtitle: "CTO", body: "..." }),
+    divider("Links"),
+    link("GitHub", "https://github.com/example"),
+    link("Twitter", "https://twitter.com/example"),
+  ];
+}
+```
+
+**Pros:** Simple, works at any terminal width, every item is reachable with up/down, great for narrative content, forms, and lists.
+
+**Cons:** Wastes horizontal space on wide terminals, doesn't match the original site's layout when it has side-by-side content (pricing tiers, team grids, dashboard panels).
+
+**Best for:** About pages, blog posts, forms, contact pages, FAQ/accordion pages, pages with mostly text and sequential content.
+
+### Option B: Grid/Multi-Column (spatial navigation)
+
+Use `row()` + `col()` for responsive side-by-side layouts. Arrow keys move spatially — left/right jumps between columns, up/down moves within columns. Like a TV remote.
+
+```ts
+export default function Projects() {
+  return [
+    row([
+      col([card({ title: "Project A", body: "..." })], { span: 6, xs: 12 }),
+      col([card({ title: "Project B", body: "..." })], { span: 6, xs: 12 }),
+    ], { gap: 1 }),
+    row([
+      col([card({ title: "Project C", body: "..." })], { span: 6, xs: 12 }),
+      col([card({ title: "Project D", body: "..." })], { span: 6, xs: 12 }),
+    ], { gap: 1 }),
+  ];
+}
+```
+
+**Pros:** Matches multi-column website layouts faithfully, uses full terminal width, looks professional, spatial navigation is automatic (no config needed).
+
+**Cons:** Content gets squished on narrow terminals (<60 cols), more complex code, cards have less horizontal space for text.
+
+**Best for:** Project grids, pricing tiers, team/speaker grids, dashboard stat cards, feature cards, any page where the original website shows items side-by-side.
+
+### Other Layout Primitives
+
+| Function | What it does | When to use |
+|----------|-------------|-------------|
+| `row([col(...), col(...)], { gap: 1 })` | 12-column responsive grid row | Side-by-side cards, pricing tiers, team grids |
+| `col(content, { span: 6, xs: 12 })` | Column within a row (span 1-12) | Each column in a row. `xs: 12` = full width on narrow terminals |
+| `container(content, { maxWidth: 85 })` | Centered content with max width | Long-form text, about pages, blog posts |
+| `split({ direction: "horizontal", first: [...], second: [...], ratio: 30 })` | Two fixed panels side-by-side | Sidebar + main content, category list + items |
+| `columns([panel({...}), panel({...})])` | Bordered side-by-side panels | Dashboard widgets with titles and borders |
+| `grid({ cols: 2, items: [panel({...})] })` | N-column grid of bordered panels | Monitoring dashboards, stat grids |
+
+### Responsive Breakpoints
+
+`col()` supports responsive spans that adapt to terminal width:
+- `xs`: terminal < 60 columns (phone-width)
+- `sm`: 60-89 columns
+- `md`: 90-119 columns
+- `lg`: >= 120 columns (wide terminal)
+
+Example: `col([...], { span: 4, sm: 6, xs: 12 })` = 3 columns on wide terminals, 2 on medium, full-width stacked on narrow.
+
+### Decision Guide
+
+| Original website layout | Use |
+|------------------------|-----|
+| Single column of text/cards | Option A (vertical scroll) |
+| 2-3 cards side by side | `row()` + `col()` with `span: 6` or `span: 4` |
+| Pricing table (3 tiers) | `row()` + 3x `col({ span: 4, xs: 12 })` |
+| Dashboard with sidebar | `split({ direction: "horizontal", ratio: 25 })` |
+| Grid of team members/speakers | `row()` + `col({ span: 6, xs: 12 })` per person |
+| Stats/metrics row | `row()` + `col({ span: 3, xs: 6 })` per stat |
+| Long form + sidebar | `split()` horizontal |
+| Everything else | Option A — when in doubt, single column is safer |
+
+**Navigation is automatic.** Spatial navigation works out of the box with all layout functions — arrow keys move to the nearest focusable item by screen position. No configuration needed.
 
 ### Component Mapping — Prioritize Navigability
 
