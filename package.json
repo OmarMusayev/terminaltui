@@ -1,6 +1,6 @@
 {
   "name": "terminaltui",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "dist/index.js",
   "scripts": {
     "test": "npx tsx test/run-all.ts",
