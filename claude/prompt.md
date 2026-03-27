@@ -51,8 +51,11 @@ Build a complete picture of:
 | FAQ / expandable content | `accordion()` — each item focusable + expandable | |
 | Toggle between views | `tabs()` — ONLY for mutually exclusive views | Organizing sequential sections |
 | Dashboard with sidebar | `columns([panel({...}), panel({...})])` | Flat single-column layout |
+| Side-by-side cards (2-4 cols) | `row([col([card1], {span: 6}), col([card2], {span: 6})])` | Stacking when side-by-side fits |
+| Responsive grid of items | `row([col([item], {span: 4, xs: 12}), ...])` — wraps on narrow terminals | Fixed-width panels |
+| Centered narrow content | `container([...], { maxWidth: 85 })` | Full-width prose |
 | Monitoring grid | `grid({ cols: 2, items: [...] })` | Single-column cards |
-| Split pane (editor/preview) | `split({ direction: "horizontal" })` | Tabs (can't see both) |
+| Split pane (editor/preview) | `split({ direction: "horizontal", first: [...], second: [...] })` | Tabs (can't see both) |
 | Contact forms | `form()` with `textInput()`, `textArea()`, `button()` | |
 | Search / filter | `searchInput()` with `action: "navigate"` | |
 | Stats / metrics | `asciiArt.barChart()`, `asciiArt.sparkline()` | |
@@ -108,6 +111,8 @@ card({ title: "BS Computer Science", subtitle: "State University — 2021" }),
 
 ## Step 4: Set up the TUI project
 
+**For larger sites (5+ pages)**, consider using file-based routing instead of a single config file. See `claude/SKILL.md` → "File-Based Routing" section for the `config.ts` + `pages/` directory structure. For most conversions, the single-file approach below is simpler.
+
 **Do NOT modify any existing files.** Create a `tui/` subdirectory:
 
 ```bash
@@ -142,7 +147,8 @@ Create `tui/site.config.ts`:
 
 ```typescript
 import {
-  defineSite, page, card, markdown, /* ... */
+  defineSite, page, card, markdown, row, col, container,
+  split, columns, grid, panel, /* ... */
 } from "terminaltui";
 
 export default defineSite({
