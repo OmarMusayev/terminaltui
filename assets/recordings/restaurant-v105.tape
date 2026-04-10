@@ -4,61 +4,60 @@ Set FontSize 14
 Set Width 1400
 Set Height 900
 Set Padding 20
-Set TypingSpeed 50ms
 Set Theme "Dracula"
 
+Hide
 Type "npx tsx src/cli/index.ts dev demos/restaurant/site.config.ts"
 Enter
-Sleep 5s
+Sleep 8s
+Show
+
+# Home page with gruvbox banner
 Sleep 2s
 
-# Home page with menu
-Sleep 1s
-
-# Enter Menu page (first item)
+# Enter Menu page
 Enter
-Sleep 2s
+Sleep 1.5s
 
-# Navigate through tabs (menu categories)
+# Cycle tabs
 Down
 Sleep 300ms
 Enter
-Sleep 1s
+Sleep 800ms
 Down
 Sleep 300ms
 Enter
-Sleep 1s
+Sleep 800ms
 
-# Scroll through menu items
+# Scroll items
 Down
-Sleep 400ms
+Sleep 300ms
 Down
-Sleep 400ms
+Sleep 300ms
 
-# Back to home
+# Back
 Escape
-Sleep 1s
+Sleep 800ms
 
 # Navigate to Hours
 Down
-Sleep 300ms
+Sleep 200ms
 Down
-Sleep 300ms
+Sleep 200ms
 Down
-Sleep 300ms
+Sleep 200ms
 Enter
-Sleep 2s
+Sleep 1.5s
 
-# Show columns layout — spatial nav between hours and location
+# Spatial nav between columns
 Right
-Sleep 800ms
-Left
 Sleep 600ms
+Left
+Sleep 500ms
 
 # Back to home
 Escape
-Sleep 1.5s
-
-# Quit
-Type "q"
 Sleep 1s
+
+Type "q"
+Sleep 500ms

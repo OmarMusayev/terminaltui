@@ -4,75 +4,74 @@ Set FontSize 14
 Set Width 1400
 Set Height 900
 Set Padding 20
-Set TypingSpeed 50ms
 Set Theme "Dracula"
 
+Hide
 Type "npx tsx src/cli/index.ts dev demos/dashboard/site.config.ts"
 Enter
-Sleep 5s
-Sleep 2.5s
+Sleep 8s
+Show
 
-# Home page — hacker theme, stat cards visible
-Sleep 1.5s
+# Home page — hacker theme, menu visible
+Sleep 2s
 
-# Navigate down through stat cards
-Down
-Sleep 400ms
-Down
-Sleep 400ms
-
-# Spatial nav — move right across stat cards
-Right
-Sleep 800ms
-Right
-Sleep 800ms
-Right
-Sleep 800ms
-Left
-Sleep 600ms
-Left
-Sleep 600ms
-
-# Navigate down to main content area
-Down
-Sleep 400ms
-Down
-Sleep 400ms
-Down
-Sleep 400ms
-
-# Navigate to Posts page
-Escape
-Sleep 800ms
-Down
-Sleep 300ms
+# Enter first page (home/stats)
 Enter
 Sleep 2s
 
-# Scroll through posts
+# Spatial nav across stat cards
 Down
-Sleep 400ms
-Down
-Sleep 400ms
+Sleep 300ms
+Right
+Sleep 600ms
+Right
+Sleep 600ms
+Right
+Sleep 600ms
+Left
+Sleep 500ms
 
-# Enter a post detail (parameterized route)
+# Scroll down to more content
+Down
+Sleep 300ms
+Down
+Sleep 300ms
+Down
+Sleep 300ms
+
+# Back to menu
+Escape
+Sleep 800ms
+
+# Navigate to Posts
+Down
+Sleep 200ms
 Enter
-Sleep 2.5s
+Sleep 2s
 
-# Scroll post content
+# Scroll posts
 Down
-Sleep 400ms
+Sleep 300ms
 Down
-Sleep 400ms
+Sleep 300ms
+
+# Enter a post detail
+Enter
+Sleep 2s
+
+# Scroll post
+Down
+Sleep 300ms
+Down
+Sleep 300ms
 
 # Back to posts
 Escape
-Sleep 1s
+Sleep 800ms
 
 # Back to home
 Escape
-Sleep 1.5s
-
-# Quit
-Type "q"
 Sleep 1s
+
+Type "q"
+Sleep 500ms

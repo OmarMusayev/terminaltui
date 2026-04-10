@@ -34,9 +34,16 @@ export async function compileFile(
       external: ["terminaltui"],
       target: "node18",
     });
-  } catch {
-    // Fallback: try direct import (works with tsx/ts-node)
-    return absPath;
+  } catch (err: any) {
+    // In dev mode with tsx/ts-node, .ts files can be imported directly
+    if (process.execArgv.some(a => a.includes("tsx") || a.includes("ts-node"))) {
+      return absPath;
+    }
+    throw new Error(
+      `Failed to compile ${filePath}. esbuild is required for file-based routing in production.\n` +
+      `Install it: npm install esbuild\n\n` +
+      `Original error: ${err?.message || err}`
+    );
   }
 
   return outFile;

@@ -190,6 +190,11 @@ export function image(path: string, options?: { width?: number; mode?: "ascii" |
 
 // ─── Visual Helpers ────────────────────────────────────────
 
+/** Creates a plain text content block. */
+export function text(content: string): TextBlock {
+  return { type: "text", content, style: "plain" };
+}
+
 /** Creates an ASCII art banner configuration for the site header. */
 export function ascii(text: string, options?: AsciiBannerOptions): BannerConfig {
   return { text, ...options };

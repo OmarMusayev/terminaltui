@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.4.0] - 2026-04-09
+
+### Fixed
+
+- **Single-file build produces functional bundles** — `terminaltui build` on `site.config.ts` now wraps the entry with `runSite()` so the published npm package actually starts the TUI (#1)
+- **File-based routing build uses relative paths** — `_entry.ts` no longer hardcodes absolute filesystem paths; all imports are relative and resolved at bundle time (#2)
+- **`compileFile()` throws clear errors** — when esbuild is unavailable outside dev mode, a descriptive error is thrown instead of silently returning a raw `.ts` path that Node.js can't import (#3)
+- **`_entry.ts` cleaned up after build** — intermediate build artifacts are deleted from `dist/` after successful bundling, preventing them from being published to npm (#5)
+
+### Added
+
+- **`text()` content helper** — `import { text } from "terminaltui"` creates a plain text content block. Previously referenced in docs but not exported (#4)
+- **Build validation** — after bundling, the build checks that the output contains a `runSite()` call and warns about any hardcoded absolute paths (#7)
+- **Page Visibility documentation** — clear docs on how to hide pages from menus in both single-file and file-based routing modes (#8)
+- **Banner config clarification** — docs now show both `ascii()` helper and plain object forms for the `banner` field (#9)
+
+### Changed
+
+- **Version jump from 1.0.9 to 1.4.0** — versions 1.1.0 through 1.3.0 were experimental publishes from a separate codebase and have been deprecated on npm. This release continues from the stable 1.0.x line (#6)
+
+### Deprecated
+
+- **npm versions 1.1.0–1.3.0** — these were experimental/incompatible releases. Use 1.4.0+ instead.
+
+---
+
 ## [1.0.5] - 2026-03-26
 
 ### Added

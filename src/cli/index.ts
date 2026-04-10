@@ -100,9 +100,18 @@ async function runInit(template?: string) {
 }
 
 async function runBuild() {
-  const configPath = findConfig();
+  const explicit = args[1];
+  let configPath: string | null;
+  if (explicit) {
+    const resolved = resolve(explicit);
+    configPath = existsSync(resolved) ? resolved : null;
+  } else {
+    configPath = findConfig();
+  }
   if (!configPath) {
-    console.error("Error: No site.config.ts found.");
+    console.error(explicit
+      ? `Error: Config file not found: ${explicit}`
+      : "Error: No config.ts or site.config.ts found.");
     process.exit(1);
   }
 

@@ -180,6 +180,25 @@ export default async function ProjectDetail({ params }: { params: { slug: string
 }
 ```
 
+### Page Visibility
+
+Control which pages appear in the menu:
+
+**File-based routing:**
+- `metadata.hidden = true` — page exists and is navigable but excluded from auto-generated menu
+- Pages without `hidden: true` appear in the menu by default
+- Dynamic route pages (`[slug].ts`) should always be `hidden: true`
+
+**Single-file mode (`site.config.ts`):**
+- `menu.order: ["home", "about"]` — **only** listed pages appear in the menu
+- Unlisted pages are still navigable (via `action.navigate`) but hidden from the menu
+- There is no explicit `hidden` property on `page()` — omission from `menu.order` is the mechanism
+
+**File-based config (`config.ts`):**
+- `menu.order` works the same as single-file mode
+- `menu.exclude: ["secret"]` explicitly hides specific pages from menu
+- If neither `order` nor `exclude` is set, all non-hidden pages appear
+
 ### Layout Files
 
 A `layout.ts` in any directory wraps all sibling and descendant pages. Receives `children` (the rendered page content).
@@ -359,6 +378,7 @@ TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor bet
 | `radioGroup()` | **Yes** — individually | Enter starts selection, arrows move between options. |
 | `numberInput()` | **Yes** — individually | Left/Right changes value. |
 | `searchInput()` | **Yes** — individually | Type to filter, arrows to pick result, Enter to select. |
+| `chat()` | **Yes** — individually | Enter starts typing, sends message on Enter, Escape exits. |
 | `button()` | **Yes** — individually | Enter triggers action. |
 | `timeline()` | **Yes** — per item | Each timeline item is focusable but display-only (no action on Enter). |
 | `markdown()` | No | Passive text. Not focusable. |
@@ -1782,7 +1802,15 @@ Used in: `defineSite({ borders })`, `card({ border })`, `table({ border })`.
 
 #### ascii(text, options?): BannerConfig
 
-Creates an ASCII art banner for the `banner` field of `defineSite()`.
+Creates an ASCII art banner for the `banner` field of `defineSite()` or `defineConfig()`.
+Both forms are equivalent:
+```ts
+// Using the ascii() helper (recommended):
+banner: ascii("My Site", { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] })
+
+// Using a plain object (also valid):
+banner: { text: "My Site", font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] }
+```
 
 ```ts
 interface BannerConfig {

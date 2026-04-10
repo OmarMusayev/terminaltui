@@ -18,6 +18,7 @@ export {
   progressBar,
   badge,
   image,
+  text,
   ascii,
   markdown,
   gradient,

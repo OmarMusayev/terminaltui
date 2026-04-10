@@ -14,9 +14,13 @@ const OUT_DIR = join(ROOT, "dist", "demos");
 
 mkdirSync(OUT_DIR, { recursive: true });
 
+// Skip mac-monitor — it's a standalone npm package with local lib imports,
+// not a built-in demo bundled with terminaltui.
+const SKIP_DEMOS = ["mac-monitor"];
+
 const demos = readdirSync(DEMOS_DIR).filter(d => {
   const configPath = join(DEMOS_DIR, d, "site.config.ts");
-  return existsSync(configPath) && !d.includes(" ");
+  return existsSync(configPath) && !d.includes(" ") && !SKIP_DEMOS.includes(d);
 });
 
 console.log(`Bundling ${demos.length} demos...`);
