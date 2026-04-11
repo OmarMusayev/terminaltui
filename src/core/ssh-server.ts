@@ -162,11 +162,11 @@ export class SSHServer {
 
       client.on("session", (accept: any) => {
         const session = accept();
-        let ptyInfo: { cols: number; rows: number } = { cols: 80, rows: 24 };
+        let ptyInfo: { cols: number; rows: number; term: string } = { cols: 80, rows: 24, term: "" };
 
         session.on("pty", (accept: any, _reject: any, info: any) => {
-          ptyInfo = { cols: info.cols || 80, rows: info.rows || 24 };
-          console.log(`  \x1b[2m  pty: ${ptyInfo.cols}x${ptyInfo.rows} term=${info.term || "unknown"}\x1b[0m`);
+          ptyInfo = { cols: info.cols || 80, rows: info.rows || 24, term: info.term || "" };
+          console.log(`  \x1b[2m  pty: ${ptyInfo.cols}x${ptyInfo.rows} term=${ptyInfo.term || "unknown"}\x1b[0m`);
           accept?.();
         });
 
@@ -200,8 +200,8 @@ export class SSHServer {
     });
   }
 
-  private async startSession(sessionId: string, clientIp: string, channel: any, ptyInfo: { cols: number; rows: number }): Promise<void> {
-    const terminalIO = new SSHTerminalIO(channel, ptyInfo.cols, ptyInfo.rows);
+  private async startSession(sessionId: string, clientIp: string, channel: any, ptyInfo: { cols: number; rows: number; term: string }): Promise<void> {
+    const terminalIO = new SSHTerminalIO(channel, ptyInfo.cols, ptyInfo.rows, ptyInfo.term);
 
     const session: Session = {
       id: sessionId,
@@ -268,11 +268,13 @@ class SSHTerminalIO implements TerminalIO {
   private resizeCallbacks: Array<(cols: number, rows: number) => void> = [];
   private dataCallbacks: Array<(data: string) => void> = [];
   private disposed = false;
+  readonly termType: string;
 
-  constructor(channel: any, cols: number, rows: number) {
+  constructor(channel: any, cols: number, rows: number, term: string) {
     this.channel = channel;
     this._columns = cols;
     this._rows = rows;
+    this.termType = term;
 
     // Forward channel data to registered listeners
     channel.on("data", (data: Buffer) => {

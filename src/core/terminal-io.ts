@@ -19,6 +19,8 @@ export interface TerminalIO {
   removeDataListener(cb: (data: string) => void): void;
   /** Enable raw mode for keystroke capture (no-op if not applicable). */
   setRawMode(enabled: boolean): void;
+  /** The TERM type reported by the client (e.g. "xterm-256color", "xterm-kitty"). */
+  termType?: string;
   /** Clean up resources. */
   dispose(): void;
 }

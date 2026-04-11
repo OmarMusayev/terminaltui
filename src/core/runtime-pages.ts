@@ -36,6 +36,7 @@ interface RT {
   feedbackTimer: ReturnType<typeof setTimeout> | null;
   focusRects: FocusRect[];
   screenSize: ScreenSize;
+  isServeMode: boolean;
   render(): void;
 }
 
@@ -441,8 +442,10 @@ export function executeCommand(rt: RT, cmd: string): void {
     const action = rt.site.easterEggs.commands[trimmed];
     if (typeof action === "string") {
       showFeedback(rt, action);
-    } else {
+    } else if (!rt.isServeMode) {
       action();
+    } else {
+      showFeedback(rt, `Command disabled in serve mode`);
     }
     return;
   }

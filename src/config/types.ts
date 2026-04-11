@@ -30,11 +30,31 @@ export interface SiteConfig {
   // API routes — "METHOD /path" → handler
   api?: Record<string, ApiHandler>;
 
+  // SSH serve config
+  serve?: ServeConfig;
+
   // Lifecycle hooks
   onInit?: LifecycleHooks["onInit"];
   onExit?: LifecycleHooks["onExit"];
   onNavigate?: LifecycleHooks["onNavigate"];
   onError?: LifecycleHooks["onError"];
+}
+
+export interface ServeConfig {
+  /** SSH port (default: 2222). */
+  port?: number;
+  /** Host key path (default: .terminaltui/host_key, auto-generated). */
+  hostKeyPath?: string;
+  /** Max simultaneous SSH connections (default: 100). */
+  maxConnections?: number;
+  /** Color mode for SSH sessions: "auto" detects from client TERM (default: "auto"). */
+  colorMode?: "auto" | "truecolor" | "256" | "16";
+  /** Whether to open URLs in the server's browser (default: false in serve mode). */
+  openUrls?: boolean;
+  /** Authentication config. */
+  auth?: {
+    passwords?: Record<string, string>;
+  };
 }
 
 export interface Site {

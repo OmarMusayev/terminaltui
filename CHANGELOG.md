@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.5.1] - 2026-04-10
+
+### Fixed
+
+- **SSH color mode detects client TERM** — reads `term` from the SSH pty request (e.g. `xterm-kitty` → truecolor, `xterm-256color` → 256, `vt100` → 16) instead of hardcoding 256 for all SSH sessions
+- **openUrl() is a no-op in serve mode** — displays the URL as a notification instead of executing shell commands (`open`/`xdg-open`) on the server. Configurable via `serve.openUrls: true` in site config
+- **Color mode is per-runtime** — each SSH session maintains its own color mode. Multi-user sessions no longer clobber each other's colors via the global singleton
+- **Reset before erase-line prevents color bleed** — prepends `\x1b[0m` before each `\x1b[2K` so a missed reset on one line can't flood subsequent lines with background color
+- **Easter egg functions disabled in serve mode** — function-valued easter egg commands are skipped over SSH to prevent unintended server-side execution
+- **Primary button focus style is subtler** — focused primary buttons use bold border + bold accent text instead of a solid background fill that dominated the page
+
+### Added
+
+- **`serve` config in SiteConfig** — configure SSH hosting from `defineSite()` or `defineConfig()`: `port`, `hostKeyPath`, `maxConnections`, `colorMode`, `openUrls`, `auth`
+- **`termType` on TerminalIO interface** — exposes the client's TERM string for color capability detection
+- **`isServeMode` getter on TUIRuntime** — indicates whether the runtime is serving over SSH
+
+---
+
 ## [1.5.0] - 2026-04-10
 
 ### Added

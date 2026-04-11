@@ -24,6 +24,7 @@ interface RT {
   formRegistry: Map<string, FormBlock>;
   accordionState: Map<string, number>;
   tabState: Map<string, number>;
+  isServeMode: boolean;
   render(): void;
   getInputState(id: string, defaultValue?: any): any;
   showFeedback(msg: string): void;
@@ -95,15 +96,23 @@ export function handlePageSelect(rt: RT): void {
 
   // Links
   if (block.type === "link") {
-    rt.showFeedback(`Opening ${block.url}...`);
-    openUrl(block.url).catch(() => {});
+    if (rt.isServeMode) {
+      rt.showFeedback(`URL: ${block.url}`);
+    } else {
+      rt.showFeedback(`Opening ${block.url}...`);
+      openUrl(block.url).catch(() => {});
+    }
     return;
   }
 
   // Cards
   if (block.type === "card" && block.url) {
-    rt.showFeedback(`Opening ${block.url}...`);
-    openUrl(block.url).catch(() => {});
+    if (rt.isServeMode) {
+      rt.showFeedback(`URL: ${block.url}`);
+    } else {
+      rt.showFeedback(`Opening ${block.url}...`);
+      openUrl(block.url).catch(() => {});
+    }
     return;
   }
 
@@ -122,8 +131,12 @@ export function handlePageSelect(rt: RT): void {
 
   // Hero CTA
   if (block.type === "hero" && block.cta?.url) {
-    rt.showFeedback(`Opening ${block.cta.url}...`);
-    openUrl(block.cta.url).catch(() => {});
+    if (rt.isServeMode) {
+      rt.showFeedback(`URL: ${block.cta.url}`);
+    } else {
+      rt.showFeedback(`Opening ${block.cta.url}...`);
+      openUrl(block.cta.url).catch(() => {});
+    }
     return;
   }
 }

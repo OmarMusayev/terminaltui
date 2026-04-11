@@ -58,18 +58,18 @@ export function renderButton(
   const lines: string[] = [];
   const indent = "  ";
 
-  if (isFocused && style === "primary") {
-    // Focused primary: filled/inverse style
+  if (isFocused && (style === "primary" || style === "danger")) {
+    // Focused primary/danger: bold border + bold accent text (no solid background fill)
     lines.push(
-      indent + fgColor(btnColor) + chars.topLeft + chars.horizontal.repeat(btnInnerWidth) + chars.topRight + reset
+      indent + fgColor(btnColor) + bold + chars.topLeft + chars.horizontal.repeat(btnInnerWidth) + chars.topRight + reset
     );
     lines.push(
-      indent + fgColor(btnColor) + chars.vertical + reset +
-      bgColor(btnColor) + fgColor("#000000") + bold + " ".repeat(btnPadding) + label + " ".repeat(btnPadding) + reset +
-      fgColor(btnColor) + chars.vertical + reset
+      indent + fgColor(btnColor) + bold + chars.vertical + reset +
+      fgColor(btnColor) + bold + " ".repeat(btnPadding) + label + " ".repeat(btnPadding) + reset +
+      fgColor(btnColor) + bold + chars.vertical + reset
     );
     lines.push(
-      indent + fgColor(btnColor) + chars.bottomLeft + chars.horizontal.repeat(btnInnerWidth) + chars.bottomRight + reset
+      indent + fgColor(btnColor) + bold + chars.bottomLeft + chars.horizontal.repeat(btnInnerWidth) + chars.bottomRight + reset
     );
   } else if (isFocused) {
     // Focused non-primary: bright border

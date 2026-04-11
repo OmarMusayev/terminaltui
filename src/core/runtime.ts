@@ -15,7 +15,7 @@ import { setNavigateHandler } from "../routing/navigate.js";
 import { setRenderCallback } from "../state/reactive.js";
 import { loadEnv } from "../config/env-loader.js";
 import { themes, defaultTheme, type Theme, type BuiltinThemeName } from "../style/theme.js";
-import { fgColor, reset, bold, setColorMode } from "../style/colors.js";
+import { fgColor, reset, bold, setColorMode, getColorMode, type ColorMode } from "../style/colors.js";
 import type { BorderStyle } from "../style/borders.js";
 import { detectTerminal } from "../helpers/detect-terminal.js";
 import { InputManager, type KeyPress } from "./input.js";
@@ -80,6 +80,7 @@ export class TUIRuntime {
   /** @internal */ terminalIO: TerminalIO;
   /** @internal */ _screen: Screen;
   /** @internal */ _input: InputManager;
+  /** @internal */ _colorMode: ColorMode = "256";
 
   constructor(site: Site, terminalIO?: TerminalIO) {
     this.site = site.config;
@@ -102,6 +103,14 @@ export class TUIRuntime {
     this.focus.setItems(menuIds);
   }
 
+  /** Whether this runtime is serving over SSH (not a local terminal). */
+  get isServeMode(): boolean {
+    if (this.terminalIO instanceof ProcessTerminalIO) return false;
+    // Allow openUrls override from serve config
+    if (this.site.serve?.openUrls === true) return false;
+    return true;
+  }
+
   /** Get the current screen size from this runtime's terminal. */
   get screenSize(): ScreenSize {
     return this._screen.size;
@@ -110,6 +119,25 @@ export class TUIRuntime {
   /** Write output to this runtime's terminal. */
   writeOutput(data: string): void {
     this.terminalIO.write(data);
+  }
+
+  private detectRemoteColorMode(): import("../style/colors.js").ColorMode {
+    const term = (this.terminalIO.termType ?? "").toLowerCase();
+    // Known truecolor terminals
+    if (
+      term.includes("kitty") ||
+      term.includes("ghostty") ||
+      term.includes("wezterm") ||
+      term.includes("alacritty") ||
+      term.includes("truecolor") ||
+      term.includes("24bit")
+    ) return "truecolor";
+    // 256-color terminals
+    if (term.includes("256color")) return "256";
+    // Basic terminals
+    if (term && !term.includes("256") && !term.includes("color")) return "16";
+    // Safe default
+    return "256";
   }
 
   private resolveTheme(theme?: Theme | BuiltinThemeName): Theme {
@@ -129,13 +157,17 @@ export class TUIRuntime {
     }
 
     const caps = detectTerminal();
-    // SSH sessions: force 256-color since we can't detect the remote client's
-    // terminal capabilities (detectTerminal reads the server's process.env)
     if (this.terminalIO instanceof ProcessTerminalIO) {
-      setColorMode(caps.colorDepth);
+      this._colorMode = caps.colorDepth;
     } else {
-      setColorMode("256");
+      const configMode = this.site.serve?.colorMode;
+      if (configMode && configMode !== "auto") {
+        this._colorMode = configMode;
+      } else {
+        this._colorMode = this.detectRemoteColorMode();
+      }
     }
+    setColorMode(this._colorMode);
 
     setRenderCallback(() => this.render());
     let renderTimer: ReturnType<typeof setTimeout> | null = null;
@@ -250,7 +282,12 @@ export class TUIRuntime {
   }
 
   /** @internal */ handleEditMode(key: KeyPress): void { handleEditMode(this as any, key); }
-  /** @internal */ render(): void { renderMain(this as any); }
+  /** @internal */ render(): void {
+    const prev = getColorMode();
+    setColorMode(this._colorMode);
+    renderMain(this as any);
+    setColorMode(prev);
+  }
   /** @internal */ navigateToPage(pageId: string, params?: RouteParams): void { _navigateToPage(this as any, pageId, params); }
   /** @internal */ enterPage(): void { _enterPage(this as any); }
   /** @internal */ getCurrentPage(): PageConfig | undefined { return _getCurrentPage(this as any); }

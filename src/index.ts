@@ -115,6 +115,7 @@ export type {
   MenuBlock,
   MenuBlockItem,
   ChatBlock,
+  ServeConfig,
 } from "./config/types.js";
 
 // Theme

@@ -46,7 +46,7 @@ export function createRenderContext(rt: RT, width: number): RenderContext {
 export function writeToTerminal(rt: RT, lines: string[], columns: number, rows: number): void {
   let output = "\x1b[H";
   for (let i = 0; i < rows; i++) {
-    output += "\x1b[2K";
+    output += "\x1b[0m\x1b[2K";
     if (i < lines.length) {
       const line = lines[i];
       if (stringWidth(line) > columns) output += truncateLine(line, columns);
