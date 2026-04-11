@@ -42,6 +42,9 @@ async function main() {
     case "validate":
       await runValidate();
       break;
+    case "serve":
+      await runServeCommand();
+      break;
     case "help":
 
     case "--help":
@@ -307,6 +310,16 @@ async function runMigrate() {
   }
 }
 
+async function runServeCommand() {
+  try {
+    const { runServe } = await import("./serve.js");
+    await runServe(args);
+  } catch (err: any) {
+    console.error("Serve error:", err.message);
+    process.exit(1);
+  }
+}
+
 async function runConvert() {
   const { copyFileSync } = await import("node:fs");
 
@@ -405,6 +418,7 @@ function printHelp() {
     migrate      Convert single-file site.config.ts to file-based routing (config.ts + pages/)
     validate     Check file-based routing project for common issues
     dev          Start development preview (auto-starts API server if routes defined)
+    serve        Host your TUI over SSH (anyone can connect with ssh)
     demo [name]  Run a built-in demo (restaurant, dashboard, band, coffee-shop, conference, etc.)
     build        Bundle for npm publish (includes API routes)
     test         Run automated tests on site in current directory
@@ -416,9 +430,15 @@ function printHelp() {
     --sizes      Test at multiple widths: 40, 80, 120, 200
     --verbose    Show screen output during tests
 
+  Serve options:
+    --port <N>              SSH port (default: 2222)
+    --host-key <path>       Host key path (default: .terminaltui/host_key)
+    --max-connections <N>   Max simultaneous connections (default: 100)
+
   Examples:
     terminaltui init portfolio
     terminaltui dev
+    terminaltui serve --port 2222
     terminaltui create
     terminaltui convert
     terminaltui build

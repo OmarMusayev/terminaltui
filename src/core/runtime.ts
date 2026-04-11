@@ -18,8 +18,8 @@ import { themes, defaultTheme, type Theme, type BuiltinThemeName } from "../styl
 import { fgColor, reset, bold, setColorMode } from "../style/colors.js";
 import type { BorderStyle } from "../style/borders.js";
 import { detectTerminal } from "../helpers/detect-terminal.js";
-import { input, type KeyPress } from "./input.js";
-import { screen, getScreenSize } from "./screen.js";
+import { InputManager, type KeyPress } from "./input.js";
+import { Screen, type ScreenSize } from "./screen.js";
 import { Router } from "../navigation/router.js";
 import { FocusManager } from "../navigation/focus.js";
 import type { FocusRect } from "../layout/types.js";
@@ -35,6 +35,8 @@ import { stringWidth } from "../components/base.js";
 import { getInputDefault } from "../components/Form.js";
 import type { RenderContext } from "../components/base.js";
 import type { FocusItem, FormResult } from "./runtime-types.js";
+import type { TerminalIO } from "./terminal-io.js";
+import { ProcessTerminalIO } from "./terminal-io.js";
 
 // Delegated modules
 import { handleCommandMode, handleNavigationMode, handleEditMode } from "./runtime-input.js";
@@ -75,13 +77,21 @@ export class TUIRuntime {
   /** @internal */ dynamicCache: Map<string, ContentBlock[]> = new Map();
   /** @internal */ apiServer: ApiServer | null = null;
   /** @internal */ focusRects: FocusRect[] = [];
+  /** @internal */ terminalIO: TerminalIO;
+  /** @internal */ _screen: Screen;
+  /** @internal */ _input: InputManager;
 
-  constructor(site: Site) {
+  constructor(site: Site, terminalIO?: TerminalIO) {
     this.site = site.config;
     this.theme = this.resolveTheme(site.config.theme);
     this.borderStyle = site.config.borders ?? "rounded";
     this.router = new Router();
     this.focus = new FocusManager();
+    this.terminalIO = terminalIO ?? new ProcessTerminalIO();
+    this._screen = new Screen();
+    this._screen.attachIO(this.terminalIO);
+    this._input = new InputManager();
+    this._input.attachIO(this.terminalIO);
 
     const allIds = site.config.pages.map(p => p.id);
     this.router.registerPages(allIds);
@@ -90,6 +100,16 @@ export class TUIRuntime {
       .filter(p => typeof p.title === "string" && !(p as any)._hidden)
       .map(p => p.id);
     this.focus.setItems(menuIds);
+  }
+
+  /** Get the current screen size from this runtime's terminal. */
+  get screenSize(): ScreenSize {
+    return this._screen.size;
+  }
+
+  /** Write output to this runtime's terminal. */
+  writeOutput(data: string): void {
+    this.terminalIO.write(data);
   }
 
   private resolveTheme(theme?: Theme | BuiltinThemeName): Theme {
@@ -109,7 +129,13 @@ export class TUIRuntime {
     }
 
     const caps = detectTerminal();
-    setColorMode(caps.colorDepth);
+    // SSH sessions: force 256-color since we can't detect the remote client's
+    // terminal capabilities (detectTerminal reads the server's process.env)
+    if (this.terminalIO instanceof ProcessTerminalIO) {
+      setColorMode(caps.colorDepth);
+    } else {
+      setColorMode("256");
+    }
 
     setRenderCallback(() => this.render());
     let renderTimer: ReturnType<typeof setTimeout> | null = null;
@@ -129,9 +155,9 @@ export class TUIRuntime {
     }
 
     this.setupTerminal();
-    screen.on("resize", () => this.render());
-    input.on("keypress", (key: KeyPress) => this.handleKey(key));
-    input.start();
+    this._screen.on("resize", () => this.render());
+    this._input.on("keypress", (key: KeyPress) => this.handleKey(key));
+    this._input.start();
 
     this.notificationTimer = setInterval(() => {
       if (this.notifications.prune()) this.render();
@@ -146,18 +172,22 @@ export class TUIRuntime {
   }
 
   private setupTerminal(): void {
-    process.stdout.write("\x1b[?1049h");
-    process.stdout.write("\x1b[?25l");
-    process.stdout.write("\x1b[2J");
-    process.stdout.write("\x1b[H");
-    const cleanup = () => this.cleanup();
-    process.on("SIGINT", cleanup);
-    process.on("SIGTERM", cleanup);
-    process.on("uncaughtException", (err) => { this.cleanup(); console.error(err); process.exit(1); });
+    this.terminalIO.write("\x1b[?1049h");
+    this.terminalIO.write("\x1b[?25l");
+    this.terminalIO.write("\x1b[2J");
+    this.terminalIO.write("\x1b[H");
+    // Only attach process-level signal handlers for local terminal sessions.
+    // SSH sessions are cleaned up by the SSH server on channel close.
+    if (this.terminalIO instanceof ProcessTerminalIO) {
+      const cleanup = () => this.cleanup();
+      process.on("SIGINT", cleanup);
+      process.on("SIGTERM", cleanup);
+      process.on("uncaughtException", (err) => { this.cleanup(); console.error(err); process.exit(1); });
+    }
   }
 
-  private cleanup(): void {
-    input.stop();
+  cleanup(): void {
+    this._input.stop();
     animationEngine.stop();
     this.asyncManager.cleanup();
     if (this.bootTimer) clearInterval(this.bootTimer);
@@ -166,9 +196,10 @@ export class TUIRuntime {
     destroyAllFetchers();
     if (this.apiServer) { this.apiServer.stop(); setApiBaseUrl(null); }
     delete (globalThis as any).__terminaltui_render_callback__;
-    process.stdout.write("\x1b[?25h");
-    process.stdout.write("\x1b[?1049l");
-    process.stdout.write("\x1b[0m");
+    this.terminalIO.write("\x1b[?25h");
+    this.terminalIO.write("\x1b[?1049l");
+    this.terminalIO.write("\x1b[0m");
+    this.terminalIO.dispose();
   }
 
   async stop(): Promise<void> {
@@ -178,17 +209,20 @@ export class TUIRuntime {
     setRenderCallback(null);
     setNavigateHandler(null);
     if (this.site.animations?.exitMessage) {
-      const { columns, rows } = getScreenSize();
-      process.stdout.write("\x1b[2J\x1b[H");
+      const { columns, rows } = this.screenSize;
+      this.terminalIO.write("\x1b[2J\x1b[H");
       const msg = this.site.animations.exitMessage;
       const y = Math.floor(rows / 2);
       const x = Math.max(0, Math.floor((columns - stringWidth(msg)) / 2));
-      process.stdout.write(`\x1b[${y};${x}H`);
-      process.stdout.write(fgColor(this.theme.accent) + bold + msg + reset);
+      this.terminalIO.write(`\x1b[${y};${x}H`);
+      this.terminalIO.write(fgColor(this.theme.accent) + bold + msg + reset);
       await new Promise(r => setTimeout(r, 800));
     }
     this.cleanup();
-    process.exit(0);
+    // Only exit the process for local terminal sessions
+    if (this.terminalIO instanceof ProcessTerminalIO) {
+      process.exit(0);
+    }
   }
 
   private runBootAnimation(): void {
@@ -298,6 +332,7 @@ export async function runFileBasedSite(opts: {
   pagesDir: string;
   apiDir?: string;
   outDir: string;
+  terminalIO?: TerminalIO;
 }): Promise<void> {
   const { FileRouter } = await import("../router/resolver.js");
 
@@ -347,7 +382,7 @@ export async function runFileBasedSite(opts: {
 
   // Store the menu items from the router on the runtime for menu rendering
   const site: Site = { config: siteConfig };
-  const runtime = new TUIRuntime(site);
+  const runtime = new TUIRuntime(site, opts.terminalIO);
 
   // Attach file router for menu({ source: "auto" }) resolution
   (runtime as any)._fileRouter = router;

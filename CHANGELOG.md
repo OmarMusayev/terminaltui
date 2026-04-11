@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.5.0] - 2026-04-10
+
+### Added
+
+- **SSH Hosting (`terminaltui serve`)** — host any TUI app over SSH so users connect with `ssh host -p PORT`, zero install required. Each connection gets an independent session with full interactivity (navigation, forms, resize).
+  - `--port <N>` flag (default: 2222)
+  - `--host-key <path>` flag (auto-generates Ed25519 key on first run)
+  - `--max-connections <N>` flag (default: 100)
+  - Per-session `TerminalIO` abstraction — SSH channel used as I/O target
+  - Session logging (connect/disconnect with client IP and active count)
+- **`TerminalIO` interface** — abstracts terminal I/O away from `process.stdin`/`process.stdout`, enabling pluggable I/O targets (SSH channels, PTYs, custom streams)
+- **`ProcessTerminalIO`** — default implementation wrapping `process.stdin`/`process.stdout` for local `dev` usage
+- **`SSHServer` and `ServeOptions` exports** — programmatic API for embedding SSH hosting in custom setups
+
+### Changed
+
+- **`TUIRuntime` accepts optional `TerminalIO`** — constructor now takes an optional second argument for custom I/O. Defaults to `ProcessTerminalIO` for full backward compatibility.
+- **`InputManager` and `Screen` use `TerminalIO`** — no longer hardcoded to `process.stdin`/`process.stdout`. Both accept a `TerminalIO` via `attachIO()`.
+- **`writeToTerminal` uses `\r\n`** — fixes rendering over SSH where raw `\n` doesn't return cursor to column 1
+- **SSH sessions use 256-color mode** — since the server can't detect the remote client's terminal capabilities, SSH sessions default to 256-color (safe for all terminals)
+- **Process signals scoped to local sessions** — `SIGINT`/`SIGTERM` handlers and `process.exit()` only attach for `ProcessTerminalIO`, preventing a single SSH disconnect from killing the server
+- **`ssh2` added as optional dependency** — only required for `terminaltui serve`. The `dev` command works without it.
+
+---
+
 ## [1.4.0] - 2026-04-09
 
 ### Fixed

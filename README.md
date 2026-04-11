@@ -207,6 +207,7 @@ npx terminaltui demo startup
 ```bash
 terminaltui init [template]    # scaffold a new project
 terminaltui dev [path]         # compile and run (auto-detects project type)
+terminaltui serve [path]       # host your TUI over SSH
 terminaltui build              # bundle for npm publish
 terminaltui migrate            # convert site.config.ts to file-based routing
 terminaltui demo [name]        # run a built-in demo
@@ -215,6 +216,30 @@ terminaltui convert            # AI-assisted website conversion
 terminaltui test               # headless emulator tests
 terminaltui art                # manage ASCII art assets
 ```
+
+---
+
+## SSH Hosting
+
+Host any TUI app over SSH -- anyone can connect with `ssh` and see it rendered in their terminal, zero install required. Think `ssh chat.shazow.net` but for any terminaltui project.
+
+```bash
+terminaltui serve --port 2222
+```
+
+Then from any machine:
+
+```bash
+ssh localhost -p 2222
+```
+
+Each connection gets an independent session. Arrow keys, forms, navigation -- everything works.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--port <N>` | 2222 | SSH port |
+| `--host-key <path>` | `.terminaltui/host_key` | Host key path (auto-generated) |
+| `--max-connections <N>` | 100 | Max simultaneous connections |
 
 ---
 
@@ -251,7 +276,7 @@ The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the a
 ## Tech Stack
 
 - **TypeScript** -- strict mode, zero `any` in public API
-- **1 dependency** (esbuild) -- everything else is Node built-ins
+- **1 required dependency** (esbuild) -- ssh2 is optional for `serve`
 - **2,185+ tests** across unit, integration, emulator, and demo suites
 - **Apple Terminal compatible** -- auto-detects and uses 256-color fallback
 

@@ -14,6 +14,7 @@ interface RT {
   feedbackMessage: string;
   inputMode: any;
   notifications: any;
+  writeOutput(data: string): void;
 }
 
 /** ANSI-safe line truncation to prevent terminal wrapping. */
@@ -51,7 +52,7 @@ export function writeToTerminal(rt: RT, lines: string[], columns: number, rows: 
       if (stringWidth(line) > columns) output += truncateLine(line, columns);
       else output += line;
     }
-    if (i < rows - 1) output += "\n";
+    if (i < rows - 1) output += "\r\n";
   }
 
   if (rt.commandMode) {
@@ -75,5 +76,5 @@ export function writeToTerminal(rt: RT, lines: string[], columns: number, rows: 
   }
 
   output += rt.inputMode.isEditing ? "\x1b[?25h" : "\x1b[?25l";
-  process.stdout.write(output);
+  rt.writeOutput(output);
 }

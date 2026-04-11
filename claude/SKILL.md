@@ -7,7 +7,7 @@ description: Framework for building TUI websites and applications. Use when a us
 
 ## What It Is
 
-terminaltui is a TypeScript framework that turns any website into a fully interactive terminal (TUI) experience. Users define their site in a single `site.config.ts` file using a declarative API of builder functions — pages, content blocks, input components, themes, ASCII art, animations, state management, and data fetching. The result is an interactive terminal app navigable by keyboard that can be published to npm so anyone can run it with `npx my-site`.
+terminaltui is a TypeScript framework that turns any website into a fully interactive terminal (TUI) experience. Users define their site in a single `site.config.ts` file using a declarative API of builder functions — pages, content blocks, input components, themes, ASCII art, animations, state management, and data fetching. The result is an interactive terminal app navigable by keyboard that can be published to npm so anyone can run it with `npx my-site`, or hosted over SSH so anyone can connect with `ssh host -p PORT`.
 
 ## Quick Start
 
@@ -17,6 +17,9 @@ npx terminaltui init [template]
 
 # Start dev preview
 npx terminaltui dev
+
+# Host over SSH (anyone connects with ssh)
+npx terminaltui serve --port 2222
 
 # Bundle for npm publish
 npx terminaltui build
@@ -2142,11 +2145,28 @@ defineSite({
 ```bash
 terminaltui init [template]              # Scaffold project (templates: portfolio, restaurant, saas, blog, band)
 terminaltui dev [path]                   # Dev preview with hot reload
+terminaltui serve [path]                 # Host TUI over SSH (anyone connects with ssh)
 terminaltui build                        # Bundle for npm publish
 terminaltui test [--cols=N] [--sizes] [--verbose]  # Run tests
 terminaltui art list|preview|create|validate       # Manage ASCII art assets
 terminaltui validate                               # Check for common issues (duplicate menus, missing pages, etc.)
 ```
+
+#### SSH Hosting (`terminaltui serve`)
+
+Host any TUI app over SSH so users connect with `ssh host -p PORT` — zero install required.
+
+```bash
+terminaltui serve --port 2222
+# Then: ssh localhost -p 2222
+```
+
+Flags:
+- `--port <N>` — SSH port (default: 2222)
+- `--host-key <path>` — host key path (default: `.terminaltui/host_key`, auto-generated)
+- `--max-connections <N>` — max simultaneous connections (default: 100)
+
+Each SSH connection gets an independent TUI session with its own state. Requires `ssh2` (`npm install ssh2`).
 
 ---
 

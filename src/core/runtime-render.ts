@@ -7,7 +7,7 @@ import { fgColor, reset, bold, dim, italic } from "../style/colors.js";
 import { gradientLines } from "../style/gradient.js";
 import { renderBanner, centerBanner } from "../ascii/banner.js";
 import { getSpinnerFrame } from "../animation/spinner.js";
-import { getScreenSize } from "./screen.js";
+import type { ScreenSize } from "./screen.js";
 import { renderMenu, type MenuItem } from "../components/Menu.js";
 import { pad, wrapText, type RenderContext } from "../components/base.js";
 import { renderFormResult } from "../components/Form.js";
@@ -49,6 +49,7 @@ interface RT {
   collectFocusItems(blocks: ContentBlock[]): FocusItem[];
   registerForms(blocks: ContentBlock[]): void;
   currentFocusedBlock?: ContentBlock;
+  screenSize: ScreenSize;
   render(): void;
 }
 
@@ -66,9 +67,9 @@ export function renderMain(rt: RT): void {
       rt.registerForms(content);
 
       // Recompute spatial focus positions for navigation
-      const screenSize = getScreenSize();
-      const contentW = Math.min(120, screenSize.columns - 2);
-      const availH = Math.max(10, screenSize.rows - 8);
+      const ss = rt.screenSize;
+      const contentW = Math.min(120, ss.columns - 2);
+      const availH = Math.max(10, ss.rows - 8);
       rt.focusRects = computeFocusPositions(
         content, contentW, availH,
         (block: DynamicBlock) => resolveDynamic(rt as any, block),
@@ -76,7 +77,7 @@ export function renderMain(rt: RT): void {
     }
   }
 
-  const { columns, rows } = getScreenSize();
+  const { columns, rows } = rt.screenSize;
   const lines: string[] = [];
   const ctx = createRenderContext(rt as any, columns);
 

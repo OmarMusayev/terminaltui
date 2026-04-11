@@ -216,6 +216,14 @@ export type { ArtPack, SceneData, IconData, PatternData, AssetInfo } from "./art
 // Runtime
 export { TUIRuntime, runSite, runFileBasedSite } from "./core/runtime.js";
 
+// Terminal I/O abstraction
+export { ProcessTerminalIO } from "./core/terminal-io.js";
+export type { TerminalIO } from "./core/terminal-io.js";
+
+// SSH Server
+export { SSHServer } from "./core/ssh-server.js";
+export type { ServeOptions } from "./core/ssh-server.js";
+
 // ─── State System ─────────────────────────────────────────
 export { createState } from "./state/reactive.js";
 export { computed } from "./state/computed.js";

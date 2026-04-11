@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import type { TerminalIO } from "./terminal-io.js";
 
 export interface ScreenSize {
   columns: number;
@@ -8,8 +9,9 @@ export interface ScreenSize {
 // Use globalThis to ensure singleton across esbuild re-bundles
 const SCREEN_KEY = "__terminaltui_screen__";
 
-class Screen extends EventEmitter {
+export class Screen extends EventEmitter {
   private _size: ScreenSize;
+  private io: TerminalIO | null = null;
 
   constructor() {
     super();
@@ -28,7 +30,17 @@ class Screen extends EventEmitter {
     return this._size.rows;
   }
 
-  /** Attach resize listeners. Only call once. */
+  /** Bind this Screen to a TerminalIO source for dimensions and resize events. */
+  attachIO(io: TerminalIO): void {
+    this.io = io;
+    this._size = this.measure();
+    io.onResize((cols, rows) => {
+      this._size = { columns: cols, rows };
+      this.emit("resize", this._size);
+    });
+  }
+
+  /** Attach resize listeners using process.stdout (legacy path). Only call once. */
   attachListeners(): void {
     const onResize = () => {
       this._size = this.measure();
@@ -41,6 +53,12 @@ class Screen extends EventEmitter {
   }
 
   private measure(): ScreenSize {
+    if (this.io) {
+      return {
+        columns: this.io.columns || 80,
+        rows: this.io.rows || 24,
+      };
+    }
     return {
       columns: process.stdout.columns || 80,
       rows: process.stdout.rows || 24,

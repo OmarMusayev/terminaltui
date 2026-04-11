@@ -246,7 +246,8 @@ Create `tui/package.json`:
     "terminaltui": "latest"
   },
   "scripts": {
-    "dev": "npx terminaltui dev"
+    "dev": "npx terminaltui dev",
+    "serve": "npx terminaltui serve --port 2222"
   }
 }
 ```

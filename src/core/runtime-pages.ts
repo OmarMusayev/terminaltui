@@ -14,7 +14,7 @@ import { resolveDynamic } from "./runtime-render.js";
 import type { FocusItem } from "./runtime-types.js";
 import type { FocusRect } from "../layout/types.js";
 import { computeFocusPositions } from "../layout/flex-engine.js";
-import { getScreenSize } from "./screen.js";
+import type { ScreenSize } from "./screen.js";
 
 // Minimal runtime interface for page navigation functions
 interface RT {
@@ -35,6 +35,7 @@ interface RT {
   feedbackMessage: string;
   feedbackTimer: ReturnType<typeof setTimeout> | null;
   focusRects: FocusRect[];
+  screenSize: ScreenSize;
   render(): void;
 }
 
@@ -192,9 +193,9 @@ export function initializePageContent(rt: RT, content: ContentBlock[]): void {
 
 /** Recompute spatial focus positions from content blocks. */
 function rebuildFocusPositions(rt: RT, content: ContentBlock[]): void {
-  const { columns } = getScreenSize();
+  const { columns } = rt.screenSize;
   const contentWidth = Math.min(120, columns - 2);
-  const { rows: termRows } = getScreenSize();
+  const { rows: termRows } = rt.screenSize;
   const availHeight = Math.max(10, termRows - 8);
 
   rt.focusRects = computeFocusPositions(

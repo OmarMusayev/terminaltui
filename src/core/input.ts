@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import type { TerminalIO } from "./terminal-io.js";
 
 export interface KeyPress {
   name: string;
@@ -11,31 +12,46 @@ export interface KeyPress {
 
 export type KeyHandler = (key: KeyPress) => void;
 
-class InputManager extends EventEmitter {
+export class InputManager extends EventEmitter {
   private started = false;
-  private rawModeWas: boolean | undefined;
+  private io: TerminalIO | null = null;
+
+  /** Bind this InputManager to a TerminalIO source. */
+  attachIO(io: TerminalIO): void {
+    this.io = io;
+  }
 
   start(): void {
     if (this.started) return;
     this.started = true;
 
-    if (process.stdin.isTTY) {
-      this.rawModeWas = process.stdin.isRaw;
-      process.stdin.setRawMode(true);
+    if (this.io) {
+      this.io.setRawMode(true);
+      this.io.onData(this.handleData);
+    } else {
+      // Legacy fallback: direct process.stdin (should not happen in normal flow)
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(true);
+      }
+      process.stdin.resume();
+      process.stdin.setEncoding("utf-8");
+      process.stdin.on("data", this.handleData);
     }
-    process.stdin.resume();
-    process.stdin.setEncoding("utf-8");
-    process.stdin.on("data", this.handleData);
   }
 
   stop(): void {
     if (!this.started) return;
     this.started = false;
-    process.stdin.removeListener("data", this.handleData);
-    if (process.stdin.isTTY && this.rawModeWas !== undefined) {
-      process.stdin.setRawMode(this.rawModeWas);
+
+    if (this.io) {
+      this.io.removeDataListener(this.handleData);
+    } else {
+      process.stdin.removeListener("data", this.handleData);
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
+      }
+      process.stdin.pause();
     }
-    process.stdin.pause();
   }
 
   private handleData = (data: string): void => {
@@ -103,4 +119,5 @@ function makeKey(
   return { name, char, ctrl, meta, shift, sequence };
 }
 
+// Default singleton for backward compatibility (used when no TerminalIO is injected)
 export const input = new InputManager();

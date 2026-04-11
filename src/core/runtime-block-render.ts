@@ -44,7 +44,7 @@ import { renderRows } from "../components/layout/Rows.js";
 import { renderSplit } from "../components/layout/Split.js";
 import { renderGrid } from "../components/layout/Grid.js";
 import { renderPanel } from "../components/layout/Panel.js";
-import { getScreenSize } from "./screen.js";
+import type { ScreenSize } from "./screen.js";
 
 interface RT {
   galleryState: Map<string, number>;
@@ -54,6 +54,7 @@ interface RT {
   buttonLoading: Map<string, boolean>;
   dynamicCache: Map<string, ContentBlock[]>;
   currentFocusedBlock?: ContentBlock;
+  screenSize: ScreenSize;
   getInputState(id: string, defaultValue?: any): any;
 }
 
@@ -210,7 +211,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
       return renderContentBlocks(rt, dynamicBlocks, ctx);
     }
     case "columns": {
-      const { rows: termRows } = getScreenSize();
+      const { rows: termRows } = rt.screenSize;
       const availHeight = Math.max(10, termRows - 8);
       const colsBlock = block as ColumnsBlock;
       const activeIdx = findActivePanelIndex(colsBlock.panels.map(p => p.content), rt.currentFocusedBlock);
@@ -221,7 +222,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
       });
     }
     case "rows": {
-      const { rows: termRows } = getScreenSize();
+      const { rows: termRows } = rt.screenSize;
       const availHeight = Math.max(10, termRows - 8);
       const rowsBlk = block as RowsBlock;
       const activeIdx = findActivePanelIndex(rowsBlk.panels.map(p => p.content), rt.currentFocusedBlock);
@@ -232,7 +233,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
       });
     }
     case "split": {
-      const { rows: termRows } = getScreenSize();
+      const { rows: termRows } = rt.screenSize;
       const availHeight = Math.max(10, termRows - 8);
       const splitBlk = block as SplitBlock;
       const activeIdx = findActivePanelIndex([splitBlk.config.first, splitBlk.config.second], rt.currentFocusedBlock);
@@ -243,7 +244,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
       });
     }
     case "grid": {
-      const { rows: termRows } = getScreenSize();
+      const { rows: termRows } = rt.screenSize;
       const availHeight = Math.max(10, termRows - 8);
       const gridBlk = block as GridBlock;
       const activeIdx = findActivePanelIndex(gridBlk.config.items.map(i => i.content), rt.currentFocusedBlock);
@@ -254,7 +255,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
       });
     }
     case "panel": {
-      const { rows: termRows } = getScreenSize();
+      const { rows: termRows } = rt.screenSize;
       const availHeight = Math.max(10, termRows - 8);
       return renderPanel((block as PanelBlock).config, ctx, {
         width: ctx.width,
@@ -350,7 +351,7 @@ function renderBoxBlock(rt: RT, block: BoxBlock, ctx: RenderContext): string[] {
   const { config } = block;
   const direction = config.direction ?? "column";
   const gap = config.gap ?? 0;
-  const { rows: termRows } = getScreenSize();
+  const { rows: termRows } = rt.screenSize;
   const availHeight = Math.max(10, termRows - 8);
 
   if (direction === "row") {
@@ -395,7 +396,7 @@ function renderRowBlock(rt: RT, block: RowBlock, ctx: RenderContext): string[] {
   const { cols, gap = 1 } = block;
   if (cols.length === 0) return [];
 
-  const { rows: termRows, columns: termCols } = getScreenSize();
+  const { rows: termRows, columns: termCols } = rt.screenSize;
   const availHeight = Math.max(10, termRows - 8);
 
   // Resolve effective spans based on current terminal breakpoint
