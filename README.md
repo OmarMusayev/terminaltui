@@ -2,7 +2,7 @@
 
 ![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2185%2B-brightgreen)
 
-Build interactive terminal websites and apps. Write pages, get a TUI, distribute via `npx`.
+Build interactive terminal websites and apps. Write pages, get a TUI, distribute via `npx` or `ssh`.
 
 ![terminaltui demo](assets/recordings/hero.gif)
 
