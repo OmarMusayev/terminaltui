@@ -10,8 +10,8 @@
 import type {
   Site, SiteConfig, PageConfig, ContentBlock, DynamicBlock, FormBlock,
 } from "../config/types.js";
-import type { RouteParams } from "../routing/types.js";
-import { setNavigateHandler } from "../routing/navigate.js";
+import type { RouteParams } from "../router/types.js";
+import { setNavigateHandler } from "../router/navigate.js";
 import { setRenderCallback } from "../state/reactive.js";
 import { loadEnv } from "../config/env-loader.js";
 import { themes, defaultTheme, type Theme, type BuiltinThemeName } from "../style/theme.js";
@@ -353,11 +353,6 @@ export class TUIRuntime {
     const state = this.inputStates.get(fieldId);
     if (state) { state.value = ""; state.cursorPos = 0; state.error = null; this.render(); }
   }
-}
-
-export async function runSite(site: Site): Promise<void> {
-  const runtime = new TUIRuntime(site);
-  await runtime.start();
 }
 
 /**

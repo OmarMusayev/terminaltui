@@ -3,7 +3,7 @@
 Layout components divide the terminal into panels -- side-by-side, stacked, or in grids. Each panel is an independent area with its own border, title, and content clipping.
 
 ```ts
-import { columns, rows, split, grid, panel, box, row, col, container } from "terminaltui";
+import { columns, rows, grid, panel, row, col, container } from "terminaltui";
 ```
 
 ---
@@ -80,29 +80,6 @@ rows([
 
 ---
 
-## split(config)
-
-Two panels with a divider.
-
-```ts
-split({
-  direction: "horizontal",  // "horizontal" = left|right, "vertical" = top|bottom
-  ratio: 30,                // percentage for first panel (default: 50)
-  border: true,             // show divider line
-  first: [
-    markdown("## File List"),
-    card({ title: "index.ts" }),
-    card({ title: "app.ts" }),
-  ],
-  second: [
-    markdown("## Preview"),
-    markdown("Content of selected file..."),
-  ],
-})
-```
-
----
-
 ## grid(config)
 
 N*M grid of panels.
@@ -121,25 +98,6 @@ grid({
 ```
 
 Rows are auto-calculated from `Math.ceil(items.length / cols)`.
-
----
-
-## box(config)
-
-Flexbox-like layout primitive. Lower-level than columns/rows/split.
-
-```ts
-box({
-  direction: "row",          // "column" (default) or "row"
-  gap: 1,                    // space between children
-  padding: 1,                // inner padding
-  width: "60%",              // optional size constraint
-  children: [
-    card({ title: "A" }),
-    card({ title: "B" }),
-  ],
-})
-```
 
 ---
 
@@ -238,12 +196,11 @@ The 12-column grid system uses responsive breakpoints (`xs`, `sm`, `md`, `lg`) f
 |----------|--------|
 | Dashboard with sidebar | `columns()` or `row()` + `col()` |
 | Log viewer with controls | `rows()` |
-| Editor with preview | `split({ direction: "horizontal" })` |
+| Editor with preview | `columns([panel({ width: "30%" }), panel({ width: "70%" })])` |
 | Monitoring metrics | `grid()` |
 | Responsive card grid | `row()` with `xs:12, sm:6, lg:4` |
 | Centered narrow content | `container({ maxWidth: 80 })` |
 | Complex dashboard | Nested `columns()` + `rows()` or `row()` + `col()` |
-| Custom flexible layout | `box()` |
 
 For simple content pages, stick with the default vertical scroll. Layouts are best for dashboards, monitoring, and tool UIs where spatial organization matters.
 
@@ -255,14 +212,14 @@ Every demo uses layouts where side-by-side content improves the experience:
 
 | Demo | Layouts Used | Pages |
 |------|-------------|-------|
-| server-dashboard | columns, rows, split, grid | All 4 pages -- the layout showcase |
-| developer-portfolio | split, grid | About (text + skills), Projects, Experience, Writing, Links |
-| restaurant | split, columns | Menu (food | cocktails), Wine, Hours (table | location) |
-| startup | grid, columns | Home (features grid), Features (2-col grid), Pricing (3 tiers), Links |
-| conference | split, grid, columns | Home, Schedule (Day 1 | Day 2), Speakers, Venue, Sponsors |
-| coffee-shop | columns, grid, split | Menu (espresso | filter), Beans, Hours, Connect |
-| band | grid, split | Discography, Shows, About (members grid) |
-| freelancer | grid, columns, split | Services, Work, Testimonials, Contact |
-| dashboard | columns, split | Dashboard home (status | posts), Post detail, New Post |
+| server-dashboard | columns, rows, grid | All 4 pages — the layout showcase |
+| developer-portfolio | columns, grid, row/col | About (text + skills), Projects, Experience, Writing, Links |
+| restaurant | columns | Menu (food / cocktails), Wine, Hours (table / location) |
+| startup | grid, row/col | Home (features grid), Features (2-col grid), Pricing (3 tiers), Links |
+| conference | columns, grid | Home, Schedule (Day 1 / Day 2), Speakers, Venue, Sponsors |
+| coffee-shop | columns, grid | Menu (espresso / filter), Beans, Hours, Connect |
+| band | grid, columns | Discography, Shows, About (members grid) |
+| freelancer | grid, columns | Services, Work, Testimonials, Contact |
+| dashboard | columns | Dashboard home (status / posts), Post detail, New Post |
 
-Run `npx tsx run-demo.ts server-dashboard` for the most comprehensive layout example.
+Run `npx terminaltui demo server-dashboard` for the most comprehensive layout example.

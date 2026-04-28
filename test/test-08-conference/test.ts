@@ -52,7 +52,7 @@ const conferenceConfig = {
   theme: "cyberpunk" as const,
   animations: {
     boot: true,
-    transitions: "wipe" as const,
+    
   },
   pages: [
     page("home", {

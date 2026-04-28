@@ -18,9 +18,6 @@ async function main() {
     case "build":
       await runBuild();
       break;
-    case "preview":
-      await runPreview();
-      break;
     case "test":
       await runTestCommand();
       break;
@@ -35,9 +32,6 @@ async function main() {
       break;
     case "demo":
       await runDemo(args[1]);
-      break;
-    case "migrate":
-      await runMigrate();
       break;
     case "validate":
       await runValidate();
@@ -69,7 +63,7 @@ async function main() {
 }
 
 async function runDev() {
-  // Accept an explicit path as argument: `terminaltui dev path/to/site.config.ts`
+  // Accept an explicit path as argument: `terminaltui dev path/to/config.ts`
   const explicit = args[1];
   let configPath: string | null;
   if (explicit) {
@@ -81,7 +75,7 @@ async function runDev() {
   if (!configPath) {
     console.error(explicit
       ? `Error: Config file not found: ${explicit}`
-      : "Error: No config.ts (with pages/) or site.config.ts found in current directory.");
+      : "Error: No config.ts found alongside a pages/ directory.");
     console.error("Run 'terminaltui init' to create one, or pass a path: terminaltui dev path/to/config.ts");
     process.exit(1);
   }
@@ -114,7 +108,7 @@ async function runBuild() {
   if (!configPath) {
     console.error(explicit
       ? `Error: Config file not found: ${explicit}`
-      : "Error: No config.ts or site.config.ts found.");
+      : "Error: No config.ts found alongside a pages/ directory.");
     process.exit(1);
   }
 
@@ -127,15 +121,10 @@ async function runBuild() {
   }
 }
 
-async function runPreview() {
-  console.log("Preview mode - rendering single frame...");
-  // TODO: render one frame to stdout
-}
-
 async function runTestCommand() {
   const configPath = findConfig();
   if (!configPath) {
-    console.error("Error: No site.config.ts found in current directory.");
+    console.error("Error: No config.ts + pages/ found in current directory.");
     console.error("Run 'terminaltui init' to create one.");
     process.exit(1);
   }
@@ -173,6 +162,7 @@ const DEMO_NAMES = [
   "developer-portfolio",
   "freelancer",
   "startup",
+  "server-dashboard",
 ] as const;
 
 async function runDemo(name?: string) {
@@ -190,7 +180,8 @@ async function runDemo(name?: string) {
     \x1b[36mconference\x1b[0m            Tech conference with schedule and speakers
     \x1b[36mdeveloper-portfolio\x1b[0m   Developer portfolio with projects
     \x1b[36mfreelancer\x1b[0m            Freelancer landing page
-    \x1b[36mstartup\x1b[0m              Startup landing page
+    \x1b[36mstartup\x1b[0m               Startup landing page
+    \x1b[36mserver-dashboard\x1b[0m      System metrics, container table, log stream
 
   Example:
     npx terminaltui demo restaurant
@@ -204,35 +195,21 @@ async function runDemo(name?: string) {
     process.exit(1);
   }
 
-  // Look for pre-compiled demo in dist/demos/
   const pkgRoot = findPackageRoot();
-  const compiledPath = join(pkgRoot, "dist", "demos", `${name}.js`);
-
-  if (existsSync(compiledPath)) {
-    const { pathToFileURL } = await import("node:url");
-    const module = await import(pathToFileURL(compiledPath).href);
-    const site = module.default;
-    const { runSite } = await import("../core/runtime.js");
-    await runSite(site);
-    return;
+  const srcPath = join(pkgRoot, "demos", name, "config.ts");
+  if (!existsSync(srcPath)) {
+    console.error(`Demo files not found for: ${name}`);
+    console.error("This may be a packaging issue. Try reinstalling terminaltui.");
+    process.exit(1);
   }
 
-  // Fallback: try source demos/ directory (for development)
-  const srcPath = join(pkgRoot, "demos", name, "site.config.ts");
-  if (existsSync(srcPath)) {
-    try {
-      const { buildAndRun } = await import("./dev.js");
-      await buildAndRun(srcPath);
-    } catch (err: any) {
-      console.error("Error running demo:", err.message);
-      process.exit(1);
-    }
-    return;
+  try {
+    const { buildAndRun } = await import("./dev.js");
+    await buildAndRun(srcPath);
+  } catch (err: any) {
+    console.error("Error running demo:", err.message);
+    process.exit(1);
   }
-
-  console.error(`Demo files not found for: ${name}`);
-  console.error("This may be a packaging issue. Try reinstalling terminaltui.");
-  process.exit(1);
 }
 
 async function runValidate() {
@@ -275,37 +252,6 @@ async function runValidate() {
     }
   } catch (err: any) {
     console.error("Validation error:", err.message);
-    process.exit(1);
-  }
-}
-
-async function runMigrate() {
-  const cwd = process.cwd();
-  try {
-    const { migrateProject } = await import("./migrate.js");
-    const result = await migrateProject(cwd);
-    console.log("");
-    console.log("\x1b[1m\x1b[35m  terminaltui migrate\x1b[0m");
-    console.log("");
-    console.log("  \x1b[32m\u2713\x1b[0m Config:  \x1b[36m" + result.configFile.replace(cwd + "/", "") + "\x1b[0m");
-    for (const f of result.pageFiles) {
-      console.log("  \x1b[32m\u2713\x1b[0m Page:    \x1b[36m" + f.replace(cwd + "/", "") + "\x1b[0m");
-    }
-    for (const f of result.apiFiles) {
-      console.log("  \x1b[32m\u2713\x1b[0m API:     \x1b[36m" + f.replace(cwd + "/", "") + "\x1b[0m");
-    }
-    if (result.warnings.length > 0) {
-      console.log("");
-      for (const w of result.warnings) {
-        console.log("  \x1b[33m\u26a0\x1b[0m " + w);
-      }
-    }
-    console.log("");
-    console.log("  \x1b[1mNext:\x1b[0m Review the generated files, then run:");
-    console.log("    \x1b[36mterminaltui dev\x1b[0m");
-    console.log("");
-  } catch (err: any) {
-    console.error("Migration error:", err.message);
     process.exit(1);
   }
 }
@@ -390,16 +336,9 @@ function findPackageRoot(): string {
 
 function findConfig(): string | null {
   const cwd = process.cwd();
-  // File-based routing: config.ts + pages/
   const configTs = join(cwd, "config.ts");
   if (existsSync(configTs) && existsSync(join(cwd, "pages"))) {
     return configTs;
-  }
-  // Single-file config
-  const candidates = ["site.config.ts", "site.config.js", "site.config.mjs"];
-  for (const c of candidates) {
-    const p = join(cwd, c);
-    if (existsSync(p)) return p;
   }
   return null;
 }
@@ -415,7 +354,6 @@ function printHelp() {
     init [tpl]   Scaffold a new project (templates: minimal, portfolio, landing, restaurant, blog, creative)
     create       Interactive prompt builder — describe what you want, AI builds it
     convert      Drop terminaltui docs into your project for AI-assisted conversion
-    migrate      Convert single-file site.config.ts to file-based routing (config.ts + pages/)
     validate     Check file-based routing project for common issues
     dev          Start development preview (auto-starts API server if routes defined)
     serve        Host your TUI over SSH (anyone can connect with ssh)

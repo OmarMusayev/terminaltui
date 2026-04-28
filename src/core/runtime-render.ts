@@ -188,10 +188,6 @@ function containsMenuBlock(blocks: ContentBlock[]): boolean {
     if (block.type === "columns") {
       for (const p of (block as any).panels) if (containsMenuBlock(p.content)) return true;
     }
-    if (block.type === "split") {
-      const cfg = (block as any).config;
-      if (containsMenuBlock(cfg.first) || containsMenuBlock(cfg.second)) return true;
-    }
   }
   return false;
 }
@@ -207,16 +203,10 @@ function containsBlock(layout: ContentBlock, target: ContentBlock): boolean {
     for (const p of (layout as any).panels) {
       for (const b of p.content) if (containsBlock(b, target)) return true;
     }
-  } else if (layout.type === "split") {
-    const cfg = (layout as any).config;
-    for (const b of cfg.first) if (containsBlock(b, target)) return true;
-    for (const b of cfg.second) if (containsBlock(b, target)) return true;
   } else if (layout.type === "grid") {
     for (const item of (layout as any).config.items) {
       for (const b of item.content) if (containsBlock(b, target)) return true;
     }
-  } else if (layout.type === "box") {
-    for (const b of (layout as any).config.children) if (containsBlock(b, target)) return true;
   } else if (layout.type === "row") {
     for (const c of (layout as any).cols) {
       for (const b of c.content) if (containsBlock(b, target)) return true;
@@ -310,7 +300,7 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
       } else {
         const focused = isBlockFocusedFn(block);
         // For layout blocks, check if the focused item is inside them
-        const isLayout = block.type === "columns" || block.type === "rows" || block.type === "split" || block.type === "grid" || block.type === "box" || block.type === "row" || block.type === "container";
+        const isLayout = block.type === "columns" || block.type === "rows" || block.type === "grid" || block.type === "row" || block.type === "container";
         const layoutContainsFocus = isLayout && !focused && !!rt.currentFocusedBlock &&
           containsBlock(block, rt.currentFocusedBlock);
         if (focused || layoutContainsFocus) focusedLineStart = allContentLines.length;

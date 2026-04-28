@@ -167,7 +167,7 @@ export interface CustomBlock {
 
 // These are imported from other modules but needed for the types here.
 // We use local type references to avoid circular dependencies.
-import type { RouteParams } from "../routing/types.js";
+import type { RouteParams } from "../router/types.js";
 
 // ContentBlock is the full union from types.ts — we import it here
 // to type FormBlock.fields etc. This is safe because types.ts re-exports us.

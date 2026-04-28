@@ -41,7 +41,7 @@ const config = {
   banner: ascii("THE RUSTY FORK", { font: "Ogre", gradient: ["#d4a373", "#e63946"] }),
   animations: {
     boot: true,
-    transitions: "fade" as const,
+    
     exitMessage: "Thanks for dining with us! Reservations: (555) 234-5678",
   },
   pages: [

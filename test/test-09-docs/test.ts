@@ -336,7 +336,7 @@ const site = defineSite({
   name: "Pro Site",
   banner: { text: "HELLO", font: "Small" },
   theme: "monokai",
-  animations: { boot: true, transitions: "slide" },
+  animations: { boot: true },
   pages: [ /* ... */ ],
 });
 \`\`\`

@@ -109,7 +109,7 @@ function buildPortfolioConfig(): TemplateInfo {
     tagline,
     banner: ascii(siteName, { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] }),
     theme: themes.dracula,
-    animations: { boot: true, transitions: "fade" },
+    animations: { boot: true },
     pages: [
       page("about", {
         title: "About",
@@ -176,7 +176,7 @@ function buildLandingConfig(): TemplateInfo {
     tagline,
     banner: ascii(siteName, { font: "ANSI Shadow", gradient: ["#7c3aed", "#06b6d4"] }),
     theme: themes.dracula,
-    animations: { boot: true, transitions: "slide" },
+    animations: { boot: true },
     pages: [
       page("home", {
         title: "Home",
@@ -235,7 +235,7 @@ function buildRestaurantConfig(): TemplateInfo {
     banner: ascii(siteName, { font: "Ogre", gradient: ["#d4a373", "#e63946"] }),
     theme: themes.dracula,
     borders: "rounded",
-    animations: { boot: true, transitions: "fade", exitMessage: "Thanks for visiting! See you at the table." },
+    animations: { boot: true, exitMessage: "Thanks for visiting! See you at the table." },
     pages: [
       page("menu", {
         title: "Menu",
@@ -351,7 +351,7 @@ function buildCreativeConfig(): TemplateInfo {
     tagline,
     banner: ascii(siteName, { font: "Slant", gradient: ["#ff2a6d", "#05d9e8", "#ff2a6d"] }),
     theme: themes.dracula,
-    animations: { boot: true, transitions: "wipe", exitMessage: "[ end of transmission ]" },
+    animations: { boot: true, exitMessage: "[ end of transmission ]" },
     pages: [
       page("enter", {
         title: "Enter",

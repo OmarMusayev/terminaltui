@@ -11,7 +11,7 @@ export default defineConfig({
   theme: "cyberpunk",
   animations: {
     boot: true,
-    transitions: "slide",
+    
     exitMessage: "$ logout",
   },
 });

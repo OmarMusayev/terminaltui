@@ -1,8 +1,0 @@
-{
-  "agent": "stress-rapid-input",
-  "tests_run": 25,
-  "tests_passed": 25,
-  "tests_failed": 0,
-  "bugs": [],
-  "notes": "All tests passed. Exercised InputSender with 100+ rapid keys, all ASCII, ctrl combos, function keys, and VirtualTerminal with 1000+ line writes, resize interleaving, alt screen toggling, and CSI operations."
-}

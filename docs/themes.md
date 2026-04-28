@@ -3,13 +3,14 @@
 terminaltui ships with 10 built-in themes. Set a theme by name or by reference:
 
 ```ts
-import { defineSite, themes } from "terminaltui";
+// config.ts
+import { defineConfig, themes } from "terminaltui";
 
-export default defineSite({
+export default defineConfig({
+  name: "My Site",
   theme: "dracula",         // by name
   // or
   theme: themes.dracula,    // by reference
-  // ...
 });
 ```
 
@@ -35,7 +36,8 @@ If no theme is specified, `dracula` is used by default.
 Pass a `Theme` object to use your own colors:
 
 ```ts
-export default defineSite({
+export default defineConfig({
+  name: "My Site",
   theme: {
     accent: "#e06c75",
     accentDim: "#be5046",
@@ -48,7 +50,6 @@ export default defineSite({
     border: "#5c6370",
     bg: "#282c34",
   },
-  // ...
 });
 ```
 
@@ -76,9 +77,9 @@ All colors are hex strings (e.g., `"#ff79c6"`). The terminal's 256-color palette
 Borders are separate from themes and apply to cards, tables, and other bordered elements:
 
 ```ts
-export default defineSite({
+export default defineConfig({
+  name: "My Site",
   borders: "rounded",   // default
-  // ...
 });
 ```
 

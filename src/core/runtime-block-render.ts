@@ -2,7 +2,7 @@
  * Individual block rendering — the big switch statement that maps
  * block types to component renderers.
  */
-import type { ContentBlock, DynamicBlock, FormBlock, ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock, BoxBlock, PanelConfig, RowBlock, ContainerBlock, MenuBlock, ChatBlock } from "../config/types.js";
+import type { ContentBlock, DynamicBlock, FormBlock, ColumnsBlock, RowsBlock, GridBlock, PanelBlock, RowBlock, ContainerBlock, MenuBlock, ChatBlock } from "../config/types.js";
 import { renderChat, type ChatState, type ChatMessage } from "../components/Chat.js";
 import { fgColor, reset, bold } from "../style/colors.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
@@ -41,7 +41,6 @@ import { renderColumns, mergeRects } from "../components/layout/Columns.js";
 import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "../layout/grid-system.js";
 import { layoutColumns } from "../layout/panel-layout.js";
 import { renderRows } from "../components/layout/Rows.js";
-import { renderSplit } from "../components/layout/Split.js";
 import { renderGrid } from "../components/layout/Grid.js";
 import { renderPanel } from "../components/layout/Panel.js";
 import type { ScreenSize } from "./screen.js";
@@ -232,17 +231,6 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
         renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
       });
     }
-    case "split": {
-      const { rows: termRows } = rt.screenSize;
-      const availHeight = Math.max(10, termRows - 8);
-      const splitBlk = block as SplitBlock;
-      const activeIdx = findActivePanelIndex([splitBlk.config.first, splitBlk.config.second], rt.currentFocusedBlock);
-      return renderSplit(splitBlk, ctx, {
-        availableHeight: availHeight,
-        activePanelIndex: activeIdx,
-        renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
-      });
-    }
     case "grid": {
       const { rows: termRows } = rt.screenSize;
       const availHeight = Math.max(10, termRows - 8);
@@ -262,9 +250,6 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
         height: availHeight,
         renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
       });
-    }
-    case "box": {
-      return renderBoxBlock(rt, block as BoxBlock, ctx);
     }
     case "row": {
       return renderRowBlock(rt, block as RowBlock, ctx);
@@ -320,9 +305,6 @@ function containsBlockDeep(blocks: ContentBlock[], target: ContentBlock): boolea
       for (const p of (block as RowsBlock).panels) {
         if (containsBlockDeep(p.content, target)) return true;
       }
-    } else if (block.type === "split") {
-      const cfg = (block as SplitBlock).config;
-      if (containsBlockDeep(cfg.first, target) || containsBlockDeep(cfg.second, target)) return true;
     } else if (block.type === "grid") {
       for (const item of (block as GridBlock).config.items) {
         if (containsBlockDeep(item.content, target)) return true;
@@ -333,8 +315,6 @@ function containsBlockDeep(blocks: ContentBlock[], target: ContentBlock): boolea
       if (containsBlockDeep(block.content, target)) return true;
     } else if (block.type === "form") {
       if (containsBlockDeep((block as FormBlock).fields, target)) return true;
-    } else if (block.type === "box") {
-      if (containsBlockDeep((block as BoxBlock).config.children, target)) return true;
     } else if (block.type === "row") {
       for (const c of (block as RowBlock).cols) {
         if (containsBlockDeep(c.content, target)) return true;
@@ -344,51 +324,6 @@ function containsBlockDeep(blocks: ContentBlock[], target: ContentBlock): boolea
     }
   }
   return false;
-}
-
-/** Render a box layout block. */
-function renderBoxBlock(rt: RT, block: BoxBlock, ctx: RenderContext): string[] {
-  const { config } = block;
-  const direction = config.direction ?? "column";
-  const gap = config.gap ?? 0;
-  const { rows: termRows } = rt.screenSize;
-  const availHeight = Math.max(10, termRows - 8);
-
-  if (direction === "row") {
-    // Convert children to panels and render as columns
-    const panels: PanelConfig[] = config.children.map(child => {
-      if (child.type === "box") {
-        return {
-          content: [child],
-          width: (child as BoxBlock).config.width,
-          height: (child as BoxBlock).config.height,
-          padding: (child as BoxBlock).config.padding,
-        };
-      }
-      return { content: [child] };
-    });
-    const activeIdx = findActivePanelIndex(panels.map(p => p.content), rt.currentFocusedBlock);
-    return renderColumns({ type: "columns", panels }, ctx, {
-      availableHeight: availHeight,
-      activePanelIndex: activeIdx,
-      renderContent: (blocks, c) => renderContentBlocks(rt, blocks, c),
-    });
-  } else {
-    // Column direction: stack children vertically with gap
-    const lines: string[] = [];
-    for (let i = 0; i < config.children.length; i++) {
-      if (i > 0 && gap > 0) {
-        for (let g = 0; g < gap; g++) lines.push("");
-      }
-      const child = config.children[i];
-      let childCtx = ctx;
-      if (rt.currentFocusedBlock && child === rt.currentFocusedBlock) {
-        childCtx = { ...ctx, focused: true };
-      }
-      lines.push(...renderBlock(rt, child, childCtx));
-    }
-    return lines;
-  }
 }
 
 /** Render a 12-column grid row with responsive wrapping. */

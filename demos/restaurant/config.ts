@@ -12,6 +12,6 @@ export default defineConfig({
   borders: "rounded",
   animations: {
     boot: true,
-    transitions: "fade",
+    
   },
 });

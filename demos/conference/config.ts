@@ -12,7 +12,7 @@ export default defineConfig({
   borders: "single",
   animations: {
     boot: true,
-    transitions: "slide",
+    
     exitMessage: "See you at TermConf 2026!",
   },
 });

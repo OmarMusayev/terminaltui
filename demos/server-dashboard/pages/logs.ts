@@ -3,17 +3,16 @@ import {
   markdown,
   spacer,
   sparkline,
-  split,
+  columns,
+  panel,
 } from "../../../src/index.js";
 
 export const metadata = { label: "Logs", icon: ">" };
 
 export default function Logs() {
   return [
-    split({
-      direction: "horizontal",
-      ratio: 30,
-      first: [
+    columns([
+      panel({ width: "30%", content: [
         card({
           title: "nginx",
           subtitle: "48 entries/min",
@@ -45,8 +44,8 @@ export default function Logs() {
           tags: ["healthy"],
         }),
         sparkline([5, 8, 10, 12, 15, 18, 16, 14, 12, 10, 8, 6]),
-      ],
-      second: [
+      ]}),
+      panel({ width: "70%", content: [
         markdown("### Log Stream"),
         spacer(),
         markdown(`\`\`\`
@@ -70,7 +69,7 @@ export default function Logs() {
 12:00:07 [app-web]  Stripe webhook: invoice.paid sub_id=sub_1N3x
 12:00:08 [postgres] Checkpoint completed: wrote 24 buffers
 \`\`\``),
-      ],
-    }),
+      ]}),
+    ]),
   ];
 }

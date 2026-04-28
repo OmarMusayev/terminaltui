@@ -9,10 +9,10 @@
 import type { FocusRect } from "./types.js";
 import type {
   ContentBlock, DynamicBlock, FormBlock,
-  ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock, PanelConfig,
+  ColumnsBlock, RowsBlock, GridBlock, PanelBlock, PanelConfig,
   RowBlock, ContainerBlock,
 } from "../config/types.js";
-import { layoutColumns, layoutRows, layoutSplit, layoutGrid } from "./panel-layout.js";
+import { layoutColumns, layoutRows, layoutGrid } from "./panel-layout.js";
 import { shouldCollapseColumns, effectiveGridCols } from "./responsive.js";
 import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "./grid-system.js";
 import { componentRegistry } from "../components/base.js";
@@ -105,29 +105,6 @@ function walkBlocks(
         break;
       }
 
-      case "split": {
-        const splitBlock = block as SplitBlock;
-        const cfg = splitBlock.config;
-        const isHoriz = cfg.direction === "horizontal";
-        const collapsed = isHoriz && shouldCollapseColumns(2, availWidth);
-        const effectiveCfg = collapsed ? { ...cfg, direction: "vertical" as const } : cfg;
-        const panelRects = layoutSplit(effectiveCfg, availWidth, availHeight);
-        const contents = [cfg.first, cfg.second];
-        for (let i = 0; i < panelRects.length; i++) {
-          const pr = panelRects[i];
-          walkBlocks(
-            contents[i], offsetX + pr.x, cursorY + pr.y,
-            pr.width, pr.height,
-            rects, counter, resolveDyn,
-          );
-        }
-        const totalH = panelRects.length > 0
-          ? Math.max(...panelRects.map(r => r.y + r.height))
-          : 0;
-        cursorY += totalH + 1;
-        break;
-      }
-
       case "grid": {
         const gridBlock = block as GridBlock;
         const gap = gridBlock.config.gap ?? 1;
@@ -163,55 +140,6 @@ function walkBlocks(
           rects, counter, resolveDyn,
         );
         cursorY += 1;
-        break;
-      }
-
-      case "box": {
-        const boxCfg = (block as any).config;
-        const direction = boxCfg.direction ?? "column";
-        const gap = boxCfg.gap ?? 0;
-        const children: ContentBlock[] = boxCfg.children ?? [];
-
-        if (direction === "row") {
-          // Lay out children horizontally like columns
-          const pseudoPanels: PanelConfig[] = children.map((child: ContentBlock) => {
-            if (child.type === "box") {
-              return {
-                content: [child],
-                width: (child as any).config?.width,
-                height: (child as any).config?.height,
-                padding: (child as any).config?.padding,
-              };
-            }
-            return { content: [child] };
-          });
-          if (shouldCollapseColumns(pseudoPanels.length, availWidth)) {
-            for (const p of pseudoPanels) {
-              cursorY = walkBlocks(p.content, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn);
-              cursorY += gap || 1;
-            }
-          } else {
-            const panelRects = layoutColumns(pseudoPanels, availWidth, availHeight);
-            for (let i = 0; i < panelRects.length; i++) {
-              const pr = panelRects[i];
-              walkBlocks(
-                pseudoPanels[i].content,
-                offsetX + pr.x, cursorY,
-                pr.width, pr.height,
-                rects, counter, resolveDyn,
-              );
-            }
-            const maxH = panelRects.length > 0 ? Math.max(...panelRects.map(r => r.height)) : 0;
-            cursorY += maxH + 1;
-          }
-        } else {
-          // Column: stack children vertically with gap
-          for (let i = 0; i < children.length; i++) {
-            if (i > 0 && gap > 0) cursorY += gap;
-            cursorY = walkBlocks([children[i]], offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn);
-          }
-          cursorY += 1;
-        }
         break;
       }
 

@@ -1,5 +1,5 @@
 import type { ContentBlock } from "../config/types.js";
-import type { RouteParams } from "../routing/types.js";
+import type { RouteParams } from "../router/types.js";
 
 /** Application context passed to lifecycle hooks. */
 export interface AppContext {

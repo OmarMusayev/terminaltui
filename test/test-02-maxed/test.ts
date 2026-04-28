@@ -357,7 +357,7 @@ const siteConfig = {
   borders: "rounded" as const,
   animations: {
     boot: true,
-    transitions: "slide" as const,
+    
     exitMessage: "Thanks for visiting! Run `npx maxuser` anytime.",
     speed: "fast" as const,
   },

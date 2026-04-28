@@ -1,18 +1,15 @@
 import {
   card, spacer, link, table,
   form, textInput, textArea, select, button,
-  split,
+  columns, panel,
 } from "../../../src/index.js";
 
 export const metadata = { label: "Contact", icon: "@" };
 
 export default function Contact() {
   return [
-    split({
-      direction: "horizontal",
-      ratio: 40,
-      border: true,
-      first: [
+    columns([
+      panel({ width: "40%", content: [
         card({
           title: "Currently Booking Q3 2026",
           subtitle: "Availability",
@@ -35,8 +32,8 @@ export default function Contact() {
         link("Are.na", "https://are.na/studiokira", { icon: ">" }),
         link("LinkedIn", "https://linkedin.com/in/studiokira", { icon: ">" }),
         link("Read.cv", "https://read.cv/kira", { icon: ">" }),
-      ],
-      second: [
+      ]}),
+      panel({ width: "60%", content: [
         form({
           id: "contact-form",
           resetOnSubmit: true,
@@ -74,7 +71,7 @@ export default function Contact() {
             button({ label: "Send Message", style: "primary" }),
           ],
         }),
-      ],
-    }),
+      ]}),
+    ]),
   ];
 }

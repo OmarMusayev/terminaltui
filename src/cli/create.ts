@@ -189,8 +189,8 @@ async function runQuestionnaire(): Promise<Answers> {
 
   // 9. Animations
   console.log("  Animation level?");
-  console.log("    \x1b[36m1.\x1b[0m full    \x1b[2m— boot sequence, transitions, exit message\x1b[0m");
-  console.log("    \x1b[36m2.\x1b[0m subtle  \x1b[2m— gentle transitions only\x1b[0m");
+  console.log("    \x1b[36m1.\x1b[0m full    \x1b[2m— boot sequence + exit message\x1b[0m");
+  console.log("    \x1b[36m2.\x1b[0m subtle  \x1b[2m— exit message only\x1b[0m");
   console.log("    \x1b[36m3.\x1b[0m none    \x1b[2m— instant everything\x1b[0m");
   const animInput = await ask(rl, "  \x1b[2m>\x1b[0m ");
   let animations: "full" | "subtle" | "none";

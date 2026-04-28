@@ -36,15 +36,11 @@ import type {
   FormBlock,
   AsyncContentBlock,
   PanelConfig,
-  SplitConfig,
   GridConfig,
   ColumnsBlock,
   RowsBlock,
-  SplitBlock,
   GridBlock,
   PanelBlock,
-  BoxConfig,
-  BoxBlock,
   ColConfig,
   RowBlock,
   ContainerBlock,
@@ -64,40 +60,6 @@ import type { Theme } from "../style/theme.js";
  * @returns A Site object ready to be passed to `runSite()`
  *
  * @example
- * const site = defineSite({
- *   name: "My App",
- *   pages: [page("home", { title: "Home", content: [...] })],
- * });
- */
-export function defineSite(config: SiteConfig): Site {
-  // Validate
-  if (!config.name) throw new Error("Site config must have a name");
-  if (!config.pages || config.pages.length === 0) throw new Error("Site must have at least one page");
-
-  // Ensure all pages have ids
-  for (const p of config.pages) {
-    if (!p.id) throw new Error(`Page must have an id: ${JSON.stringify(p)}`);
-  }
-
-  return { config };
-}
-
-// ─── Page Builder ──────────────────────────────────────────
-
-/**
- * Creates a page definition with a unique ID.
- *
- * @param id - Unique page identifier (used for navigation)
- * @param config - Page configuration (title, icon, content blocks)
- * @returns A PageConfig object
- *
- * @example
- * page("about", { title: "About", icon: "📄", content: [card({ title: "Hello" })] })
- */
-export function page(id: string, config: Omit<PageConfig, "id">): PageConfig {
-  return { id, ...config };
-}
-
 // ─── Content Helpers ───────────────────────────────────────
 
 /** Groups content blocks under a titled section with a divider. */
@@ -313,11 +275,6 @@ export function rows(panels: PanelConfig[]): RowsBlock {
   return { type: "rows", panels };
 }
 
-/** Creates a two-panel split with a divider. */
-export function split(config: SplitConfig): SplitBlock {
-  return { type: "split", config };
-}
-
 /** Creates an N×M grid of panels. */
 export function grid(config: GridConfig): GridBlock {
   return { type: "grid", config };
@@ -326,12 +283,6 @@ export function grid(config: GridConfig): GridBlock {
 /** Creates a panel with optional border, title, and independent scrolling. */
 export function panel(config: PanelConfig): PanelBlock {
   return { type: "panel", config };
-}
-
-/** Creates a flexbox-like layout box — the low-level layout primitive.
- *  `columns()`, `rows()`, `grid()` are convenience wrappers over this. */
-export function box(config: BoxConfig): BoxBlock {
-  return { type: "box", config };
 }
 
 // ─── Grid System (12-column) ─────────────────────────

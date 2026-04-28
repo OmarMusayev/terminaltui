@@ -107,7 +107,7 @@ import { defineSite, page, markdown } from "${PROJECT_ROOT}/src/index.js";
 export default defineSite({
   name: "HealthCheck",
   tagline: "Emulator test site",
-  animations: { boot: false, transitions: "instant" },
+  animations: { boot: false },
   pages: [
     page("home", {
       title: "Home",
@@ -142,7 +142,7 @@ import { defineSite, page, markdown, card, link, divider, spacer, section } from
 export default defineSite({
   name: "MultiPage",
   tagline: "Navigation test site",
-  animations: { boot: false, transitions: "instant" },
+  animations: { boot: false },
   pages: [
     page("home", {
       title: "Home",
@@ -209,7 +209,7 @@ const longContent = Array.from({ length: 30 }, (_, i) =>
 
 export default defineSite({
   name: "LongContent",
-  animations: { boot: false, transitions: "instant" },
+  animations: { boot: false },
   pages: [
     page("home", {
       title: "Home",

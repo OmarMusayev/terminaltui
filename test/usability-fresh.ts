@@ -276,7 +276,7 @@ const photographerConfig: SiteConfig = {
   handle: "@elenavoss",
   theme: "rosePine",
   banner: { text: "ELENA", gradient: ["#ebbcba", "#c4a7e7", "#9ccfd8"] },
-  animations: { boot: true, transitions: "fade" },
+  animations: { boot: true },
   pages: [
     page("gallery", {
       title: "Gallery",

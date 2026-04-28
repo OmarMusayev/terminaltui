@@ -9,7 +9,7 @@ import type {
   ContentBlock, TextInputBlock, TextAreaBlock, SelectBlock,
   NumberInputBlock, SearchInputBlock, RadioGroupBlock,
   FormBlock, DynamicBlock,
-  ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock,
+  ColumnsBlock, RowsBlock, GridBlock, PanelBlock,
 } from "../config/types.js";
 import type { KeyPress } from "./input.js";
 import { keyToAction } from "../navigation/keybindings.js";
@@ -449,11 +449,6 @@ function switchToTabContaining(
         if (switchToTabContaining(rt, p.content, value, label)) return true;
       }
     }
-    if (block.type === "split") {
-      const s = block as SplitBlock;
-      if (switchToTabContaining(rt, s.config.first, value, label)) return true;
-      if (switchToTabContaining(rt, s.config.second, value, label)) return true;
-    }
   }
   return false;
 }
@@ -485,10 +480,6 @@ function findFocusIndexByPanelTitle(
         }
         focusOffset += pCount;
       }
-    } else if (block.type === "split") {
-      const s = block as SplitBlock;
-      focusOffset += collectFocusItemsStatic(s.config.first);
-      focusOffset += collectFocusItemsStatic(s.config.second);
     } else if (block.type === "rows") {
       for (const p of (block as RowsBlock).panels) {
         focusOffset += collectFocusItemsStatic(p.content);
@@ -514,10 +505,8 @@ function collectFocusItemsStatic(blocks: ContentBlock[]): number {
     else if (b.type === "form") count += collectFocusItemsStatic((b as any).fields);
     else if (b.type === "columns") { for (const p of (b as any).panels) count += collectFocusItemsStatic(p.content); }
     else if (b.type === "rows") { for (const p of (b as any).panels) count += collectFocusItemsStatic(p.content); }
-    else if (b.type === "split") { count += collectFocusItemsStatic((b as any).config.first); count += collectFocusItemsStatic((b as any).config.second); }
     else if (b.type === "grid") { for (const item of (b as any).config.items) count += collectFocusItemsStatic(item.content); }
     else if (b.type === "panel") count += collectFocusItemsStatic((b as any).config.content);
-    else if (b.type === "box") count += collectFocusItemsStatic((b as any).config.children);
     else if (b.type === "row") { for (const c of (b as any).cols) count += collectFocusItemsStatic(c.content); }
     else if (b.type === "container") count += collectFocusItemsStatic((b as any).content);
   }
@@ -550,10 +539,8 @@ export function blockExistsInContent(value: string, label: string, blocks: Conte
     if (b.type === "form") { if (blockExistsInContent(value, label, (b as FormBlock).fields)) return true; }
     if (b.type === "columns") { for (const p of (b as ColumnsBlock).panels) if (blockExistsInContent(value, label, p.content)) return true; }
     if (b.type === "rows") { for (const p of (b as RowsBlock).panels) if (blockExistsInContent(value, label, p.content)) return true; }
-    if (b.type === "split") { const s = b as SplitBlock; if (blockExistsInContent(value, label, s.config.first) || blockExistsInContent(value, label, s.config.second)) return true; }
     if (b.type === "grid") { for (const item of (b as GridBlock).config.items) if (blockExistsInContent(value, label, item.content)) return true; }
     if (b.type === "panel") { if (blockExistsInContent(value, label, (b as PanelBlock).config.content)) return true; }
-    if (b.type === "box") { if (blockExistsInContent(value, label, (b as any).config.children)) return true; }
     if (b.type === "row") { for (const c of (b as any).cols) if (blockExistsInContent(value, label, c.content)) return true; }
     if (b.type === "container") { if (blockExistsInContent(value, label, (b as any).content)) return true; }
   }

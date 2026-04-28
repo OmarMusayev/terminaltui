@@ -154,7 +154,7 @@ export default defineSite({
   tagline: ${JSON.stringify(tagline || "software engineer")},
   banner: ascii(${JSON.stringify(name)}, { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] }),
   theme: themes.${theme},
-  animations: { boot: true, transitions: "fade" },
+  animations: { boot: true },
 
   pages: [
     page("about", {
@@ -218,7 +218,7 @@ export default defineSite({
   tagline: ${JSON.stringify(tagline || "the future is here")},
   banner: ascii(${JSON.stringify(name)}, { font: "ANSI Shadow", gradient: ["#7c3aed", "#06b6d4"] }),
   theme: themes.${theme},
-  animations: { boot: true, transitions: "slide" },
+  animations: { boot: true },
 
   pages: [
     page("home", {
@@ -273,7 +273,7 @@ export default defineSite({
   banner: ascii(${JSON.stringify(name)}, { font: "Ogre", gradient: ["#d4a373", "#e63946"] }),
   theme: themes.${theme},
   borders: "rounded",
-  animations: { boot: true, transitions: "fade", exitMessage: "Thanks for visiting! See you at the table." },
+  animations: { boot: true, exitMessage: "Thanks for visiting! See you at the table." },
 
   pages: [
     page("menu", {
@@ -380,7 +380,7 @@ export default defineSite({
   tagline: ${JSON.stringify(tagline || "experiment · create · explore")},
   banner: ascii(${JSON.stringify(name)}, { font: "Slant", gradient: ["#ff2a6d", "#05d9e8", "#ff2a6d"] }),
   theme: themes.${theme},
-  animations: { boot: true, transitions: "wipe", exitMessage: "[ end of transmission ]" },
+  animations: { boot: true, exitMessage: "[ end of transmission ]" },
 
   pages: [
     page("enter", {

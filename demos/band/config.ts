@@ -12,6 +12,6 @@ export default defineConfig({
   borders: "double",
   animations: {
     boot: true,
-    transitions: "wipe",
+    
   },
 });

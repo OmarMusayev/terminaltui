@@ -1,8 +1,0 @@
-{
-  "agent": "stress-sizes",
-  "tests_run": 321,
-  "tests_passed": 321,
-  "tests_failed": 0,
-  "bugs": [],
-  "notes": "All tests passed. Rendered 3 sites at 5 sizes, tested resize sequences, and individual blocks at 9 extreme widths."
-}

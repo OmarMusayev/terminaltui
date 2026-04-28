@@ -6,17 +6,16 @@ import {
   textArea,
   select,
   button,
-  split,
+  columns,
+  panel,
 } from "../../../src/index.js";
 
 export const metadata = { label: "Connect", icon: "->" };
 
 export default function Connect() {
   return [
-    split({
-      direction: "horizontal",
-      ratio: 55,
-      first: [
+    columns([
+      panel({ width: "55%", content: [
         divider("Catering & Events"),
         form({
           id: "catering-inquiry",
@@ -54,14 +53,14 @@ export default function Connect() {
             button({ label: "Submit Inquiry", style: "primary" }),
           ],
         }),
-      ],
-      second: [
+      ]}),
+      panel({ width: "45%", content: [
         divider("Follow Along"),
         link("Instagram", "https://instagram.com/emberandbrew", { icon: ">" }),
         link("Order Online", "https://order.emberandbrew.com", { icon: ">" }),
         link("Wholesale Inquiries", "mailto:wholesale@emberandbrew.com", { icon: ">" }),
         link("Gift Cards", "https://emberandbrew.com/gift", { icon: ">" }),
-      ],
-    }),
+      ]}),
+    ]),
   ];
 }

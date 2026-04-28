@@ -6,9 +6,9 @@
  */
 import type {
   ContentBlock, PageConfig, FormBlock, DynamicBlock,
-  ColumnsBlock, RowsBlock, SplitBlock, GridBlock, PanelBlock,
+  ColumnsBlock, RowsBlock, GridBlock, PanelBlock,
 } from "../config/types.js";
-import type { RouteConfig, RouteParams } from "../routing/types.js";
+import type { RouteParams } from "../router/types.js";
 import { runMiddleware } from "../middleware/index.js";
 import { resolveDynamic } from "./runtime-render.js";
 import type { FocusItem } from "./runtime-types.js";
@@ -112,13 +112,6 @@ export function enterPage(rt: RT): void {
   const currentPage = getCurrentPage(rt);
   if (!currentPage) return;
 
-  const rawConfig = rt.site.pages.find((p: any) => p.id === currentPage.id);
-  if (rawConfig && typeof rawConfig.title === "function") {
-    const routeConfig = rawConfig as RouteConfig;
-    loadRouteContent(rt, routeConfig);
-    return;
-  }
-
   const content = currentPage.content;
   if (typeof content === "function") {
     loadAsyncPageContent(rt, currentPage);
@@ -126,30 +119,6 @@ export function enterPage(rt: RT): void {
   }
 
   initializePageContent(rt, content);
-}
-
-/** Load content for a parameterized route. */
-function loadRouteContent(rt: RT, routeConfig: RouteConfig): void {
-  const params = rt.currentParams;
-  const key = `route-${routeConfig.id}-${JSON.stringify(params)}`;
-
-  const loader = async () => {
-    const result = routeConfig.content(params);
-    return result instanceof Promise ? await result : result;
-  };
-
-  rt.asyncManager.load(key, loader, () => {
-    const state = rt.asyncManager.getState(key);
-    if (state?.status === "loaded" && state.content) {
-      rt.resolvedPageContent.set(routeConfig.id, state.content);
-      initializePageContent(rt, state.content);
-    } else if (state?.status === "error" && routeConfig.onError) {
-      const fallback = routeConfig.onError(state.error!, params);
-      rt.resolvedPageContent.set(routeConfig.id, fallback);
-      initializePageContent(rt, fallback);
-    }
-    rt.render();
-  });
 }
 
 function loadAsyncPageContent(rt: RT, page: PageConfig): void {
@@ -219,16 +188,10 @@ export function registerForms(rt: RT, blocks: ContentBlock[]): void {
       for (const p of (block as ColumnsBlock).panels) registerForms(rt, p.content);
     } else if (block.type === "rows") {
       for (const p of (block as RowsBlock).panels) registerForms(rt, p.content);
-    } else if (block.type === "split") {
-      const s = block as SplitBlock;
-      registerForms(rt, s.config.first);
-      registerForms(rt, s.config.second);
     } else if (block.type === "grid") {
       for (const item of (block as GridBlock).config.items) registerForms(rt, item.content);
     } else if (block.type === "panel") {
       registerForms(rt, (block as PanelBlock).config.content);
-    } else if (block.type === "box") {
-      registerForms(rt, (block as any).config.children);
     } else if (block.type === "row") {
       for (const c of (block as any).cols) registerForms(rt, c.content);
     } else if (block.type === "container") {
@@ -237,12 +200,8 @@ export function registerForms(rt: RT, blocks: ContentBlock[]): void {
   }
 }
 
-/** Resolve the page title, handling RouteConfig function titles. */
+/** Resolve the page title for the given page, supporting params for dynamic file-based routes. */
 export function resolvePageTitle(rt: RT, page: PageConfig): string {
-  const raw = rt.site.pages.find((p: any) => p.id === page.id);
-  if (raw && typeof raw.title === "function") {
-    return (raw.title as (params: RouteParams) => string)(rt.currentParams);
-  }
   return page.title as string;
 }
 
@@ -314,12 +273,6 @@ export function collectFocusItems(rt: RT, blocks: ContentBlock[]): FocusItem[] {
         }
         break;
       }
-      case "split": {
-        const splitBlock = block as SplitBlock;
-        result.push(...collectFocusItems(rt, splitBlock.config.first));
-        result.push(...collectFocusItems(rt, splitBlock.config.second));
-        break;
-      }
       case "grid": {
         const gridBlock = block as GridBlock;
         for (const item of gridBlock.config.items) {
@@ -330,11 +283,6 @@ export function collectFocusItems(rt: RT, blocks: ContentBlock[]): FocusItem[] {
       case "panel": {
         const panelBlock = block as PanelBlock;
         result.push(...collectFocusItems(rt, panelBlock.config.content));
-        break;
-      }
-      case "box": {
-        const boxBlock = block as any;
-        result.push(...collectFocusItems(rt, boxBlock.config.children));
         break;
       }
       case "row": {

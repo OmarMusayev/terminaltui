@@ -7,7 +7,7 @@ description: Framework for building TUI websites and applications. Use when a us
 
 ## What It Is
 
-terminaltui is a TypeScript framework that turns any website into a fully interactive terminal (TUI) experience. Users define their site in a single `site.config.ts` file using a declarative API of builder functions — pages, content blocks, input components, themes, ASCII art, animations, state management, and data fetching. The result is an interactive terminal app navigable by keyboard that can be published to npm so anyone can run it with `npx my-site`, or hosted over SSH so anyone can connect with `ssh host -p PORT`.
+terminaltui is a TypeScript framework that turns any website into a fully interactive terminal (TUI) experience. Projects use Next.js-style file-based routing — a `config.ts` for global settings plus a `pages/` directory where each file is a route. The result is an interactive terminal app navigable by keyboard that can be published to npm so anyone can run it with `npx my-site`, or hosted over SSH so anyone can connect with `ssh host -p PORT`.
 
 ## Quick Start
 
@@ -25,28 +25,37 @@ npx terminaltui serve --port 2222
 npx terminaltui build
 ```
 
-Minimal config (`site.config.ts`):
+Minimal project:
 
 ```ts
-import { defineSite, page, markdown } from "terminaltui";
+// config.ts
+import { defineConfig } from "terminaltui";
 
-export default defineSite({
+export default defineConfig({
   name: "My Site",
-  pages: [
-    page("home", {
-      title: "Home",
-      content: [markdown("Hello world!")],
-    }),
-  ],
+  theme: "cyberpunk",
 });
+```
+
+```ts
+// pages/home.ts
+import { markdown } from "terminaltui";
+
+export const metadata = { label: "Home", icon: "◆" };
+
+export default function Home() {
+  return [markdown("Hello world!")];
+}
 ```
 
 Project structure:
 
 ```
 my-site/
-  site.config.ts    # the only file you edit
-  package.json      # must have "type": "module"
+  config.ts          # theme, banner, global settings
+  pages/             # one file per route
+    home.ts
+  package.json       # must have "type": "module"
   tsconfig.json
 ```
 
@@ -54,7 +63,7 @@ my-site/
 
 ## File-Based Routing
 
-For larger projects, terminaltui supports a Next.js-style file-based routing system as an alternative to the single `site.config.ts` approach. Each page is its own file, layouts nest automatically, and menus are auto-generated from the filesystem.
+terminaltui uses Next.js-style file-based routing. Each page is its own file, layouts nest automatically, and menus are auto-generated from the filesystem.
 
 ### Project Structure
 
@@ -187,20 +196,13 @@ export default async function ProjectDetail({ params }: { params: { slug: string
 
 Control which pages appear in the menu:
 
-**File-based routing:**
 - `metadata.hidden = true` — page exists and is navigable but excluded from auto-generated menu
 - Pages without `hidden: true` appear in the menu by default
 - Dynamic route pages (`[slug].ts`) should always be `hidden: true`
-
-**Single-file mode (`site.config.ts`):**
-- `menu.order: ["home", "about"]` — **only** listed pages appear in the menu
-- Unlisted pages are still navigable (via `action.navigate`) but hidden from the menu
-- There is no explicit `hidden` property on `page()` — omission from `menu.order` is the mechanism
-
-**File-based config (`config.ts`):**
-- `menu.order` works the same as single-file mode
-- `menu.exclude: ["secret"]` explicitly hides specific pages from menu
-- If neither `order` nor `exclude` is set, all non-hidden pages appear
+- In `defineConfig({ menu })`:
+  - `menu.order: ["home", "about"]` — reorder the menu by page name
+  - `menu.exclude: ["secret"]` — explicitly hide specific pages
+  - `menu.items: [{ id, label, icon }]` — fully manual menu (overrides auto-generation)
 
 ### Layout Files
 
@@ -208,39 +210,35 @@ A `layout.ts` in any directory wraps all sibling and descendant pages. Receives 
 
 ```ts
 // pages/layout.ts — Root layout, wraps everything
-import { split, menu } from "terminaltui";
+import { columns, panel, menu } from "terminaltui";
 import type { ContentBlock } from "terminaltui";
 
 export default function RootLayout({ children }: { children: ContentBlock[] }) {
   return [
-    split({
-      direction: "horizontal",
-      first: [menu({ source: "auto" })],
-      second: children,
-      ratio: 25,
-    }),
+    columns([
+      panel({ width: "25%", content: [menu({ source: "auto" })] }),
+      panel({ width: "75%", content: children }),
+    ]),
   ];
 }
 ```
 
 ```ts
 // pages/dashboard/layout.ts — wraps /dashboard/* pages only
-import { split, menu, text } from "terminaltui";
+import { columns, panel, menu, text } from "terminaltui";
 import type { ContentBlock } from "terminaltui";
 
 export default function DashboardLayout({ children }: { children: ContentBlock[] }) {
   return [
     text("Dashboard"),
-    split({
-      direction: "horizontal",
-      first: [menu({ items: [
+    columns([
+      panel({ width: "20%", content: [menu({ items: [
         { label: "Overview", page: "dashboard" },
         { label: "Analytics", page: "dashboard/analytics" },
         { label: "Settings", page: "dashboard/settings" },
-      ]})],
-      second: children,
-      ratio: 20,
-    }),
+      ]})] }),
+      panel({ width: "80%", content: children }),
+    ]),
   ];
 }
 ```
@@ -333,29 +331,6 @@ export default function Home() {
 
 If `home.ts` doesn't exist, the framework auto-generates a home page with `hero()` + `menu({ source: "auto" })`.
 
-### Migration
-
-Convert an existing `site.config.ts` project to file-based routing:
-
-```bash
-npx terminaltui migrate
-```
-
-This command:
-1. Reads `site.config.ts`
-2. Extracts global config into `config.ts`
-3. Creates `pages/` with one file per page
-4. Creates `api/` with one file per endpoint
-5. Preserves all content, themes, and settings
-
-### Backward Compatibility
-
-Both approaches work side by side:
-- **`site.config.ts`** — single-file mode (existing behavior, fully supported)
-- **`config.ts` + `pages/`** — file-based routing mode
-
-The framework auto-detects which mode to use. If `pages/` exists, it uses file-based routing. If only `site.config.ts` exists, it uses single-file mode. You do not need to migrate existing projects.
-
 ---
 
 ## Focus & Scroll Model — CRITICAL FOR GOOD UX
@@ -398,7 +373,6 @@ TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor bet
 | `dynamic()` | No — wrapper | Children inherit their own focusability. |
 | `columns()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
 | `rows()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
-| `split()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
 | `grid()` | No — layout | Left/Right + Tab switch panels. Up/Down navigates items. Enter activates. Escape = back. |
 | `panel()` | No — wrapper | Used inside layout components. Children inherit focusability. |
 
@@ -415,7 +389,7 @@ TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor bet
 | Skills / tech stack | `skillBar()` or `list()` (passive reference) | Cards (overkill for simple data) |
 | Dashboard with sidebar | `columns()` — sidebar panel + main panel | Flat layout (loses spatial structure) |
 | Monitoring grid | `grid()` with metric panels | Single-column cards (wastes space) |
-| Split editor/preview | `split({ direction: "horizontal" })` | Tabs (can't see both at once) |
+| Split editor/preview | `columns([panel({…}), panel({…})])` | Tabs (can't see both at once) |
 | Log viewer + controls | `rows()` — controls on top, logs below | Interleaved cards |
 
 ### Bad → Good Patterns
@@ -441,7 +415,7 @@ card({ title: "BS Computer Science", subtitle: "State University — 2021" }),
 
 **When to use `timeline()`:** Only when you want a visual connected-dot timeline aesthetic AND the items are passive (no action needed on Enter). For anything users need to browse, navigate, or interact with, use `card()` blocks instead.
 
-**When to use `tabs()`:** Only for mutually exclusive views of the same data (e.g., "Grid view" vs "List view"). NOT for organizing sequential sections of a page — use `divider("Label")` for that. If two views should be visible simultaneously (e.g., Day 1 and Day 2 of a conference schedule), use `split()` instead.
+**When to use `tabs()`:** Only for mutually exclusive views of the same data (e.g., "Grid view" vs "List view"). NOT for organizing sequential sections of a page — use `divider("Label")` for that. If two views should be visible simultaneously (e.g., Day 1 and Day 2 of a conference schedule), use `columns([panel({…}), panel({…})])` instead.
 
 ### Layout Mapping Guide
 
@@ -450,16 +424,16 @@ card({ title: "BS Computer Science", subtitle: "State University — 2021" }),
 | Dashboard with sidebar navigation | `columns()` — narrow first panel (20-25%), wide main panel | Server dashboard |
 | Dashboard with multiple data views | `columns()` + nested `grid()` | System monitor with CPU/Memory/Disk metrics |
 | Pricing comparison (2-4 tiers) | `columns()` — one panel per tier | SaaS pricing page |
-| Side-by-side content (text + skills) | `split({ direction: "horizontal" })` | Portfolio about page |
-| Day 1 / Day 2 schedule | `split({ direction: "horizontal" })` | Conference schedule |
-| Food menu (categories) | `columns()` or `split()` — dishes left, drinks right | Restaurant menu |
+| Side-by-side content (text + skills) | `columns([panel({…}), panel({…})])` | Portfolio about page |
+| Day 1 / Day 2 schedule | `columns([panel({…}), panel({…})])` | Conference schedule |
+| Food menu (categories) | `columns([panel({…}), panel({…})])` — dishes left, drinks right | Restaurant menu |
 | Hours + location info | `columns()` — hours table left, address right | Restaurant/shop hours |
 | Project/portfolio cards | `grid({ cols: 2 })` — cards in a grid | Freelancer work page |
 | Feature cards | `grid({ cols: 2 })` | SaaS features page |
 | Speaker/team bios | `grid({ cols: 2 })` | Conference speakers |
 | Sponsor logos by tier | `grid({ cols: 3 })` per tier | Conference sponsors |
 | Log viewer | `columns()` — service list left, log stream right | Server logs |
-| Container table + details | `split({ direction: "vertical" })` — table top, details bottom | Container management |
+| Container table + details | `rows([panel({…}), panel({…})])` — table top, details bottom | Container management |
 | Precise multi-column layout | `row()` + `col()` — 12-column grid system | Complex dashboards |
 | Responsive card grid | `row()` with `xs:12, sm:6, lg:4` — cards reflow by terminal width | Portfolio, features |
 | Centered narrow content | `container({ maxWidth: 80 })` — centered with max width | Blog posts, forms |
@@ -517,25 +491,27 @@ Spatial navigation works automatically — arrow keys move between col content b
 
 Every function below is imported from `"terminaltui"`.
 
-### defineSite(config: SiteConfig): Site
+### defineConfig(config): FileBasedConfig
 
-Top-level site definition. Must be the default export of `site.config.ts`.
+Top-level project config. Default-export from `config.ts`.
 
 ```ts
-interface SiteConfig {
+interface FileBasedConfig {
   name: string;                                   // Required. Site name
   handle?: string;                                // Handle shown on home (e.g. "@user")
   tagline?: string;                               // Subtitle below the banner
   banner?: BannerConfig;                          // ASCII art banner (use ascii() helper)
   theme?: Theme | BuiltinThemeName;               // Theme object or name. Default: "dracula"
   borders?: BorderStyle;                          // Border style for cards/tables. Default: "rounded"
-  animations?: AnimationConfig;                   // Boot, transitions, exit config
+  animations?: AnimationConfig;                   // Boot animation + exit message
   navigation?: NavigationConfig;                  // Navigation behavior options
-  pages: (PageConfig | RouteConfig)[];            // Array of pages and routes
-  middleware?: MiddlewareFn[];                     // Global middleware chain
+  middleware?: MiddlewareFn[];                    // Global middleware chain
   easterEggs?: EasterEggConfig;                   // Konami code and custom commands
   footer?: string | ContentBlock;                 // Footer content
   statusBar?: boolean | StatusBarConfig;          // Status bar configuration
+  menu?: MenuConfig;                              // Auto-menu overrides
+  serve?: ServeConfig;                            // SSH hosting config (see Hosting section)
+  env?: Record<string, unknown>;                  // Env defaults
   artDir?: string | false;                        // Custom art directory path
 
   // Lifecycle hooks
@@ -547,76 +523,56 @@ interface SiteConfig {
 ```
 
 ```ts
-export default defineSite({
+// config.ts
+export default defineConfig({
   name: "My Site",
   handle: "@me",
   tagline: "a cool terminal site",
   banner: ascii("My Site", { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] }),
   theme: "dracula",
   borders: "rounded",
-  animations: { boot: true, transitions: "fade", exitMessage: "Goodbye!", speed: "normal" },
+  animations: { boot: true, exitMessage: "Goodbye!", speed: "normal" },
   middleware: [requireEnv(["API_KEY"])],
   onInit: async (app) => { /* setup */ },
   onError: (err, ctx) => [markdown(`Error: ${err.message}`)],
-  pages: [ /* ... */ ],
 });
 ```
 
-### page(id: string, config): PageConfig
+### Page files
 
-Creates a page. Each page appears as a menu item.
+A page is any `.ts` file under `pages/`. Default-export a function returning content blocks; optionally export `metadata`.
 
 ```ts
-interface PageConfig {
-  id: string;                                        // Unique page identifier (first arg)
-  title: string;                                     // Display name in the menu
-  icon?: string;                                     // Single character before the title
-  content: ContentBlock[] | (() => Promise<ContentBlock[]>); // Static or async content
-  loading?: string;                                  // Loading message for async content
-  refreshInterval?: number;                          // Auto-refresh interval in ms
-  onError?: (err: Error) => ContentBlock[];          // Error handler
-  middleware?: MiddlewareFn[];                        // Page-level middleware chain
+// pages/about.ts
+import { markdown, card } from "terminaltui";
+
+export const metadata = {
+  label: "About Me",            // menu label (default: title-cased filename)
+  icon: "◆",                    // single char shown before label
+  order: 2,                     // sort order in menu (lower first)
+  hidden: false,                // hide from auto-menu (page still routable)
+  middleware: [/* ... */],      // page-level middleware chain
+};
+
+export default function About() {
+  return [markdown("Hello!"), card({ title: "Hi", body: "..." })];
 }
-```
-
-```ts
-page("about", {
-  title: "About Me",
-  icon: "◆",
-  content: [markdown("Hello!")],
-  middleware: [requireEnv(["ABOUT_DATA"])],
-})
 ```
 
 Common icons: `"◆"` `"◈"` `"▣"` `"▤"` `"◉"` `"▸"` `"✦"` `"★"` `"●"` `"■"` `"▲"` `"♦"`
 
-### route(id: string, config): RouteConfig
+### Dynamic routes — `pages/[param].ts`
 
-Defines a parameterized route. Unlike `page()`, routes receive params and content is always a function.
+A bracketed filename creates a dynamic route. Params come in via the function arg:
 
 ```ts
-interface RouteConfig {
-  id: string;                                                          // Route ID
-  title: string | ((params: RouteParams) => string);                   // Static or dynamic title
-  icon?: string;
-  content: ((params: RouteParams) => ContentBlock[]) | ((params: RouteParams) => Promise<ContentBlock[]>);
-  loading?: string | ((params: RouteParams) => string);
-  onError?: (err: Error, params: RouteParams) => ContentBlock[];
-  middleware?: MiddlewareFn[];
+// pages/projects/[slug].ts
+export const metadata = { hidden: true };
+
+export default async function Project({ params }: { params: { slug: string } }) {
+  const data = await fetchProject(params.slug);
+  return [card({ title: data.name, body: data.description })];
 }
-
-type RouteParams = Record<string, string>;
-```
-
-```ts
-route("project", {
-  title: (params) => `Project: ${params.name}`,
-  content: async (params) => {
-    const data = await fetchProject(params.name);
-    return [card({ title: data.name, body: data.description })];
-  },
-  loading: "Loading project...",
-})
 ```
 
 ### navigate(pageId: string, params?: RouteParams): void
@@ -624,8 +580,8 @@ route("project", {
 Programmatic navigation from anywhere (event handlers, middleware, etc.).
 
 ```ts
-navigate("project", { name: "my-app" });
 navigate("home");
+navigate("projects/[slug]", { slug: "my-app" });
 ```
 
 ---
@@ -981,7 +937,7 @@ const widePad = computeBoxDimensions(80, { ...COMPONENT_DEFAULTS.card, padding: 
 
 **Rules:**
 - Every component calls `computeBoxDimensions()`. No exceptions.
-- Layout components (columns, split, grid, row, col, box, container) divide width among children — they do NOT call `computeBoxDimensions()` for themselves.
+- Layout components (columns, rows, grid, panel, row, col, container) divide width among children — they do NOT call `computeBoxDimensions()` for themselves.
 - Text always wraps at `dims.content`.
 - Child blocks receive `dims.content` as their allocated width.
 - No manual `ctx.width - N` in component files. All chrome subtraction goes through the box model.
@@ -1031,26 +987,7 @@ rows([
 ])
 ```
 
-#### split(config: SplitConfig): SplitBlock
-
-Two panels with a divider. `direction`: `"horizontal"` (left|right) or `"vertical"` (top|bottom). `ratio`: percentage for first panel (default 50).
-
-```ts
-split({
-  direction: "horizontal",
-  ratio: 30,
-  border: true,
-  first: [
-    markdown("## Sidebar"),
-    link("Dashboard", "#"),
-    link("Settings", "#"),
-  ],
-  second: [
-    markdown("## Main Content"),
-    card({ title: "Welcome", body: "Select an item from the sidebar." }),
-  ],
-})
-```
+> **Deprecated:** `split({ direction, ratio, first, second })` still works but is now a thin wrapper that returns a `columns()` (horizontal) or `rows()` (vertical) block. Will be removed in v2.0. Prefer the explicit form: `columns([panel({ width: "30%", content: first }), panel({ width: "70%", content: second })])`.
 
 #### grid(config: GridConfig): GridBlock
 
@@ -1117,9 +1054,112 @@ columns([
 |---------|----------|--------|
 | columns | `width` | `"50%"`, `30` (chars), `"auto"` (default: equal split) |
 | rows | `height` | `"50%"`, `10` (rows), `"auto"` (default: equal split) |
-| split | `ratio` | `50` (percentage for first panel, default: 50) |
 | grid | `cols` | Number of columns |
 | grid | `gap` | Gap in characters (default: 1) |
+
+---
+
+#### container(content: ContentBlock[], config?): ContainerBlock
+
+Wrap content in a centered container with an optional max width and padding. Use as the outermost wrapper of a page when you want a Bootstrap-style centered layout.
+
+```ts
+container([
+  hero({ title: "Welcome" }),
+  row([
+    col([card({ title: "Left" })], { span: 6 }),
+    col([card({ title: "Right" })], { span: 6 }),
+  ]),
+], { maxWidth: 100, padding: 2, center: true })
+```
+
+```ts
+interface ContainerConfig {
+  maxWidth?: number;   // Max width in columns (default: terminal width)
+  padding?: number;    // Horizontal padding (default: 0)
+  center?: boolean;    // Center the container (default: true)
+}
+```
+
+#### row(cols: ColBlock[], config?): RowBlock
+
+A 12-column grid row. Children must be `col(...)` blocks. Rows auto-wrap when the sum of effective spans exceeds 12 at the current breakpoint.
+
+```ts
+row([
+  col([statsCard], { span: 3, xs: 12 }),
+  col([chartCard], { span: 9, xs: 12 }),
+], { gap: 1 })
+```
+
+```ts
+interface RowConfig {
+  gap?: number;  // Spacing between cols, in chars (default: 1)
+}
+```
+
+#### col(content: ContentBlock[], config: ColConfig): ColBlock
+
+A 12-column grid cell. `span` is required; `xs`/`sm`/`md`/`lg` override `span` at each breakpoint.
+
+```ts
+col([card({ title: "Stats" })], {
+  span: 4,
+  offset: 0,
+  xs: 12, sm: 6, md: 4, lg: 3,
+})
+```
+
+```ts
+interface ColConfig {
+  span: number;     // 1-12. Width as a fraction of 12 columns.
+  offset?: number;  // 0-11. Empty columns to the left.
+  padding?: number; // Interior padding
+  xs?: number;      // Override span for xs (<60 cols)
+  sm?: number;      // Override span for sm (60-89)
+  md?: number;      // Override span for md (90-119)
+  lg?: number;      // Override span for lg (≥120)
+}
+```
+
+**Breakpoints:** xs (<60 cols), sm (60-89), md (90-119), lg (≥120). Spatial navigation works automatically across grid cells.
+
+> Removed in this release: `box()`. For a bordered region, use `panel({ border: true, padding: 1, content: […] })`. For padding/margin only, use `container({ padding: 1, content: […] })`.
+
+#### menu(config: MenuConfig): MenuBlock
+
+Inline menu block. The `auto` source resolves at render time from the file-based router's discovered pages.
+
+```ts
+import { menu } from "terminaltui";
+
+menu({ source: "auto" })
+
+menu({
+  source: "manual",
+  items: [
+    { id: "home", label: "Home", icon: "◆" },
+    { id: "projects", label: "Projects", icon: "▣" },
+    { id: "contact", label: "Contact", icon: "◉" },
+  ],
+})
+```
+
+```ts
+interface MenuConfig {
+  source: "auto" | "manual";
+  items?: MenuItemConfig[];   // required when source === "manual"
+}
+
+interface MenuItemConfig {
+  id: string;        // page id or route
+  label: string;
+  icon?: string;
+  hidden?: boolean;
+}
+```
+
+> The framework already renders the home menu automatically. Don't add `menu({ source: "auto" })` to `pages/home.ts` — it'll duplicate the menu.
 
 ---
 
@@ -1528,67 +1568,68 @@ ws.connected; // boolean
 
 ### API Routes
 
-Define backend endpoints directly in your site config. No Express, no external server — just Node's built-in `http` module on localhost.
+Define backend endpoints by dropping `.ts` files into your project's `api/` directory. No Express, no external server — just Node's built-in `http` module on localhost. Each file becomes an HTTP endpoint; each named export (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`) becomes a method handler.
 
 ```ts
-import { defineSite, page, dynamic, fetcher, request, markdown } from "terminaltui";
+// api/stats.ts → GET /api/stats
+export async function GET() {
+  return { uptime: process.uptime(), timestamp: Date.now() };
+}
+```
 
-export default defineSite({
-  name: "My Dashboard",
-  theme: "hacker",
+```ts
+// api/items/[id].ts → GET /api/items/:id
+export async function GET(req) {
+  return { id: req.params.id, name: `Item ${req.params.id}` };
+}
+```
 
-  api: {
-    // Simple GET
-    "GET /stats": async () => {
-      return { uptime: process.uptime(), timestamp: Date.now() };
-    },
+```ts
+// api/deploy.ts → POST /api/deploy
+export async function POST(req) {
+  const { image, name } = req.body as any;
+  return { success: true, message: `Deployed ${name}` };
+}
+```
 
-    // GET with URL params
-    "GET /items/:id": async (req) => {
-      return { id: req.params.id, name: `Item ${req.params.id}` };
-    },
+```ts
+// api/search.ts → GET /api/search?q=hello&page=2
+export async function GET(req) {
+  return { query: req.query.q, page: req.query.page };
+}
+```
 
-    // POST with request body
-    "POST /deploy": async (req) => {
-      const { image, name } = req.body as any;
-      return { success: true, message: `Deployed ${name}` };
-    },
+Then call them from any page via `fetcher`:
 
-    // Query strings: GET /search?q=hello&page=2
-    "GET /search": async (req) => {
-      return { query: req.query.q, page: req.query.page };
-    },
-  },
+```ts
+// pages/dashboard.ts
+import { dynamic, fetcher, markdown } from "terminaltui";
 
-  pages: [
-    page("dashboard", {
-      title: "Dashboard",
-      content: [
-        dynamic(["stats"], () => {
-          const stats = fetcher({ url: "/stats", refreshInterval: 5000 });
-          if (stats.loading) return markdown("Loading...");
-          return markdown(`Uptime: ${stats.data?.uptime}s`);
-        }),
-      ],
+export const metadata = { label: "Dashboard" };
+
+export default function Dashboard() {
+  return [
+    dynamic(["stats"], () => {
+      const stats = fetcher({ url: "/api/stats", refreshInterval: 5000 });
+      if (stats.loading) return markdown("Loading...");
+      return markdown(`Uptime: ${stats.data?.uptime}s`);
     }),
-  ],
-});
+  ];
+}
 ```
 
 #### How It Works
 
-- When `terminaltui dev` or the built `npx` package runs, a localhost HTTP server starts on a random port
-- `fetcher()`, `request.*()`, and `liveData()` calls with relative URLs (starting with `/`) auto-route to this server
+- When `terminaltui dev` runs, a localhost HTTP server starts on a random port if any `api/*.ts` files are present
+- `fetcher()`, `request.*()`, and `liveData()` calls with relative URLs (starting with `/api/`) auto-route to this server
 - The server **only** binds to `127.0.0.1` — never exposed to the network
-- Sites without `api` in their config work exactly as before
+- Projects without an `api/` directory skip the HTTP server entirely
 
 #### ApiRequest Object
 
 ```ts
-interface ApiRequest {
-  method: string;                        // "GET", "POST", etc.
-  path: string;                          // "/items/42"
-  params: Record<string, string>;        // { id: "42" } from :id
+interface ApiMethodRequest {
+  params: Record<string, string>;        // { id: "42" } from [id]
   query: Record<string, string>;         // { q: "hello" } from ?q=hello
   body: unknown;                         // Parsed JSON body (POST/PUT/PATCH)
   headers: Record<string, string>;
@@ -1597,30 +1638,29 @@ interface ApiRequest {
 
 #### Supported Methods
 
-`GET`, `POST`, `PUT`, `DELETE`, `PATCH` — defined as `"METHOD /path"` keys in the `api` object.
+`GET`, `POST`, `PUT`, `DELETE`, `PATCH` — defined as named exports in each `api/` file.
 
 #### Common API Route Patterns
 
 **Shell commands:**
 ```ts
+// api/uptime.ts
 import { execSync } from "child_process";
 
-"GET /uptime": async () => {
+export async function GET() {
   return { uptime: execSync("uptime -p").toString().trim() };
-},
+}
 ```
 
 **File system:**
 ```ts
+// api/files.ts
 import { readFileSync, readdirSync } from "fs";
 
-"GET /files": async () => {
+export async function GET() {
   const files = readdirSync(".").filter(f => !f.startsWith("."));
   return { files };
-},
-"GET /config": async () => {
-  return { content: readFileSync("./config.yml", "utf-8") };
-},
+}
 ```
 
 **Stateful in-memory data:**
@@ -1703,6 +1743,120 @@ form({
 #### Security
 
 API routes have full Node.js capabilities (file system, shell commands, etc). They run on the user's machine and are only accessible from localhost. **Never expose the API port to the network.**
+
+---
+
+### Hosting & Deployment (SSH) — *New in 1.5.0*
+
+terminaltui apps can be hosted over SSH so any user with an SSH client can connect and use the app interactively, no install required.
+
+#### CLI
+
+```bash
+terminaltui serve --port 2222
+# Then from any machine:
+ssh localhost -p 2222
+```
+
+Each connection gets an independent `TUIRuntime` (own state, own focus, own color mode). The host key is auto-generated as Ed25519 at `.terminaltui/host_key` on first run.
+
+#### `serve` config in your site
+
+```ts
+// config.ts
+import { defineConfig } from "terminaltui";
+
+export default defineConfig({
+  name: "My Site",
+  theme: "cyberpunk",
+  serve: {
+    port: 2222,
+    hostKeyPath: ".terminaltui/host_key",
+    maxConnections: 100,
+    colorMode: "auto",       // "auto" | "truecolor" | "256" | "16"
+    openUrls: false,         // see "Server-side caveats" below
+    auth: { passwords: { alice: "hunter2" } },
+  },
+});
+```
+
+#### `TerminalIO` abstraction
+
+The runtime no longer assumes `process.stdin`/`process.stdout`. It talks to a `TerminalIO` interface, with two implementations shipped:
+
+```ts
+import { ProcessTerminalIO, TUIRuntime, runSite } from "terminaltui";
+import type { TerminalIO } from "terminaltui";
+
+// Default for `dev`:
+const io = new ProcessTerminalIO();
+const runtime = new TUIRuntime(siteConfig, io);
+await runtime.start();
+```
+
+`SSHServer` constructs an `SSHTerminalIO` per accepted session.
+
+#### `SSHServer` — programmatic API
+
+```ts
+import { SSHServer, TUIRuntime } from "terminaltui";
+import type { TerminalIO, ServeOptions } from "terminaltui";
+
+const options: ServeOptions = {
+  port: 2222,
+  hostKeyPath: ".terminaltui/host_key",
+  maxConnections: 100,
+  auth: { passwords: { alice: "hunter2" } },
+};
+
+const server = new SSHServer(options, async (io: TerminalIO) => {
+  const runtime = new TUIRuntime(siteConfig, io);
+  await runtime.start();
+  return runtime;
+});
+
+await server.start();
+```
+
+#### `runtime.isServeMode`
+
+`true` when the runtime is hosting an SSH session. Use it to gate code that should only run for local users.
+
+```ts
+if (runtime.isServeMode) {
+  // server-side: don't auto-open browser, don't run shell commands, etc.
+}
+```
+
+#### Server-side caveats
+
+Running on a server with potentially many users changes a few defaults:
+
+- **`openUrl()` is a no-op in serve mode** — the URL is shown as a notification instead of running `open` / `xdg-open` on the server. Override with `serve.openUrls: true` if you really mean it.
+- **Function-valued easter-egg commands are skipped** — connected users can't trigger arbitrary server-side execution.
+- **`createPersistentState`, file/network APIs, and any custom `api/*.ts` handlers run server-side** with shared filesystem and network. Scope state by user explicitly if multi-tenant.
+
+#### `FileRouter` — programmatic file-based routing
+
+For embedding the file-based router in custom hosts:
+
+```ts
+import { FileRouter, detectProject } from "terminaltui";
+
+const detection = detectProject(process.cwd());
+if (detection.type === "file-based") {
+  const router = new FileRouter({
+    config: detection.config,
+    pagesDir: detection.pagesDir,
+    apiDir: detection.apiDir,
+    outDir: ".terminaltui",
+  });
+  await router.initialize();
+  const warnings = router.validate();
+}
+```
+
+`runFileBasedSite(projectDir, options?)` is the all-in-one entry point that wires `FileRouter` into a `TUIRuntime`.
 
 ---
 
@@ -1797,7 +1951,7 @@ theme: {
 type BorderStyle = "single" | "double" | "rounded" | "heavy" | "dashed" | "ascii" | "none";
 ```
 
-Used in: `defineSite({ borders })`, `card({ border })`, `table({ border })`.
+Used in: `defineConfig({ borders })`, `card({ border })`, `table({ border })`.
 
 ---
 
@@ -1805,7 +1959,7 @@ Used in: `defineSite({ borders })`, `card({ border })`, `table({ border })`.
 
 #### ascii(text, options?): BannerConfig
 
-Creates an ASCII art banner for the `banner` field of `defineSite()` or `defineConfig()`.
+Creates an ASCII art banner for the `banner` field of `defineConfig()`.
 Both forms are equivalent:
 ```ts
 // Using the ascii() helper (recommended):
@@ -1958,35 +2112,6 @@ const pie = asciiArt.pieChart([{ label: "A", value: 60 }, { label: "B", value: 4
 const g = asciiArt.graph([10, 20, 15, 30, 25], 40, 10);
 ```
 
-#### Art Compose Utilities (13)
-
-All operate on `string[]` (lines of ASCII art).
-
-```ts
-artCompose.overlay(base: string[], over: string[], x: number, y: number): string[]
-artCompose.sideBySide(left: string[], right: string[], gap?: number): string[]   // gap default: 2
-artCompose.stack(top: string[], bottom: string[], gap?: number): string[]        // gap default: 1
-artCompose.center(art: string[], width: number): string[]
-artCompose.pad(art: string[], padding: number | { top?, right?, bottom?, left? }): string[]
-artCompose.crop(art: string[], x: number, y: number, width: number, height: number): string[]
-artCompose.repeat(art: string[], times: number, direction: "horizontal" | "vertical"): string[]
-artCompose.mirror(art: string[], axis: "horizontal" | "vertical"): string[]
-artCompose.rotate(art: string[], degrees: 90 | 180 | 270): string[]
-artCompose.colorize(art: string[], color: string): string[]           // hex color on non-space chars
-artCompose.gradient(art: string[], colors: string[], direction?: "horizontal"|"vertical"|"diagonal"): string[]
-artCompose.rainbow(art: string[]): string[]                           // rainbow gradient
-artCompose.shadow(art: string[], direction?: "bottom-right"|"bottom-left", char?: string): string[]
-```
-
-```ts
-const combined = artCompose.sideBySide(
-  asciiArt.scene("mountains"),
-  asciiArt.scene("forest"),
-  4
-);
-const colored = artCompose.gradient(asciiArt.box(20, 5), ["#ff0000", "#0000ff"]);
-```
-
 #### asciiImage(source, options?): Promise<string[]>
 
 Convert images to ASCII art. Requires `sharp` peer dependency.
@@ -2015,7 +2140,6 @@ const art = await asciiImage("./logo.png", { width: 40, mode: "braille", color: 
 ```ts
 interface AnimationConfig {
   boot?: boolean;                                // Boot animation (banner reveal + stagger)
-  transitions?: "instant" | "fade" | "slide" | "wipe";
   exitMessage?: string;                          // Centered message on quit
   speed?: "slow" | "normal" | "fast";
 }
@@ -2024,7 +2148,6 @@ interface AnimationConfig {
 ```ts
 animations: {
   boot: true,
-  transitions: "fade",
   exitMessage: "[ end of transmission ]",
   speed: "normal",
 }
@@ -2060,18 +2183,23 @@ rateLimit({ maxRequests, windowMs }): MiddlewareFn // Throws when limit exceeded
 ```
 
 ```ts
-// Global middleware
-defineSite({
+// config.ts — global middleware
+defineConfig({
+  name: "My Site",
   middleware: [requireEnv(["API_KEY"]), rateLimit({ maxRequests: 100, windowMs: 60000 })],
-  pages: [
-    page("admin", {
-      middleware: [middleware(async (ctx) => {
-        if (!isAdmin(ctx.state)) return redirect("home");
-      })],
-      // ...
-    }),
-  ],
 });
+
+// pages/admin.ts — page-level middleware
+import { middleware, redirect, markdown } from "terminaltui";
+
+export const metadata = {
+  label: "Admin",
+  middleware: [middleware(async (ctx) => {
+    if (!isAdmin(ctx.state)) return redirect("home");
+  })],
+};
+
+export default function Admin() { return [markdown("admin only")]; }
 ```
 
 ---
@@ -2126,7 +2254,8 @@ interface ErrorContext {
 ```
 
 ```ts
-defineSite({
+defineConfig({
+  name: "My Site",
   onInit: async (app) => { /* runs once at startup */ },
   onExit: async (app) => { /* runs on quit */ },
   onNavigate: (from, to, params) => { /* runs on every navigation */ },
@@ -2300,220 +2429,80 @@ await emu.close();                               // Shut down
 - **Decorative icons:** Use `getIcon()` — `laptop` for tech, `music` for bands, `cup` for restaurants, `heart` for personal, `code` for dev.
 - **Backgrounds/borders:** Use `asciiArt.pattern()` — `circuit` for tech, `stars` for night themes, `waves` for ocean.
 - **Data display:** Use `asciiArt.barChart()` for comparisons, `asciiArt.sparkline()` for trends, `asciiArt.pieChart()` for proportions, `asciiArt.graph()` for time series.
-- **Composition:** Use `artCompose.sideBySide()` to place art next to each other, `artCompose.overlay()` for layering, `artCompose.gradient()` for color.
+- **Composition:** Combine ASCII art using string-array helpers from your own code (e.g. zip with `padEnd`); the framework no longer ships a dedicated compose API.
 
 ---
 
-## Complete Example: Developer Portfolio
+## Complete Example: a small portfolio
+
+A complete project is a `config.ts` plus one file per page under `pages/`. Below: a 3-page portfolio.
 
 ```ts
-import {
-  defineSite, page, card, timeline, link, skillBar,
-  ascii, markdown, themes, divider, spacer, badge,
-  searchInput, asciiArt, artCompose,
-} from "terminaltui";
+// config.ts
+import { defineConfig, ascii } from "terminaltui";
 
-const terminalIcon = asciiArt.scene("terminal");
-
-export default defineSite({
+export default defineConfig({
   name: "Alex Chen",
   handle: "@alexchen",
   tagline: "full-stack engineer & open source contributor",
   banner: ascii("Alex Chen", { font: "ANSI Shadow", gradient: ["#ff6b6b", "#4ecdc4"] }),
-  theme: themes.dracula,
+  theme: "dracula",
   borders: "rounded",
-  animations: { boot: true, transitions: "fade", exitMessage: "See you in the terminal!" },
-
-  pages: [
-    page("about", {
-      title: "About",
-      icon: "◆",
-      content: [
-        markdown("Hey! I'm Alex, a full-stack engineer in San Francisco. I build developer tools and contribute to open source. Currently at **Acme Corp** working on distributed systems."),
-        spacer(),
-        markdown("When I'm not coding, you'll find me climbing rocks or brewing coffee."),
-      ],
-    }),
-
-    page("projects", {
-      title: "Projects",
-      icon: "◈",
-      content: [
-        card({
-          title: "terminaltools",
-          subtitle: "★ 2.4k",
-          body: "A suite of terminal utilities for modern developers. Built with Rust.",
-          tags: ["Rust", "CLI", "Open Source"],
-          url: "https://github.com/alexchen/terminaltools",
-        }),
-        card({
-          title: "cloudkit",
-          subtitle: "★ 890",
-          body: "Simplified cloud deployment framework. One command to deploy anywhere.",
-          tags: ["TypeScript", "DevOps"],
-          url: "https://github.com/alexchen/cloudkit",
-        }),
-        card({
-          title: "pixelart.dev",
-          subtitle: "★ 340",
-          body: "Browser-based pixel art editor with real-time collaboration.",
-          tags: ["React", "WebSocket"],
-          url: "https://pixelart.dev",
-        }),
-      ],
-    }),
-
-    page("experience", {
-      title: "Experience",
-      icon: "▣",
-      content: [
-        divider("Experience"),
-        card({ title: "Senior Platform Engineer", subtitle: "Acme Corp — 2023–present", body: "Leading the developer platform team." }),
-        card({ title: "Software Engineer", subtitle: "Startup Labs — 2021–2023", body: "Full-stack development. Grew users from 1k to 50k." }),
-        card({ title: "Junior Developer", subtitle: "WebAgency — 2019–2021", body: "Frontend development and client projects." }),
-        divider("Education"),
-        card({ title: "BS Computer Science", subtitle: "UC Berkeley — 2015–2019" }),
-      ],
-    }),
-
-    page("skills", {
-      title: "Skills",
-      icon: "▤",
-      content: [
-        skillBar("TypeScript", 95),
-        skillBar("Rust", 80),
-        skillBar("Python", 85),
-        skillBar("Go", 70),
-        skillBar("React", 90),
-        divider("Tools"),
-        skillBar("Docker/K8s", 85),
-        skillBar("AWS", 80),
-        skillBar("Git", 95),
-      ],
-    }),
-
-    page("links", {
-      title: "Links",
-      icon: "◉",
-      content: [
-        link("GitHub", "https://github.com/alexchen"),
-        link("LinkedIn", "https://linkedin.com/in/alexchen"),
-        link("Blog", "https://alexchen.dev/blog"),
-        link("Email", "mailto:alex@alexchen.dev"),
-      ],
-    }),
-  ],
+  animations: { boot: true, exitMessage: "See you in the terminal!" },
 });
 ```
-
-## Complete Example: Restaurant
 
 ```ts
-import {
-  defineSite, page, section, card, table, quote,
-  link, markdown, ascii, themes, divider, spacer,
-  form, textInput, textArea, select, button, toggle,
-} from "terminaltui";
+// pages/about.ts
+import { markdown, spacer, badge } from "terminaltui";
 
-export default defineSite({
-  name: "The Golden Fork",
-  tagline: "farm to table since 2018",
-  banner: ascii("Golden Fork", { font: "Ogre", gradient: ["#d4a373", "#e63946"] }),
-  theme: themes.gruvbox,
-  borders: "rounded",
-  animations: { boot: true, transitions: "fade", exitMessage: "Thanks for visiting! See you at the table." },
+export const metadata = { label: "About", icon: "◆", order: 1 };
 
-  pages: [
-    page("menu", {
-      title: "Menu",
-      icon: "◆",
-      content: [
-        section("Small Plates", [
-          card({ title: "Heirloom Tomato Bruschetta", subtitle: "$14", body: "San Marzano tomatoes, fresh basil, aged balsamic" }),
-          card({ title: "Burrata & Figs", subtitle: "$16", body: "Creamy burrata, mission figs, honey, toasted pistachios" }),
-          card({ title: "Charred Octopus", subtitle: "$18", body: "Spanish octopus, romesco, fingerling potatoes" }),
-        ]),
-        divider(),
-        section("Mains", [
-          card({ title: "Pan-Seared Salmon", subtitle: "$32", body: "Wild-caught king salmon, lemon beurre blanc, asparagus" }),
-          card({ title: "Dry-Aged Ribeye", subtitle: "$45", body: "28-day aged, 14oz, bone marrow butter, root vegetables" }),
-          card({ title: "Wild Mushroom Risotto", subtitle: "$26", body: "Arborio rice, porcini, chanterelle, truffle oil" }),
-        ]),
-        divider(),
-        section("Desserts", [
-          card({ title: "Creme Brulee", subtitle: "$12", body: "Classic vanilla bean, caramelized sugar" }),
-          card({ title: "Chocolate Fondant", subtitle: "$14", body: "Valrhona dark chocolate, salted caramel, vanilla gelato" }),
-        ]),
-      ],
-    }),
-
-    page("reservations", {
-      title: "Reservations",
-      icon: "◈",
-      content: [
-        markdown("**Book your table online.** We'll confirm by email within an hour."),
-        spacer(),
-        form({
-          id: "reservation",
-          onSubmit: async (data) => {
-            return { success: `Table for ${data.guests} booked on ${data.date}! Confirmation sent to ${data.email}.` };
-          },
-          fields: [
-            textInput({ id: "name", label: "Name", placeholder: "Your name..." }),
-            textInput({ id: "email", label: "Email", placeholder: "your@email.com" }),
-            textInput({ id: "date", label: "Date", placeholder: "e.g. March 25, 2026" }),
-            select({
-              id: "guests",
-              label: "Party Size",
-              options: [
-                { label: "2 guests", value: "2" },
-                { label: "4 guests", value: "4" },
-                { label: "6 guests", value: "6" },
-                { label: "8+ guests", value: "8+" },
-              ],
-            }),
-            textArea({ id: "notes", label: "Special Requests", placeholder: "Dietary restrictions, celebrations...", rows: 3 }),
-            button({ label: "Reserve Table", style: "primary" }),
-          ],
-        }),
-      ],
-    }),
-
-    page("about", {
-      title: "Our Story",
-      icon: "▣",
-      content: [
-        markdown("Founded in 2018 by Chef Maria Santos, The Golden Fork brings the freshest seasonal ingredients from local farms to your plate."),
-        divider(),
-        quote("One of the most exciting farm-to-table experiences in the city.", "— City Food Magazine"),
-        quote("Chef Santos has created something truly special.", "— The Dining Gazette"),
-      ],
-    }),
-
-    page("visit", {
-      title: "Hours & Location",
-      icon: "▸",
-      content: [
-        table(["Day", "Lunch", "Dinner"], [
-          ["Monday", "Closed", "Closed"],
-          ["Tue — Thu", "11:30 AM — 2:30 PM", "5:30 PM — 10:00 PM"],
-          ["Fri — Sat", "11:30 AM — 3:00 PM", "5:30 PM — 11:00 PM"],
-          ["Sunday", "10:00 AM — 3:00 PM", "5:00 PM — 9:00 PM"],
-        ]),
-        spacer(),
-        markdown("**Address:** 742 Evergreen Terrace, San Francisco, CA 94102"),
-        markdown("**Phone:** (415) 555-0187"),
-        spacer(),
-        link("Make a Reservation", "https://opentable.com/golden-fork"),
-        link("Google Maps", "https://maps.google.com"),
-        link("Instagram", "https://instagram.com/thegoldenfork"),
-      ],
-    }),
-  ],
-});
+export default function About() {
+  return [
+    markdown("Hey! I'm Alex, a full-stack engineer in San Francisco."),
+    spacer(),
+    badge("Available for projects"),
+  ];
+}
 ```
 
----
+```ts
+// pages/projects.ts
+import { card, columns, panel } from "terminaltui";
+
+export const metadata = { label: "Projects", icon: "▣", order: 2 };
+
+export default function Projects() {
+  return [
+    columns([
+      panel({ width: "50%", content: [
+        card({ title: "terminaltui", body: "TUI framework", tags: ["TypeScript"] }),
+      ]}),
+      panel({ width: "50%", content: [
+        card({ title: "another-app", body: "...", tags: ["Rust"] }),
+      ]}),
+    ]),
+  ];
+}
+```
+
+```ts
+// pages/links.ts
+import { link } from "terminaltui";
+
+export const metadata = { label: "Links", icon: "→", order: 3 };
+
+export default function Links() {
+  return [
+    link("GitHub", "https://github.com/alexchen", { icon: ">" }),
+    link("Email", "mailto:alex@example.com", { icon: ">" }),
+  ];
+}
+```
+
+For more substantial examples — restaurant, dashboard with live API data, conference site, server monitor — read the source under `node_modules/terminaltui/demos/<name>/` (or `demos/<name>/` in the repo). Each demo has a `config.ts` and a populated `pages/` directory.
+
 
 ## Common Mistakes to Avoid
 

@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.6.0] - 2026-04-28
+
+### Removed (breaking)
+
+- **Single-file `site.config.ts` mode** — `defineSite()`, `page()`, `route()`, `runSite()`, and the `terminaltui migrate` command are gone. The framework is now file-based only (`config.ts` + `pages/` + optional `api/`).
+- **Layout `split()` and `box()`** — `split()` was redundant with `columns([panel, panel])`; `box()` was redundant with `panel({border, padding, content})`. Use the explicit forms.
+- **Animation transitions** — `transition.ts`, `typing.ts`, `stagger.ts`, `fade.ts`, `effects.ts` (matrix rain / glitch / sparkle) deleted. The `transitions` field on `AnimationConfig` is gone. `boot` and `exitMessage` survive; spinner/engine survive.
+- **ASCII community-pack public API** — `registerArtPack`, `useArtPack`, `listArt`, `getArtInfo`, `createArtPack`, `registerFont/Scene/Icon/Pattern` no longer exported. The internal art registry stays as plumbing for built-in assets.
+- **`artCompose`** (overlay/mirror/rotate/colorize/shadow on string[] art) — niche, not used by demos. Gone.
+- **`brailleSparkline`, `dotMatrix`, `braillePattern`** — exotic, deleted. Use `asciiArt.sparkline()` for sparklines.
+- **Tetris demo** — broken since 1.0.5; removed (folder + gif + README reference).
+- **`PanelFocusManager`** dead code (deprecated since 1.0.5).
+- **`runPreview` CLI stub** — never implemented; deleted.
+- **`src/routing/`** folder — `navigate()` moved into `src/router/`; route/middleware types moved to `router/types.ts` and `middleware/types.ts`.
+
+### Changed
+
+- Demo bundling dropped — demo sources ship in the npm package under `demos/<name>/` (config.ts + pages/) and are compiled on the fly by `npx terminaltui demo <name>`. No more `dist/demos/*.js` artifacts.
+- Renamed `src/components/Box.ts` is unchanged (it's the rendering utility used by Card/Form/etc., not the deleted layout `box()`).
+- `terminaltui dev` now requires `config.ts + pages/`; running it on a `site.config.ts` errors clearly instead of going through the deprecated path.
+
+### Migration from 1.5.x
+
+If you were using `defineSite`/`page`/`route`/`split`/`box`:
+- Convert your project layout to `config.ts` + `pages/` (one file per page).
+- Replace `split({direction: "horizontal", ratio: 30, first, second})` with `columns([panel({width: "30%", content: first}), panel({width: "70%", content: second})])`. Vertical splits become `rows(...)` with `height` instead of `width`.
+- Replace `box({content, border, padding})` with `panel({content, border, padding})` (no title/scroll) or `container({content, padding})` (centered).
+
+---
+
 ## [1.5.1] - 2026-04-10
 
 ### Fixed
@@ -162,14 +192,14 @@
 
 - **Navigation behavior change**: Arrow keys on layout pages now use spatial navigation instead of panel-based Tab cycling. The `panelArrows` config option still exists but has no effect. Users who relied on Tab to switch panels can still use Tab (sequential fallback), but arrow keys now move spatially.
 
-## [1.0.4] - 2025-05-24
+## [1.0.4] - 2026-03-24
 
 ### Changed
 - Modularized codebase: split runtime into runtime-input, runtime-pages, runtime-render, runtime-block-render, runtime-forms
 - Lazy-load fonts (reduced startup time)
 - Updated docs: component registry, fixed npm import paths, added ARCHITECTURE.md references
 
-## [1.0.3] - 2025-05-23
+## [1.0.3] - 2026-03-24
 
 ### Added
 - `terminaltui demo` command — run 8 built-in demos from npm
@@ -178,7 +208,7 @@
 ### Changed
 - Rebuilt all 8 demos with split-pane layouts (columns, rows, split, grid)
 
-## [1.0.2] - 2025-05-22
+## [1.0.2] - 2026-03-24
 
 ### Added
 - Split-pane layouts: `columns()`, `rows()`, `split()`, `grid()`, `panel()`
@@ -186,7 +216,7 @@
 - Active panel border indicator
 - Responsive collapse for narrow terminals
 
-## [1.0.1] - 2025-05-21
+## [1.0.1] - 2026-03-23
 
 ### Fixed
 - 8 bugs found during full framework verification (P0-P3)
@@ -198,7 +228,7 @@
 - Viewport scrolls past last focusable item
 - Emulator `goHome()` and `navigateTo()` fixes
 
-## [1.0.0] - 2025-05-20
+## [1.0.0] - 2026-03-22
 
 ### Added
 - Initial release: 21+ content blocks, 10 themes, ASCII art system, state management, data fetching, routing, middleware, API routes, forms, CLI, emulator, Claude integration

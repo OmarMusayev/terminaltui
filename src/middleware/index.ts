@@ -1,5 +1,5 @@
 import type { MiddlewareFn, MiddlewareContext, MiddlewareResult } from "./types.js";
-import type { RouteParams } from "../routing/types.js";
+import type { RouteParams } from "../router/types.js";
 
 /**
  * Create a middleware function.

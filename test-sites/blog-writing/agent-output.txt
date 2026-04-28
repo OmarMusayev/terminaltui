@@ -1,7 +1,0 @@
-Test completed. Here's the report:
-
-- **182 tests run**, **176 passed**, **6 failed**
-- **3 bugs filed** (all P1) — the `ScreenReader.menu()` detects only 1 menu item instead of 3 at all widths. The screenshots show the menu renders correctly with all 3 items (Posts, About, Links), so this is a screen reader detection issue, not a rendering bug.
-- The 6 failures are all related to this same menu detection problem: 3 for item count and 3 for selection cycling.
-
-All rendering, content visibility, overflow, navigation, theme, and edge case tests passed. The blog site with 8 post cards, a markdown about page, and 4 links renders cleanly across all widths (40, 80, 120) with the dracula theme and dashed borders.

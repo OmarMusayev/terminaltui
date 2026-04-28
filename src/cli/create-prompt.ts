@@ -29,14 +29,14 @@ export function mapStyle(style: string, description: string): string {
     .map((s) => s.trim().toLowerCase());
 
   const mappings: Record<string, string> = {
-    bold: "Use double-line borders, large ASCII banner with shadow and gradient, dramatic slide or wipe transitions",
+    bold: "Use double-line borders, large ASCII banner with shadow and gradient, generous spacing for dramatic effect",
     minimal:
-      "Use single-line or no borders, small compact banner font like Calvin S or Small Slant, instant transitions, generous whitespace",
+      "Use single-line or no borders, small compact banner font like Calvin S or Small Slant, generous whitespace",
     retro: "Use ASCII art heavily, DOS Rebel or Electronic font, dashed or ascii borders, circuit or static patterns, hacker or monokai theme works well",
     playful:
-      "Use rainbow gradients on the banner, rounded borders, icons everywhere, stagger animations, confetti or stars patterns",
+      "Use rainbow gradients on the banner, rounded borders, icons everywhere, confetti or stars patterns",
     professional:
-      "Use single-line borders, ANSI Shadow or Slant font, fade transitions, clean structured layout",
+      "Use single-line borders, ANSI Shadow or Slant font, clean structured layout",
   };
 
   const descriptions = parts
@@ -131,16 +131,16 @@ export function buildPrompt(answers: Answers): string {
   switch (answers.animations) {
     case "full":
       lines.push(
-        "Full animations — boot sequence with dramatic reveal, page transitions (slide/wipe/fade), typing effects where appropriate, and a styled exit message."
+        "Full animations — boot sequence with dramatic reveal and a styled exit message."
       );
       break;
     case "subtle":
       lines.push(
-        "Subtle animations — gentle fade transitions between pages. No boot sequence or exit message."
+        "Subtle animations — exit message only. No boot sequence."
       );
       break;
     case "none":
-      lines.push("No animations — instant page transitions, no boot sequence, no exit message.");
+      lines.push("No animations — no boot sequence, no exit message, render immediately.");
       break;
   }
   lines.push("");

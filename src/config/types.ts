@@ -1,6 +1,7 @@
 import type { Theme, BuiltinThemeName } from "../style/theme.js";
 import type { BorderStyle } from "../style/borders.js";
-import type { RouteConfig, MiddlewareFn, RouteParams } from "../routing/types.js";
+import type { RouteParams } from "../router/types.js";
+import type { MiddlewareFn } from "../middleware/types.js";
 import type { LifecycleHooks } from "../lifecycle/types.js";
 import type { ApiHandler } from "../api/types.js";
 
@@ -15,7 +16,7 @@ export interface SiteConfig {
   borders?: BorderStyle;
   animations?: AnimationConfig;
   navigation?: NavigationConfig;
-  pages: (PageConfig | RouteConfig)[];
+  pages: PageConfig[];
   middleware?: MiddlewareFn[];
   easterEggs?: EasterEggConfig;
   footer?: string | ContentBlock;
@@ -78,7 +79,6 @@ export interface PageConfig {
 
 export interface AnimationConfig {
   boot?: boolean;
-  transitions?: "instant" | "fade" | "slide" | "wipe";
   exitMessage?: string;
   speed?: "slow" | "normal" | "fast";
 }
@@ -162,10 +162,8 @@ export type ContentBlock =
   | DynamicBlock
   | ColumnsBlock
   | RowsBlock
-  | SplitBlock
   | GridBlock
   | PanelBlock
-  | BoxBlock
   | RowBlock
   | ContainerBlock
   | MenuBlock
@@ -456,14 +454,6 @@ export interface PanelConfig {
   focusable?: boolean;
 }
 
-export interface SplitConfig {
-  direction: "horizontal" | "vertical";
-  ratio?: number;
-  border?: boolean;
-  first: ContentBlock[];
-  second: ContentBlock[];
-}
-
 export interface GridConfig {
   cols: number;
   rows?: number;
@@ -481,11 +471,6 @@ export interface RowsBlock {
   panels: PanelConfig[];
 }
 
-export interface SplitBlock {
-  type: "split";
-  config: SplitConfig;
-}
-
 export interface GridBlock {
   type: "grid";
   config: GridConfig;
@@ -494,23 +479,6 @@ export interface GridBlock {
 export interface PanelBlock {
   type: "panel";
   config: PanelConfig;
-}
-
-export interface BoxConfig {
-  direction?: "column" | "row";
-  width?: string | number;
-  height?: string | number;
-  gap?: number;
-  padding?: number;
-  align?: "start" | "center" | "end" | "stretch";
-  justify?: "start" | "center" | "end" | "space-between" | "space-around";
-  wrap?: boolean;
-  children: ContentBlock[];
-}
-
-export interface BoxBlock {
-  type: "box";
-  config: BoxConfig;
 }
 
 // ─── Grid System (12-column) ──────────────────────────

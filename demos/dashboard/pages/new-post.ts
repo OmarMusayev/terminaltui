@@ -1,7 +1,7 @@
 import {
   markdown, divider, spacer, badge,
   form, textInput, textArea, button,
-  split, request,
+  columns, panel, request,
 } from "../../../src/index.js";
 import { state } from "./home.js";
 import type { Post } from "./home.js";
@@ -10,10 +10,8 @@ export const metadata = { label: "New Post", icon: "+" };
 
 export default function NewPost() {
   return [
-    split({
-      direction: "horizontal",
-      ratio: 60,
-      first: [
+    columns([
+      panel({ width: "60%", content: [
         markdown("## Create a New Post"),
         spacer(),
         form({
@@ -59,8 +57,8 @@ export default function NewPost() {
             button({ label: "Publish Post", style: "primary" }),
           ],
         }),
-      ],
-      second: [
+      ]}),
+      panel({ width: "40%", content: [
         markdown("## Instructions"),
         spacer(),
         markdown("*Sends a POST request to JSONPlaceholder API (test endpoint).*"),
@@ -76,7 +74,7 @@ export default function NewPost() {
         markdown("Your post will be submitted to the API and added to the local post list. It will appear on the Home and Posts pages immediately."),
         spacer(),
         badge("API: jsonplaceholder.typicode.com"),
-      ],
-    }) as any,
+      ]}),
+    ]),
   ];
 }

@@ -4,18 +4,19 @@ terminaltui includes a complete ASCII art system: banner fonts, pre-made scenes,
 
 ## Banners
 
-Use `ascii()` in the `banner` field of `defineSite()` to create a large ASCII text banner:
+Use `ascii()` in the `banner` field of `defineConfig()` to create a large ASCII text banner:
 
 ```ts
-import { defineSite, ascii } from "terminaltui";
+// config.ts
+import { defineConfig, ascii } from "terminaltui";
 
-export default defineSite({
+export default defineConfig({
+  name: "My Site",
   banner: ascii("MY SITE", {
     font: "ANSI Shadow",
     gradient: ["#ff6b6b", "#4ecdc4"],
     shadow: true,
   }),
-  // ...
 });
 ```
 
@@ -145,41 +146,22 @@ asciiArt.pieChart([{ label: "A", value: 60 }, { label: "B", value: 40 }], 6)
 asciiArt.graph([10, 20, 15, 30, 25], 40, 10)
 ```
 
-## Composition Utilities
+## Composing your own art
 
-The `artCompose` module manipulates `string[]` art. All functions take and return `string[]`.
+The framework no longer ships a dedicated `artCompose` API — most use cases were one-liners with `padEnd`/`map`/`join`. To place two pieces of art side by side:
 
 ```ts
-import { artCompose, asciiArt } from "terminaltui";
-
-// Place two scenes side by side with a 4-character gap
-const combined = artCompose.sideBySide(
-  asciiArt.scene("mountains"),
-  asciiArt.scene("forest"),
-  4
-);
-
-// Apply a gradient to a shape
-const colored = artCompose.gradient(
-  asciiArt.box(20, 5),
-  ["#ff0000", "#0000ff"]
-);
+function sideBySide(left: string[], right: string[], gap = 2): string[] {
+  const h = Math.max(left.length, right.length);
+  const lw = Math.max(...left.map(l => l.length));
+  const out: string[] = [];
+  for (let i = 0; i < h; i++) {
+    const l = (left[i] ?? "").padEnd(lw);
+    const r = right[i] ?? "";
+    out.push(l + " ".repeat(gap) + r);
+  }
+  return out;
+}
 ```
 
-### All 13 Utilities
-
-| Function | Description |
-|----------|-------------|
-| `overlay(base, over, x, y)` | Layer `over` on top of `base` at position |
-| `sideBySide(left, right, gap?)` | Place art horizontally (gap default: 2) |
-| `stack(top, bottom, gap?)` | Stack art vertically (gap default: 1) |
-| `center(art, width)` | Center art within a given width |
-| `pad(art, padding)` | Add padding (number or `{ top, right, bottom, left }`) |
-| `crop(art, x, y, width, height)` | Crop a region |
-| `repeat(art, times, direction)` | Repeat horizontally or vertically |
-| `mirror(art, axis)` | Mirror horizontally or vertically |
-| `rotate(art, degrees)` | Rotate 90, 180, or 270 degrees |
-| `colorize(art, color)` | Apply a single hex color to non-space characters |
-| `gradient(art, colors, direction?)` | Apply a gradient (horizontal, vertical, or diagonal) |
-| `rainbow(art)` | Apply a rainbow gradient |
-| `shadow(art, direction?, char?)` | Add a drop shadow |
+For color/gradient effects on art, apply `gradientLines()` from `style/gradient` (already used internally by `ascii({ gradient })`).

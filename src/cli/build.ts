@@ -18,20 +18,19 @@ export async function buildProject(configPath: string): Promise<void> {
     pkgName = pkg.name || pkgName;
   }
 
-  // Detect project type
+  // terminaltui is file-based only — verify the project shape
   const configName = basename(absPath);
   const pagesDir = join(projectDir, "pages");
   const isFileBased = (configName === "config.ts" || configName === "config.js") && existsSync(pagesDir);
 
-  let entryFile = absPath;
-
-  if (isFileBased) {
-    // Generate a single-file entry that inlines all pages as a defineSite() call
-    entryFile = await createFileBasedEntryPoint(projectDir, absPath, distDir);
-  } else {
-    // Single-file mode: wrap site.config.ts with runSite() call
-    entryFile = createSingleFileEntryPoint(absPath, distDir);
+  if (!isFileBased) {
+    throw new Error(
+      `terminaltui build requires a file-based project (config.ts + pages/). ` +
+      `Got: ${configName} in ${projectDir}`
+    );
   }
+
+  const entryFile = await createFileBasedEntryPoint(projectDir, absPath, distDir);
 
   try {
     const { build } = await import("esbuild");
@@ -49,13 +48,9 @@ export async function buildProject(configPath: string): Promise<void> {
     const { chmodSync } = await import("node:fs");
     chmodSync(outFile, "755");
 
-    // Clean up intermediate build artifacts
     cleanupBuildArtifacts(distDir);
-
-    // Validate the bundle
     validateBundle(outFile);
-
-    if (isFileBased) printBuildSummary(projectDir);
+    printBuildSummary(projectDir);
 
     console.log(`\n  Built successfully!`);
     console.log(`  Output: dist/cli.js`);
@@ -79,11 +74,9 @@ export async function buildProject(configPath: string): Promise<void> {
 }
 
 /**
- * Create a synthetic entry point for file-based routing projects.
- *
- * Generates a defineSite() call that imports every page function inline
- * and wraps it in a page() — no runtime filesystem scanning needed.
- * The output is a fully self-contained single-file site config.
+ * Generate a self-contained entry point that bundles config.ts + every page +
+ * every api/ handler into one file. The output instantiates TUIRuntime
+ * directly — no public defineSite/page/runSite helpers needed.
  */
 async function createFileBasedEntryPoint(
   projectDir: string,
@@ -95,45 +88,39 @@ async function createFileBasedEntryPoint(
   const pageFiles = collectTsFiles(pagesDir);
   const apiFiles = existsSync(apiDir) ? collectTsFiles(apiDir) : [];
 
-  // Load config to get menu/theme/etc
-  const configSource = readFileSync(configPath, "utf-8");
-
   const lines: string[] = [];
   lines.push(`// Auto-generated build entry point — inlines all pages + API routes`);
   const relConfigPath = relative(outDir, configPath).replace(/\\/g, "/");
   lines.push(`import siteConfig from "${relConfigPath}";`);
-  lines.push(`import { defineSite, page, runSite } from "terminaltui";`);
+  lines.push(`import { TUIRuntime } from "terminaltui";`);
   lines.push(``);
 
-  // Import all page modules
-  const pageImports: { varName: string; filePath: string; routeName: string; isHidden: boolean }[] = [];
+  // Import all page modules (skip layout files)
+  const pageImports: { varName: string; routeName: string; isHidden: boolean }[] = [];
   for (let i = 0; i < pageFiles.length; i++) {
     const file = pageFiles[i];
+    if (basename(file, ".ts") === "layout" || basename(file, ".js") === "layout") continue;
+
     const relPath = file.replace(pagesDir + "/", "");
     const nameNoExt = relPath.replace(/\.(ts|js)$/, "");
-
-    // Skip layout files
-    if (basename(file, ".ts") === "layout" || basename(file, ".js") === "layout") continue;
 
     const varName = `_p${i}`;
     const relFilePath = relative(outDir, file).replace(/\\/g, "/");
     lines.push(`import ${varName}, { metadata as ${varName}_meta } from "${relFilePath}";`);
 
-    // Determine route name
     let routeName = nameNoExt;
     if (routeName === "index") routeName = "home";
     else if (routeName.endsWith("/index")) routeName = routeName.replace(/\/index$/, "");
     routeName = routeName.replace(/\\/g, "/");
 
-    // Check if hidden
     const source = readFileSync(file, "utf-8");
     const isHidden = source.includes("hidden: true") || source.includes("hidden:true");
 
-    pageImports.push({ varName, filePath: file, routeName, isHidden });
+    pageImports.push({ varName, routeName, isHidden });
   }
 
   // Import all API modules
-  const apiImports: { varName: string; filePath: string; endpoint: string }[] = [];
+  const apiImports: { varName: string; endpoint: string }[] = [];
   for (let i = 0; i < apiFiles.length; i++) {
     const file = apiFiles[i];
     const relPath = file.replace(apiDir + "/", "");
@@ -146,13 +133,13 @@ async function createFileBasedEntryPoint(
     endpoint = endpoint.replace(/\/index$/, "");
     endpoint = endpoint.replace(/\[(\w+)\]/g, ":$1");
 
-    apiImports.push({ varName, filePath: file, endpoint });
+    apiImports.push({ varName, endpoint });
   }
 
   lines.push(``);
 
   // Build API routes object
-  lines.push(`const apiRoutes: Record<string, any> = {};`);
+  lines.push(`const apiRoutes = {};`);
   for (const api of apiImports) {
     for (const method of ["GET", "POST", "PUT", "DELETE", "PATCH"]) {
       lines.push(`if (typeof ${api.varName}.${method} === "function") apiRoutes["${method} ${api.endpoint}"] = ${api.varName}.${method};`);
@@ -161,27 +148,23 @@ async function createFileBasedEntryPoint(
 
   lines.push(``);
 
-  // Build pages array — call each page function as async content loader
+  // Build pages array as plain PageConfig objects (no page() helper)
   lines.push(`const pages = [`);
   for (const p of pageImports) {
     const metaRef = `(${p.varName}_meta || {})`;
-    lines.push(`  page("${p.routeName}", {`);
-    lines.push(`    title: ${metaRef}.label || "${titleCase(p.routeName)}",`);
+    lines.push(`  {`);
+    lines.push(`    id: "${p.routeName}",`);
+    lines.push(`    title: ${metaRef}.label || ${JSON.stringify(titleCase(p.routeName))},`);
     lines.push(`    icon: ${metaRef}.icon,`);
     lines.push(`    _hidden: ${p.isHidden},`);
     lines.push(`    content: async () => ${p.varName}(),`);
-    lines.push(`  }),`);
+    lines.push(`  },`);
   }
   lines.push(`];`);
 
   lines.push(``);
-  lines.push(`const site = defineSite({`);
-  lines.push(`  ...siteConfig,`);
-  lines.push(`  pages,`);
-  lines.push(`  api: apiRoutes,`);
-  lines.push(`});`);
-  lines.push(``);
-  lines.push(`await runSite(site);`);
+  lines.push(`const site = { config: { ...siteConfig, pages, api: apiRoutes } };`);
+  lines.push(`await new TUIRuntime(site).start();`);
 
   const entryPath = join(outDir, "_entry.ts");
   writeFileSync(entryPath, lines.join("\n"), "utf-8");
@@ -240,29 +223,6 @@ function titleCase(str: string): string {
     .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-/**
- * Create a wrapper entry point for single-file sites (site.config.ts).
- *
- * defineSite() returns { config } but doesn't start anything.
- * This wrapper imports the site and calls runSite() so the bundle is functional.
- */
-function createSingleFileEntryPoint(configPath: string, outDir: string): string {
-  const relPath = relative(outDir, configPath).replace(/\\/g, "/");
-  const lines = [
-    `// Auto-generated build entry point — wraps site.config.ts with runSite()`,
-    `import site from "${relPath}";`,
-    `import { runSite } from "terminaltui";`,
-    `await runSite(site);`,
-  ];
-
-  const entryPath = join(outDir, "_single-entry.ts");
-  writeFileSync(entryPath, lines.join("\n"), "utf-8");
-  return entryPath;
-}
-
-/**
- * Clean up intermediate .ts files generated during the build process.
- */
 function cleanupBuildArtifacts(distDir: string): void {
   const artifacts = ["_entry.ts", "_single-entry.ts"];
   for (const name of artifacts) {
@@ -277,15 +237,13 @@ function cleanupBuildArtifacts(distDir: string): void {
 function validateBundle(outFile: string): void {
   const content = readFileSync(outFile, "utf-8");
 
-  // Check that the bundle contains a runSite call
-  if (!content.includes("runSite")) {
+  if (!content.includes("TUIRuntime") && !content.includes("runtime")) {
     console.warn(
-      `\n  ⚠ WARNING: Bundle may not be functional — no runSite() call detected.` +
+      `\n  ⚠ WARNING: Bundle may not be functional — no runtime entry detected.` +
       `\n  The built file may define config but never start the TUI.\n`
     );
   }
 
-  // Check for hardcoded absolute paths (indicators of portability issues)
   const absPathMatch = content.match(/\/Users\/[^\s"'`]+|\/home\/[^\s"'`]+/);
   if (absPathMatch) {
     console.warn(

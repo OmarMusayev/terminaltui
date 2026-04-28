@@ -1,5 +1,3 @@
-// Site definition
-export { defineSite, page } from "./config/parser.js";
 
 // Content helpers
 export {
@@ -40,10 +38,8 @@ export {
   // Layout components
   columns,
   rows,
-  split,
   grid,
   panel,
-  box,
   col,
   row,
   container,
@@ -100,15 +96,11 @@ export type {
   CardAction,
   DynamicBlock,
   PanelConfig,
-  SplitConfig,
   GridConfig,
   ColumnsBlock,
   RowsBlock,
-  SplitBlock,
   GridBlock,
   PanelBlock,
-  BoxConfig,
-  BoxBlock,
   ColConfig,
   RowBlock,
   ContainerBlock,
@@ -146,14 +138,12 @@ export type { BannerOptions } from "./ascii/banner.js";
 export { fonts } from "./ascii/fonts.js";
 export type { Font } from "./ascii/fonts.js";
 export { icons, getIcon } from "./ascii/art.js";
-export { sparkline as brailleSparkline, dotMatrix, braillePattern } from "./ascii/braille.js";
 
 // ASCII Art Generators
 import * as _shapes from "./ascii/shapes.js";
 import * as _patterns from "./ascii/patterns.js";
 import * as _scenes from "./ascii/scenes.js";
 import * as _dataviz from "./ascii/dataviz.js";
-import * as _compose from "./ascii/compose.js";
 import { getIcon as _getIcon } from "./ascii/art.js";
 export { asciiImage } from "./ascii/image.js";
 export type { AsciiImageOptions } from "./ascii/image.js";
@@ -188,34 +178,8 @@ export const asciiArt = {
   graph: _dataviz.graph,
 };
 
-/** Art composition and manipulation utilities. */
-export const artCompose = {
-  overlay: _compose.overlay,
-  sideBySide: _compose.sideBySide,
-  stack: _compose.stack,
-  center: _compose.center,
-  pad: _compose.pad,
-  crop: _compose.crop,
-  repeat: _compose.repeat,
-  mirror: _compose.mirror,
-  rotate: _compose.rotate,
-  colorize: _compose.colorize,
-  gradient: _compose.gradient,
-  rainbow: _compose.rainbow,
-  shadow: _compose.shadow,
-};
-
-// Art Registry
-export {
-  registry,
-  registerFont, registerScene, registerIcon, registerPattern,
-  registerArtPack, useArtPack, listArt, getArtInfo,
-} from "./art-registry/index.js";
-export { createArtPack } from "./art-registry/loader.js";
-export type { ArtPack, SceneData, IconData, PatternData, AssetInfo } from "./art-registry/types.js";
-
 // Runtime
-export { TUIRuntime, runSite, runFileBasedSite } from "./core/runtime.js";
+export { TUIRuntime, runFileBasedSite } from "./core/runtime.js";
 
 // Terminal I/O abstraction
 export { ProcessTerminalIO } from "./core/terminal-io.js";
@@ -241,9 +205,8 @@ export { liveData } from "./data/live-data.js";
 export type { LiveDataConnection } from "./data/live-data.js";
 
 // ─── Routing ──────────────────────────────────────────────
-export { route } from "./routing/route.js";
-export { navigate } from "./routing/navigate.js";
-export type { RouteConfig, RouteParams, NavigateAction, HistoryEntry } from "./routing/types.js";
+export { navigate } from "./router/navigate.js";
+export type { RouteParams, NavigateAction, HistoryEntry } from "./router/types.js";
 
 // ─── Middleware ───────────────────────────────────────────
 export { middleware, redirect } from "./middleware/index.js";

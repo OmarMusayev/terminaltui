@@ -388,14 +388,6 @@ rows([
 ])
 ```
 
-### split(config)
-
-Two-panel split. `direction`: `"horizontal"` (left|right) or `"vertical"` (top|bottom). `ratio`: first panel percentage.
-
-```ts
-split({ direction: "horizontal", ratio: 30, border: true, first: [...], second: [...] })
-```
-
 ### grid(config)
 
 N×M grid. `cols`: columns. `gap`: character gap (default 1). `items`: array of `panel()` configs.
@@ -413,14 +405,6 @@ Bordered content area with optional `title`, `border`, `padding`, `width`, `heig
 
 ```ts
 panel({ title: "Stats", border: "rounded", padding: 1, content: [progressBar("CPU", 45)] })
-```
-
-### box(config)
-
-Flexbox-like layout primitive with `direction`, `gap`, `padding`, `width`, `height`, `children`.
-
-```ts
-box({ direction: "row", gap: 1, children: [card({ title: "A" }), card({ title: "B" })] })
 ```
 
 ### row(cols, config?) + col(content, config?)

@@ -46,7 +46,7 @@ export default defineSite({
   },
   animations: {
     boot: true,
-    transitions: "fade",
+    
   },
   pages: [
     page("about", {

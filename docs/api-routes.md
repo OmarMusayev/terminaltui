@@ -1,57 +1,65 @@
 # API Routes
 
-Define backend endpoints directly in your `site.config.ts`. No Express, no Fastify, no separate server — terminaltui starts a local HTTP server automatically when you define routes.
+Define backend endpoints by dropping `.ts` files into your project's `api/` directory. No Express, no Fastify, no separate server — terminaltui starts a local HTTP server automatically when API files are present.
 
 ## Why API Routes?
 
 terminaltui has `fetcher()`, `request()`, and `liveData()` for **calling** APIs. But if your TUI needs to read system info, run shell commands, query a database, or manage Docker containers, you'd normally need a separate server.
 
-API routes close that gap. Define your endpoints in the same config file as your pages. The framework handles the server.
+API routes close that gap. Drop your endpoints alongside your pages. The framework handles the server.
 
 ## Quick Start
 
-```ts
-import { defineSite, page, dynamic, fetcher, markdown } from "terminaltui";
+Drop a `.ts` file into `api/` and export functions named after HTTP methods. The file path becomes the endpoint URL.
 
-export default defineSite({
-  name: "My Dashboard",
-  api: {
-    "GET /hello": async () => ({ message: "Hello from the API!" }),
-  },
-  pages: [
-    page("home", {
-      title: "Home",
-      content: [
-        dynamic(["hello"], () => {
-          const data = fetcher({ url: "/hello" });
-          if (data.loading) return markdown("Loading...");
-          return markdown(`API says: ${data.data?.message}`);
-        }),
-      ],
+```ts
+// api/hello.ts → GET /api/hello
+export async function GET() {
+  return { message: "Hello from the API!" };
+}
+```
+
+```ts
+// pages/home.ts
+import { dynamic, fetcher, markdown } from "terminaltui";
+
+export default function Home() {
+  return [
+    dynamic(["hello"], () => {
+      const data = fetcher({ url: "/api/hello" });
+      if (data.loading) return markdown("Loading...");
+      return markdown(`API says: ${data.data?.message}`);
     }),
-  ],
-});
+  ];
+}
 ```
 
 Run `terminaltui dev` and the API server starts alongside the TUI.
 
 ## Route Syntax
 
-Routes are defined as keys in the `api` object using the format `"METHOD /path"`:
+Each `.ts` file in `api/` becomes a URL. The file path maps directly:
+
+| File | URL |
+|------|-----|
+| `api/hello.ts` | `/api/hello` |
+| `api/users.ts` | `/api/users` |
+| `api/items/[id].ts` | `/api/items/:id` |
+| `api/posts/[slug]/comments.ts` | `/api/posts/:slug/comments` |
+
+Inside each file, export one function per HTTP method:
 
 ```ts
-api: {
-  "GET /stats": async () => { ... },
-  "POST /items": async (req) => { ... },
-  "PUT /items/:id": async (req) => { ... },
-  "DELETE /items/:id": async (req) => { ... },
-  "PATCH /items/:id": async (req) => { ... },
-}
+export async function GET() { /* ... */ }
+export async function POST(req) { /* ... */ }
+export async function PUT(req) { /* ... */ }
+export async function DELETE(req) { /* ... */ }
+export async function PATCH(req) { /* ... */ }
 ```
 
 ### URL Parameters
 
-Use `:param` in the path to capture URL segments:
+Use `[param]` in the filename to capture URL segments:
 
 ```ts
 "GET /users/:userId/posts/:postId": async (req) => {

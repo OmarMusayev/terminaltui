@@ -1,5 +1,5 @@
 import {
-  card, markdown, divider, spacer, button, split, request,
+  card, markdown, divider, spacer, button, columns, panel, request,
 } from "../../../src/index.js";
 import type { ContentBlock } from "../../../src/index.js";
 import { bookmarks } from "./home.js";
@@ -42,10 +42,8 @@ export default async function PostDetail(p: { id: string }) {
   }
 
   return [
-    split({
-      direction: "horizontal",
-      ratio: 55,
-      first: [
+    columns([
+      panel({ width: "55%", content: [
         card({
           title: post.title,
           subtitle: `Post #${post.id} by User ${post.userId}`,
@@ -69,12 +67,12 @@ export default async function PostDetail(p: { id: string }) {
             }
           },
         }),
-      ],
-      second: [
+      ]}),
+      panel({ width: "45%", content: [
         divider("Comments"),
         spacer(),
         ...commentCards,
-      ],
-    }) as any,
+      ]}),
+    ]),
   ];
 }

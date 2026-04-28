@@ -6,7 +6,8 @@ import {
   select,
   numberInput,
   button,
-  split,
+  columns,
+  panel,
   section,
 } from "../../../src/index.js";
 
@@ -14,10 +15,8 @@ export const metadata = { label: "Contact", icon: "->" };
 
 export default function Contact() {
   return [
-    split({
-      direction: "horizontal",
-      ratio: 40,
-      first: [
+    columns([
+      panel({ width: "40%", content: [
         section("Get in Touch", [
           link("Make a Reservation", "https://resy.com/the-rusty-fork", { icon: ">" }),
           link("Instagram", "https://instagram.com/therustyfork", { icon: ">" }),
@@ -25,8 +24,8 @@ export default function Contact() {
           link("Phone", "tel:+15035550187", { icon: ">" }),
           link("Google Maps", "https://maps.google.com/?q=827+NW+Ironworks+Lane+Portland+OR", { icon: ">" }),
         ]),
-      ],
-      second: [
+      ]}),
+      panel({ width: "60%", content: [
         form({
           id: "reservation",
           resetOnSubmit: true,
@@ -56,7 +55,7 @@ export default function Contact() {
             button({ label: "Reserve Table", style: "primary" }),
           ],
         }),
-      ],
-    }),
+      ]}),
+    ]),
   ];
 }

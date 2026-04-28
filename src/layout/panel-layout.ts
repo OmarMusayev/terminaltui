@@ -1,9 +1,9 @@
 /**
- * Layout calculations for panel-based layouts: columns, rows, grid, split.
+ * Layout calculations for panel-based layouts: columns, rows, grid.
  * Each function takes panel configs and available dimensions, returning
  * positioned rectangles for each panel.
  */
-import type { PanelConfig, SplitConfig, GridConfig } from "../config/types.js";
+import type { PanelConfig, GridConfig } from "../config/types.js";
 
 export interface PanelRect {
   x: number;
@@ -105,35 +105,6 @@ export function layoutRows(
     if (i < panels.length - 1) y += 1; // divider
   }
   return rects;
-}
-
-/** Layout two panels with a split divider. */
-export function layoutSplit(
-  config: SplitConfig,
-  availableWidth: number,
-  availableHeight: number,
-): PanelRect[] {
-  const ratio = config.ratio ?? 50;
-  const hasDivider = config.border !== false;
-  const dividerSize = hasDivider ? DIVIDER_WIDTH : 0;
-
-  if (config.direction === "horizontal") {
-    // left | right
-    const firstWidth = Math.floor(((availableWidth - dividerSize) * ratio) / 100);
-    const secondWidth = availableWidth - firstWidth - dividerSize;
-    return [
-      { x: 0, y: 0, width: firstWidth, height: availableHeight, panel: { content: config.first } },
-      { x: firstWidth + dividerSize, y: 0, width: secondWidth, height: availableHeight, panel: { content: config.second } },
-    ];
-  } else {
-    // top / bottom
-    const firstHeight = Math.floor(((availableHeight - dividerSize) * ratio) / 100);
-    const secondHeight = availableHeight - firstHeight - dividerSize;
-    return [
-      { x: 0, y: 0, width: availableWidth, height: firstHeight, panel: { content: config.first } },
-      { x: 0, y: firstHeight + dividerSize, width: availableWidth, height: secondHeight, panel: { content: config.second } },
-    ];
-  }
 }
 
 /** Layout panels in an N×M grid. */

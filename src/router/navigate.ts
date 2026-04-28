@@ -14,7 +14,7 @@ export function setNavigateHandler(fn: ((pageId: string, params?: RouteParams) =
  * Navigate to a page or route programmatically.
  *
  * @param pageId - The page or route ID to navigate to
- * @param params - Optional route parameters
+ * @param params - Optional route parameters (for dynamic routes like [slug].ts)
  */
 export function navigate(pageId: string, params?: RouteParams): void {
   if (!_navigateFn) {

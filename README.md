@@ -1,6 +1,6 @@
 # terminaltui
 
-![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2185%2B-brightgreen)
+![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-1500%2B-brightgreen)
 
 Build interactive terminal websites and apps. Write pages, get a TUI, distribute via `npx` or `ssh`.
 
@@ -76,8 +76,6 @@ export default function About() {
   ];
 }
 ```
-
-Single-file `site.config.ts` still works. Use `terminaltui migrate` to convert existing projects.
 
 ---
 
@@ -177,6 +175,7 @@ npx terminaltui demo conference
 npx terminaltui demo developer-portfolio
 npx terminaltui demo freelancer
 npx terminaltui demo startup
+npx terminaltui demo server-dashboard
 ```
 
 | Demo | Theme | Highlights |
@@ -197,9 +196,6 @@ npx terminaltui demo startup
 ### Dashboard (live API data)
 ![dashboard demo](assets/recordings/dashboard.gif)
 
-### Tetris (yes, really — a fully playable game built on the framework)
-![tetris](assets/recordings/tetris.gif)
-
 ---
 
 ## CLI
@@ -209,7 +205,6 @@ terminaltui init [template]    # scaffold a new project
 terminaltui dev [path]         # compile and run (auto-detects project type)
 terminaltui serve [path]       # host your TUI over SSH
 terminaltui build              # bundle for npm publish
-terminaltui migrate            # convert site.config.ts to file-based routing
 terminaltui demo [name]        # run a built-in demo
 terminaltui create             # interactive prompt builder
 terminaltui convert            # AI-assisted website conversion
@@ -265,9 +260,19 @@ The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the a
 
 | Doc | What's in it |
 |-----|-------------|
-| [claude/SKILL.md](claude/SKILL.md) | Full API reference -- every function, type, component |
+| [docs/getting-started.md](docs/getting-started.md) | Install, scaffold, run your first project |
+| [docs/cli-reference.md](docs/cli-reference.md) | Every CLI command with flags and examples |
 | [docs/components.md](docs/components.md) | Component catalog with examples |
 | [docs/layouts.md](docs/layouts.md) | Grid system, spatial navigation, layout patterns |
+| [docs/routing.md](docs/routing.md) | File-based routing, dynamic routes, middleware |
+| [docs/api-routes.md](docs/api-routes.md) | File-based HTTP API server (api/*.ts) |
+| [docs/state-data.md](docs/state-data.md) | createState, computed, dynamic, fetcher, liveData |
+| [docs/themes.md](docs/themes.md) | The 10 built-in themes + how to write your own |
+| [docs/ascii-art.md](docs/ascii-art.md) | Banners, scenes, icons, dataviz, image-to-ASCII |
+| [docs/serve.md](docs/serve.md) | SSH hosting (`terminaltui serve`) |
+| [docs/testing.md](docs/testing.md) | Headless TUI emulator |
+| [docs/create-command.md](docs/create-command.md) | The interactive prompt builder |
+| [claude/SKILL.md](claude/SKILL.md) | Full API reference for AI code generation |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Codebase structure and design decisions |
 
@@ -277,7 +282,7 @@ The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the a
 
 - **TypeScript** -- strict mode, zero `any` in public API
 - **1 required dependency** (esbuild) -- ssh2 is optional for `serve`
-- **2,185+ tests** across unit, integration, emulator, and demo suites
+- **1,500+ assertions** across unit, integration, emulator, and demo suites
 - **Apple Terminal compatible** -- auto-detects and uses 256-color fallback
 
 ## Contributing

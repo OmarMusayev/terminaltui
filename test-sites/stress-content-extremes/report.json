@@ -1,8 +1,0 @@
-{
-  "agent": "stress-content-extremes",
-  "tests_run": 91,
-  "tests_passed": 91,
-  "tests_failed": 0,
-  "bugs": [],
-  "notes": "All tests passed. Tested extreme content: 200-char titles, 50 tags, 2000-word text, 10-col tables, 30-item timelines, 20-item menus, empty fields, Unicode (emoji/CJK/accented), long words, all component styles."
-}

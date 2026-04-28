@@ -5,6 +5,23 @@
 import type { ContentBlock, SiteConfig } from "../config/types.js";
 import type { ApiHandler, ApiRequest } from "../api/types.js";
 
+// ─── Navigation primitives ─────────────────────────────────
+
+/** Route parameters passed to dynamic routes (e.g. [slug].ts). */
+export type RouteParams = Record<string, string>;
+
+/** Navigation history entry. */
+export interface HistoryEntry {
+  page: string;
+  params?: RouteParams;
+}
+
+/** Navigate action attached to a card or button. */
+export interface NavigateAction {
+  navigate: string;
+  params?: RouteParams;
+}
+
 // ─── Route Types ───────────────────────────────────────────
 
 /** A discovered route from the pages/ directory. */

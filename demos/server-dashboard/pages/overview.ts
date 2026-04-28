@@ -7,7 +7,8 @@ import {
   progressBar,
   sparkline,
   badge,
-  split,
+  columns,
+  panel,
   row,
   col,
 } from "../../../src/index.js";
@@ -60,10 +61,8 @@ export default function Overview() {
 
     divider("System Details"),
 
-    split({
-      direction: "horizontal",
-      ratio: 55,
-      first: [
+    columns([
+      panel({ width: "55%", content: [
         table(
           ["Metric", "Value"],
           [
@@ -75,8 +74,8 @@ export default function Overview() {
             ["TCP Conns", "1,247 active"],
           ],
         ),
-      ],
-      second: [
+      ]}),
+      panel({ width: "45%", content: [
         markdown("### Quick Status"),
         spacer(),
         badge("nginx", "running"),
@@ -89,7 +88,7 @@ export default function Overview() {
         divider("Alerts"),
         markdown("**WARN** — smtp service stopped at 11:42"),
         markdown("**OK** — All other services nominal"),
-      ],
-    }),
+      ]}),
+    ]),
   ];
 }

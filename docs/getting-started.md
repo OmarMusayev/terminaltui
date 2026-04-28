@@ -1,6 +1,6 @@
 # Getting Started
 
-terminaltui turns any website into a fully interactive terminal app. Define your site in a single `site.config.ts` file, preview it locally, and publish it to npm so anyone can run it with `npx your-site`.
+terminaltui turns any website into a fully interactive terminal app. Define your site as a `config.ts` plus a `pages/` directory, preview it locally, and publish it to npm so anyone can run it with `npx your-site`.
 
 ## Prerequisites
 
@@ -33,32 +33,47 @@ npx terminaltui init [template]
 
 Available templates: `minimal`, `portfolio`, `landing`, `restaurant`, `blog`, `creative`.
 
-This creates a project with three files:
+This creates a project with file-based routing:
 
 ```
 my-site/
-  site.config.ts    # your entire site lives here
-  package.json      # must have "type": "module"
+  config.ts          # theme, banner, global settings
+  pages/
+    home.ts          # the landing page
+    about.ts         # /about
+    ...
+  api/               # optional — file-based HTTP routes
+  package.json       # must have "type": "module"
   tsconfig.json
 ```
 
-### Minimal Example
+### Minimal example
 
 ```ts
-import { defineSite, page, markdown } from "terminaltui";
+// config.ts
+import { defineConfig } from "terminaltui";
 
-export default defineSite({
+export default defineConfig({
   name: "My Site",
-  pages: [
-    page("home", {
-      title: "Home",
-      content: [markdown("Hello world!")],
-    }),
-  ],
+  theme: "cyberpunk",
 });
 ```
 
-The `defineSite()` function is always the default export of `site.config.ts`. Pages are defined with the `page()` builder. Content is an array of content blocks like `markdown()`, `card()`, `table()`, and so on.
+```ts
+// pages/home.ts
+import { card, markdown } from "terminaltui";
+
+export const metadata = { label: "Home", icon: "◆" };
+
+export default function Home() {
+  return [
+    markdown("Hello world!"),
+    card({ title: "Welcome", body: "This is your first terminal app." }),
+  ];
+}
+```
+
+Each file in `pages/` becomes a route. Filename → URL: `pages/about.ts` → `/about`, `pages/projects/[slug].ts` → `/projects/:slug`. See [Routing](./routing.md) for layouts, dynamic routes, and metadata.
 
 ## Dev Preview
 
@@ -66,12 +81,12 @@ The `defineSite()` function is always the default export of `site.config.ts`. Pa
 npx terminaltui dev
 ```
 
-This compiles your config and launches an interactive terminal preview. Navigate with arrow keys, press Enter to select, Escape to go back, and `q` to quit.
+This compiles your project and launches an interactive terminal preview. Navigate with arrow keys, press Enter to select, Escape to go back, and `q` to quit.
 
 You can also point it at a specific config file:
 
 ```bash
-npx terminaltui dev path/to/site.config.ts
+npx terminaltui dev path/to/config.ts
 ```
 
 ## Build for Publishing
@@ -86,6 +101,14 @@ This bundles your site into a standalone package ready for `npm publish`. After 
 npx your-package-name
 ```
 
+## Host over SSH
+
+```bash
+npx terminaltui serve --port 2222
+```
+
+Anyone with an SSH client can then connect (`ssh your-host -p 2222`) and use the app interactively, no install required. See [SSH Hosting](./serve.md) for the full guide.
+
 ## Project Configuration
 
 Your `package.json` needs two things:
@@ -94,7 +117,7 @@ Your `package.json` needs two things:
 {
   "type": "module",
   "dependencies": {
-    "terminaltui": "^1.0.0"
+    "terminaltui": "^1.5.0"
   }
 }
 ```
@@ -110,21 +133,22 @@ cd your-existing-site
 npx terminaltui convert
 ```
 
-This drops two reference files into your project directory. Open Claude Code (or any AI assistant), point it at the files, and tell it to convert your site. The AI reads your existing HTML/React/Vue/etc. and produces a `site.config.ts`.
+This drops two reference files into your project directory. Open Claude Code (or any AI assistant), point it at the files, and tell it to convert your site.
 
 ## API Routes
 
-Need backend logic? Define API endpoints right in your config — no separate server needed. See [API Routes](./api-routes.md) for the full reference.
+Need backend logic? Drop `.ts` files into `api/` — each file's `GET`/`POST`/etc. exports become endpoints. No separate server needed. See [API Routes](./api-routes.md) for the full reference.
 
 ## What's Next
 
-- [API Routes](./api-routes.md) -- backend endpoints in your config
-- [Create Command](./create-command.md) -- interactive prompt builder
-- [Components](./components.md) -- every content block and input component
-- [Themes](./themes.md) -- built-in themes and custom theme creation
-- [ASCII Art](./ascii-art.md) -- banners, scenes, icons, and data visualization
-- [State & Data](./state-data.md) -- reactive state, data fetching, and real-time connections
-- [Routing](./routing.md) -- parameterized routes and middleware
-- [Testing](./testing.md) -- automated testing with TUIEmulator
-- [CLI Reference](./cli-reference.md) -- all commands and flags
-- [Architecture](../ARCHITECTURE.md) -- internal module map for contributors
+- [Routing](./routing.md) — file-based routing, dynamic routes, layouts, middleware
+- [Components](./components.md) — every content block and input component
+- [Layouts](./layouts.md) — panels, the 12-column grid, spatial navigation
+- [State & Data](./state-data.md) — reactive state, data fetching, real-time connections
+- [API Routes](./api-routes.md) — backend endpoints in your project
+- [SSH Hosting](./serve.md) — host your TUI over SSH
+- [Themes](./themes.md) — built-in themes and custom theme creation
+- [ASCII Art](./ascii-art.md) — banners, scenes, icons, and data visualization
+- [Testing](./testing.md) — automated testing with TUIEmulator
+- [CLI Reference](./cli-reference.md) — all commands and flags
+- [Architecture](../ARCHITECTURE.md) — internal module map for contributors

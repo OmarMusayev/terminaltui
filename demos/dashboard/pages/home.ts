@@ -1,7 +1,7 @@
 import {
   card, markdown, divider, spacer, button, table,
   dynamic, createState, createPersistentState, computed, fetcher,
-  split, row, col,
+  columns, panel, row, col,
 } from "../../../src/index.js";
 import type { ContentBlock } from "../../../src/index.js";
 
@@ -78,10 +78,8 @@ export default function Home() {
         spacer(),
 
         // Bottom split: recent posts table on left, status + actions on right
-        split({
-          direction: "horizontal",
-          ratio: 60,
-          first: [
+        columns([
+          panel({ width: "60%", content: [
             divider("Recent Posts"),
             spacer(),
             table(
@@ -104,8 +102,8 @@ export default function Home() {
                 },
               })
             ),
-          ],
-          second: [
+          ]}),
+          panel({ width: "40%", content: [
             divider("System Status"),
             spacer(),
             table(
@@ -144,8 +142,8 @@ export default function Home() {
                 return { success: "Bookmarks cleared" };
               },
             }),
-          ],
-        }) as any,
+          ]}),
+        ]),
       ] as ContentBlock[];
     }),
   ];
