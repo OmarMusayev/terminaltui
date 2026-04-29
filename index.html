@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<title>terminaltui — Interactive terminal websites and apps in TypeScript</title>
+<meta name="description" content="terminaltui is a TypeScript framework for building interactive terminal websites and apps. File-based routing, 12-column grid, spatial navigation, themes, ASCII art, and SSH hosting." />
+<meta name="keywords" content="terminaltui, tui, terminal ui framework, typescript tui, terminal website, ssh hosting tui, file-based routing terminal, spatial navigation, npx" />
+<meta name="author" content="Omar Musayev" />
+<meta name="theme-color" content="#0a0b0a" />
+<link rel="canonical" href="https://omarmusayev.github.io/terminaltui/" />
+<link rel="alternate" type="text/html" href="https://github.com/OmarMusayev/terminaltui" title="terminaltui on GitHub" />
+<link rel="alternate" type="text/html" href="https://www.npmjs.com/package/terminaltui" title="terminaltui on npm" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="terminaltui" />
+<meta property="og:description" content="A TypeScript framework for interactive terminal apps. File-based routing, grid, themes, SSH hosting." />
+<meta property="og:url" content="https://omarmusayev.github.io/terminaltui/" />
+<meta property="og:site_name" content="terminaltui" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="terminaltui" />
+<meta name="twitter:description" content="A TypeScript framework for interactive terminal apps." />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "terminaltui",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
+  "description": "A TypeScript framework for building interactive terminal websites and applications.",
+  "softwareVersion": "1.6.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "author": { "@type": "Person", "name": "Omar Musayev", "url": "https://github.com/OmarMusayev" },
+  "codeRepository": "https://github.com/OmarMusayev/terminaltui",
+  "downloadUrl": "https://www.npmjs.com/package/terminaltui",
+  "programmingLanguage": "TypeScript",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "What is terminaltui?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A TypeScript framework for building interactive terminal websites and applications. You write a config file and a pages directory and get a polished TUI with keyboard navigation, themes, forms, and routing." } },
+    { "@type": "Question", "name": "How do I install terminaltui?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Run npx terminaltui init my-site to scaffold a project, then npx terminaltui dev to preview it. No global install needed." } },
+    { "@type": "Question", "name": "Can I host a TUI over SSH?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Run terminaltui serve and clients connect over SSH with no install on their side." } }
+  ]
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --bg:        #0a0b0a;
+    --bg-2:      #0f1110;
+    --panel:     #121413;
+    --line:      #232624;
+    --line-2:    #1a1c1b;
+    --ink:       #ecebe4;
+    --ink-2:     #c5c4bb;
+    --ink-3:     #8a8a82;
+    --ink-4:     #5a5b54;
+
+    --green:     oklch(0.82 0.16 145);
+    --amber:     oklch(0.82 0.16 80);
+    --cyan:      oklch(0.82 0.10 200);
+    --magenta:   oklch(0.78 0.14 340);
+    --red:       oklch(0.74 0.16 25);
+
+    --serif:  "Instrument Serif", "Times New Roman", serif;
+    --mono:   "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans:   "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+    --maxw: 1200px;
+    --pad:  48px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  ::selection{ background:var(--green); color:#0a0b0a; }
+  a{ color:inherit; text-decoration:none; }
+  a:hover{ color:var(--green); }
+
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 var(--pad); position:relative; z-index:2; }
+  @media (max-width:720px){ :root{ --pad:20px; } }
+
+  /* topbar */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(10,11,10,0.85);
+    backdrop-filter:saturate(140%) blur(10px);
+    -webkit-backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid var(--line-2);
+  }
+  .topbar-inner{ display:flex; align-items:center; justify-content:space-between; height:56px; gap:24px; }
+  .brand{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:13px; }
+  .brand-mark{ width:22px; height:22px; border:1px solid var(--ink-3); display:grid; place-items:center; color:var(--green); }
+  .brand-name{ color:var(--ink); font-weight:500; }
+
+  .nav{ display:flex; gap:28px; font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+  .nav a{ color:var(--ink-3); }
+  .nav a:hover{ color:var(--ink); }
+
+  .gh{ display:inline-flex; align-items:center; gap:8px; padding:7px 12px; border:1px solid var(--line); color:var(--ink); background:var(--panel); font-family:var(--mono); font-size:12px; transition:border-color .15s, color .15s; }
+  .gh:hover{ border-color:var(--green); color:var(--green); }
+  .gh svg{ width:14px; height:14px; }
+  @media (max-width:920px){ .nav{ display:none; } }
+
+  /* hero */
+  .hero{ padding:120px 0 96px; }
+  .hero-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:64px; align-items:center; }
+  @media (max-width:980px){ .hero-grid{ grid-template-columns:1fr; gap:48px; } }
+
+  h1.display{
+    font-family:var(--serif); font-weight:400;
+    font-size:clamp(56px, 8vw, 104px);
+    line-height:1; letter-spacing:-0.02em;
+    margin:0 0 32px; color:var(--ink); text-wrap:balance;
+  }
+  h1.display em{ font-style:italic; color:var(--green); }
+
+  .lede{
+    font-family:var(--sans); font-size:18px; line-height:1.55;
+    color:var(--ink-2); max-width:46ch;
+    margin:0 0 40px;
+  }
+
+  .cmd{
+    display:flex; align-items:stretch; max-width:480px;
+    font-family:var(--mono); font-size:14px;
+    border:1px solid var(--line); background:var(--bg-2); overflow:hidden;
+    transition:border-color .15s;
+  }
+  .cmd:hover{ border-color:var(--ink-4); }
+  .cmd .prompt{ padding:14px 16px; color:var(--ink-4); border-right:1px solid var(--line-2); user-select:none; }
+  .cmd .text{ padding:14px 16px; flex:1; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cmd .text .arg{ color:var(--green); }
+  .cmd button{
+    border:0; background:transparent; color:var(--ink-3);
+    padding:0 16px; font-family:var(--mono); font-size:12px; cursor:pointer;
+    border-left:1px solid var(--line-2); transition:color .15s, background .15s;
+  }
+  .cmd button:hover{ color:var(--green); background:#161817; }
+  .cmd button.copied{ color:var(--green); }
+
+  /* terminal */
+  .term{
+    background:#0c0e0d; border:1px solid var(--line);
+    box-shadow: 0 30px 80px -30px rgba(0,0,0,0.7);
+    font-family:var(--mono); font-size:12.5px; line-height:1.55;
+  }
+  .term-bar{
+    display:flex; align-items:center; gap:8px; padding:10px 14px;
+    border-bottom:1px solid var(--line-2);
+    background:#0e1010;
+  }
+  .term-bar .lights{ display:flex; gap:6px; }
+  .term-bar .lights i{ width:11px; height:11px; border-radius:50%; display:block; background:#3a3a3a; }
+  .term-bar .title{ flex:1; text-align:center; color:var(--ink-4); font-size:11px; }
+  .term-body{ padding:20px 22px; min-height:380px; }
+
+  .t-line{ white-space:pre; color:var(--ink-2); }
+  .t-line.dim{ color:var(--ink-4); }
+  .t-line.muted{ color:var(--ink-3); }
+  .t-line.green{ color:var(--green); }
+  .t-line.amber{ color:var(--amber); }
+  .t-line.cyan{ color:var(--cyan); }
+  .t-line.magenta{ color:var(--magenta); }
+  .t-line.bold{ color:var(--ink); font-weight:500; }
+  .t-prompt::before{ content:"$ "; color:var(--ink-4); }
+  .t-cursor{ display:inline-block; width:8px; height:14px; vertical-align:-2px; background:var(--green); margin-left:2px; animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 0%,50%{ opacity:1; } 51%,100%{ opacity:0; } }
+  .t-ascii{ color:var(--green); font-size:11px; line-height:1.05; }
+  .t-frame{ color:var(--ink-4); }
+
+  /* sections */
+  .sec{ padding:120px 0; border-top:1px solid var(--line-2); }
+  .sec h2{
+    font-family:var(--serif); font-weight:400;
+    font-size:clamp(40px, 5vw, 64px); line-height:1.05; letter-spacing:-0.02em;
+    margin:0 0 24px; color:var(--ink); max-width:18ch; text-wrap:balance;
+  }
+  .sec h2 em{ font-style:italic; color:var(--green); }
+  .sec .intro{
+    font-family:var(--sans); font-size:17px; line-height:1.55;
+    color:var(--ink-3); max-width:54ch; margin:0 0 56px;
+  }
+
+  /* routing */
+  .arch{ display:grid; grid-template-columns: 1.05fr 1fr; gap:64px; align-items:start; }
+  @media (max-width:980px){ .arch{ grid-template-columns:1fr; gap:40px; } }
+  .tree{
+    background:var(--bg-2); border:1px solid var(--line);
+    padding:28px 32px; font-family:var(--mono); font-size:13px;
+    color:var(--ink-2); line-height:1.85; white-space:pre;
+    overflow-x:auto;
+  }
+  .tree .dir{ color:var(--cyan); }
+  .tree .file{ color:var(--ink); }
+  .tree .com{ color:var(--ink-4); }
+  .tree .arrow{ color:var(--green); }
+  .tree .dyn{ color:var(--magenta); }
+  .arch-notes{ display:grid; gap:32px; }
+  .arch-note h3{ font-family:var(--sans); font-size:15px; font-weight:500; margin:0 0 6px; color:var(--ink); }
+  .arch-note p{ font-family:var(--sans); font-size:14px; color:var(--ink-3); margin:0; line-height:1.6; max-width:46ch; }
+  .arch-note code{ font-family:var(--mono); font-size:12.5px; color:var(--cyan); }
+
+  /* demos */
+  .demo-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:1px;
+    background:var(--line-2); border:1px solid var(--line-2);
+  }
+  @media (max-width:980px){ .demo-grid{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width:620px){ .demo-grid{ grid-template-columns: 1fr; } }
+  .demo{
+    background:var(--bg); padding:32px; position:relative;
+    transition:background .25s; overflow:hidden; min-height:280px;
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .demo:hover{ background:var(--bg-2); }
+  .demo-name{ font-family:var(--serif); font-size:32px; line-height:1.05; letter-spacing:-0.02em; margin:0; color:var(--ink); font-weight:400; }
+  .demo-cmd{ font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:auto; }
+  .demo-cmd .arg{ color:var(--green); }
+  .demo-theme{ font-family:var(--mono); font-size:11px; color:var(--ink-4); }
+  .demo .preview{
+    position:absolute; inset:0; padding:18px;
+    opacity:0; transform:translateY(8px);
+    transition:opacity .25s ease, transform .25s ease;
+    pointer-events:none; background:var(--bg); display:flex;
+  }
+  .demo:hover .preview{ opacity:1; transform:translateY(0); }
+  .preview-term{
+    flex:1; background:#0c0e0d; border:1px solid var(--line);
+    font-family:var(--mono); font-size:10px; line-height:1.5;
+    padding:12px 14px; overflow:hidden; color:var(--ink-2);
+  }
+  .preview-term .h{ color:var(--ink); margin-bottom:6px; font-weight:500; }
+  .preview-term pre{ margin:0; white-space:pre; font-family:var(--mono); font-size:9.5px; line-height:1.25; }
+
+  /* features */
+  .feat-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:48px 56px; }
+  @media (max-width:880px){ .feat-grid{ grid-template-columns: 1fr; gap:40px; } }
+  .feat h3{ font-family:var(--sans); font-size:16px; font-weight:500; margin:0 0 8px; color:var(--ink); }
+  .feat p{ font-family:var(--sans); font-size:14px; line-height:1.6; color:var(--ink-3); margin:0; max-width:36ch; }
+
+  /* themes */
+  .themes{ display:grid; grid-template-columns: repeat(5, 1fr); gap:1px; background:var(--line-2); margin-top:40px; border:1px solid var(--line-2); }
+  @media (max-width:720px){ .themes{ grid-template-columns: repeat(2, 1fr); } }
+  .theme{ background:var(--bg-2); padding:18px; font-family:var(--mono); font-size:12px; }
+  .theme .swatches{ display:flex; gap:3px; margin-bottom:14px; height:24px; }
+  .theme .swatches span{ flex:1; }
+  .theme .name{ color:var(--ink-2); }
+
+  /* code */
+  .code-grid{ display:grid; grid-template-columns: 320px 1fr; gap:48px; align-items:start; }
+  @media (max-width:980px){ .code-grid{ grid-template-columns:1fr; } }
+  .code-aside h3{ font-family:var(--sans); font-size:15px; font-weight:500; margin:0 0 8px; color:var(--ink); }
+  .code-aside p{ font-family:var(--sans); font-size:14px; color:var(--ink-3); margin:0 0 18px; max-width:32ch; line-height:1.6; }
+  .code-tabs{ display:flex; align-items:center; padding:0; border-bottom:1px solid var(--line-2); background:#0e1010; overflow-x:auto; }
+  .code-tab{
+    font-family:var(--mono); font-size:11.5px; padding:12px 16px; color:var(--ink-3);
+    border-bottom:2px solid transparent; cursor:pointer; user-select:none;
+    transition:color .15s, border-color .15s; white-space:nowrap;
+  }
+  .code-tab.active{ color:var(--ink); border-bottom-color:var(--green); }
+  .code-tab .ext{ color:var(--ink-4); }
+  .code-tab:hover{ color:var(--ink); }
+  pre.code{
+    margin:0; padding:24px;
+    font-family:var(--mono); font-size:13px; line-height:1.65;
+    color:var(--ink-2); overflow:auto; background:#0c0e0d;
+    max-height:540px;
+  }
+  pre.code .kw{ color:var(--magenta); }
+  pre.code .fn{ color:var(--cyan); }
+  pre.code .str{ color:var(--green); }
+  pre.code .num{ color:var(--amber); }
+  pre.code .com{ color:var(--ink-4); }
+  pre.code .pn{ color:var(--ink-3); }
+  pre.code .ty{ color:var(--amber); }
+  .code-pane{ display:none; }
+  .code-pane.active{ display:block; }
+
+  /* SSH */
+  .ssh-grid{ display:grid; grid-template-columns: 1fr 1.1fr; gap:64px; align-items:center; }
+  @media (max-width:880px){ .ssh-grid{ grid-template-columns:1fr; gap:40px; } }
+
+  /* quick start */
+  .quick-grid{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:0;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  @media (max-width:880px){ .quick-grid{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width:520px){ .quick-grid{ grid-template-columns: 1fr; } }
+  .qstep{ padding:32px; border-right:1px solid var(--line-2); }
+  .qstep:last-child{ border-right:0; }
+  .qstep-n{ font-family:var(--mono); font-size:11px; color:var(--green); }
+  .qstep-cmd{ font-family:var(--mono); font-size:14px; color:var(--ink); margin:14px 0 8px; word-break:break-word; }
+  .qstep-cmd .arg{ color:var(--ink-3); }
+  .qstep-desc{ font-family:var(--sans); font-size:13px; color:var(--ink-3); line-height:1.5; }
+
+  /* CLI table */
+  .cli-table{ width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13px; margin-top:32px; }
+  .cli-table tr{ border-top:1px solid var(--line-2); }
+  .cli-table tr:first-child{ border-top:1px solid var(--line); }
+  .cli-table tr:last-child{ border-bottom:1px solid var(--line); }
+  .cli-table td{ padding:14px 16px; vertical-align:top; }
+  .cli-table .cmd-cell{ color:var(--green); width:38%; white-space:nowrap; }
+  .cli-table .cmd-cell .arg{ color:var(--ink-3); }
+  .cli-table .desc-cell{ color:var(--ink-2); }
+  @media (max-width:720px){ .cli-table .cmd-cell{ width:auto; white-space:normal; } }
+
+  /* footer */
+  footer{ padding:64px 0 48px; border-top:1px solid var(--line-2); }
+  .foot-grid{ display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:48px; }
+  @media (max-width:880px){ .foot-grid{ grid-template-columns: 1fr 1fr; gap:32px; } }
+  .foot-brand p{ font-family:var(--sans); font-size:14px; color:var(--ink-3); margin:0 0 16px; max-width:32ch; line-height:1.55; }
+  .foot-col h5{ font-family:var(--mono); font-size:11px; color:var(--ink-4); margin:0 0 14px; font-weight:500; }
+  .foot-col ul{ list-style:none; margin:0; padding:0; }
+  .foot-col li{ font-family:var(--mono); font-size:13px; padding:5px 0; color:var(--ink-2); }
+  .foot-col li a{ color:var(--ink-2); }
+  .foot-col li a:hover{ color:var(--green); }
+
+  .foot-meta{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:48px; padding-top:24px; border-top:1px solid var(--line-2);
+    font-family:var(--mono); font-size:12px; color:var(--ink-4);
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar" role="banner">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="#top" aria-label="terminaltui home">
+      <span class="brand-mark" aria-hidden="true">▌</span>
+      <span class="brand-name">terminaltui</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#routing">Routing</a>
+      <a href="#demos">Demos</a>
+      <a href="#features">Features</a>
+      <a href="#code">Code</a>
+      <a href="#ssh">SSH</a>
+      <a href="#start">Get started</a>
+    </nav>
+    <a class="gh" href="https://github.com/OmarMusayev/terminaltui" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 005.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<section id="top" class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <h1 class="display">Build websites that live in your <em>terminal</em>.</h1>
+
+        <p class="lede">terminaltui is a TypeScript framework for interactive terminal apps. File-based routing, a 12-column grid, themes, and SSH hosting. Run with npx.</p>
+
+        <div class="cmd" role="group" aria-label="Install command">
+          <span class="prompt" aria-hidden="true">$</span>
+          <span class="text" id="cmd-text">npx terminaltui <span class="arg">init my-site</span></span>
+          <button id="copy-btn" type="button" aria-label="Copy command">Copy</button>
+        </div>
+      </div>
+
+      <div class="term" id="hero-term" aria-hidden="true">
+        <div class="term-bar">
+          <div class="lights"><i></i><i></i><i></i></div>
+          <div class="title">terminaltui dev</div>
+          <div></div>
+        </div>
+        <div class="term-body" id="hero-term-body"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="routing" class="sec">
+  <div class="wrap">
+    <h2>A directory <em>is</em> the site map.</h2>
+    <p class="intro">File paths become routes. Layouts wrap their siblings. Brackets become parameters. Nothing to configure.</p>
+
+    <div class="arch">
+<div class="tree"><span class="dir">my-site/</span>
+├── <span class="file">config.ts</span>
+├── <span class="dir">pages/</span>
+│   ├── <span class="file">layout.ts</span>       <span class="com">// wraps every page</span>
+│   ├── <span class="file">home.ts</span>         <span class="arrow">→ /</span>
+│   ├── <span class="file">about.ts</span>        <span class="arrow">→ /about</span>
+│   ├── <span class="dir">projects/</span>
+│   │   ├── <span class="file">index.ts</span>    <span class="arrow">→ /projects</span>
+│   │   └── <span class="dyn">[slug].ts</span>    <span class="arrow">→ /projects/:slug</span>
+│   └── <span class="file">contact.ts</span>      <span class="arrow">→ /contact</span>
+└── <span class="dir">api/</span>
+    ├── <span class="file">stats.ts</span>        <span class="arrow">→ GET /api/stats</span>
+    └── <span class="file">subscribe.ts</span>    <span class="arrow">→ POST /api/subscribe</span></div>
+
+      <div class="arch-notes">
+        <div class="arch-note">
+          <h3>Pages are functions</h3>
+          <p>Each page exports a default function returning content blocks. <code>export const metadata</code> sets the menu label, icon, and order.</p>
+        </div>
+        <div class="arch-note">
+          <h3>Layouts compose</h3>
+          <p>A <code>pages/layout.ts</code> wraps siblings and descendants. Nested layouts compose from outside in.</p>
+        </div>
+        <div class="arch-note">
+          <h3>Dynamic routes</h3>
+          <p>Drop <code>[slug].ts</code> in any folder. The page receives <code>params.slug</code> at runtime.</p>
+        </div>
+        <div class="arch-note">
+          <h3>API on the same filesystem</h3>
+          <p>Files in <code>api/</code> export <code>GET()</code>, <code>POST()</code>, etc. A local HTTP server starts alongside the TUI.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="demos" class="sec">
+  <div class="wrap">
+    <h2>Nine reference apps.</h2>
+    <p class="intro">Each demo runs from npm with a single command. Hover any tile to preview the rendered terminal.</p>
+
+    <div class="demo-grid" id="demo-grid"></div>
+  </div>
+</section>
+
+<section id="features" class="sec">
+  <div class="wrap">
+    <h2>Everything a real app needs.</h2>
+    <p class="intro">A focused, fully typed surface for UI, layout, state, data, routing, and testing.</p>
+
+    <div class="feat-grid">
+      <div class="feat">
+        <h3>30+ components</h3>
+        <p>Card, Table, Timeline, Hero, Gallery, Tabs, Accordion, Quote, Badge, ProgressBar, Sparkline, Section, Divider.</p>
+      </div>
+      <div class="feat">
+        <h3>Forms with validation</h3>
+        <p>TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchInput, Button. Validation and submission built in.</p>
+      </div>
+      <div class="feat">
+        <h3>12-column grid</h3>
+        <p>Bootstrap-style layout for terminals. Breakpoints at 60, 90, and 120 columns. Rows wrap, spans nest.</p>
+      </div>
+      <div class="feat">
+        <h3>Spatial navigation</h3>
+        <p>Arrow keys move to the nearest item by screen position. Distance and alignment scoring, no configuration.</p>
+      </div>
+      <div class="feat">
+        <h3>File-based routing</h3>
+        <p>Pages are files. Layouts wrap siblings. Dynamic routes use brackets. Async pages are first-class.</p>
+      </div>
+      <div class="feat">
+        <h3>API routes</h3>
+        <p>Files in <code style="font-family:var(--mono);color:var(--cyan);font-size:13px;">api/</code> become endpoints. Export GET, POST, PUT, DELETE. The framework runs the server.</p>
+      </div>
+      <div class="feat">
+        <h3>Ten built-in themes</h3>
+        <p>Cyberpunk, Dracula, Nord, Monokai, Solarized, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, and Hacker. Custom themes too.</p>
+      </div>
+      <div class="feat">
+        <h3>Reactive state</h3>
+        <p>createState, computed values, persistent state, fetcher with auto-refresh, and live data over WebSocket and SSE.</p>
+      </div>
+      <div class="feat">
+        <h3>Headless emulator</h3>
+        <p>Spawn the app in a PTY. Read the screen, send keystrokes, assert content. Like Puppeteer for terminals.</p>
+      </div>
+    </div>
+
+    <div class="themes" id="themes"></div>
+  </div>
+</section>
+
+<section id="code" class="sec">
+  <div class="wrap">
+    <h2>Write a config. Drop in pages.</h2>
+    <p class="intro">No JSX, no template language. Pages are TypeScript functions returning content blocks.</p>
+
+    <div class="code-grid">
+      <aside class="code-aside">
+        <h3>The whole API in three files</h3>
+        <p>config.ts is your manifest. Pages are functions. API routes are exports.</p>
+      </aside>
+      <div class="term">
+        <div class="code-tabs" role="tablist" id="code-tabs">
+          <span class="code-tab active" data-pane="p-config">config<span class="ext">.ts</span></span>
+          <span class="code-tab" data-pane="p-page">pages/about<span class="ext">.ts</span></span>
+          <span class="code-tab" data-pane="p-dyn">pages/projects/[slug]<span class="ext">.ts</span></span>
+          <span class="code-tab" data-pane="p-api">api/stats<span class="ext">.ts</span></span>
+          <span class="code-tab" data-pane="p-grid">grid <span class="ext">example</span></span>
+        </div>
+
+<pre class="code code-pane active" id="p-config"><span class="kw">import</span> { <span class="fn">defineConfig</span> } <span class="kw">from</span> <span class="str">"terminaltui"</span><span class="pn">;</span>
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span><span class="pn">({</span>
+  name<span class="pn">:</span>   <span class="str">"My Site"</span><span class="pn">,</span>
+  theme<span class="pn">:</span>  <span class="str">"cyberpunk"</span><span class="pn">,</span>
+  banner<span class="pn">:</span> { text<span class="pn">:</span> <span class="str">"MY SITE"</span><span class="pn">,</span> font<span class="pn">:</span> <span class="str">"ANSI Shadow"</span> }<span class="pn">,</span>
+
+  <span class="com">// optional: serve over ssh</span>
+  serve<span class="pn">:</span> <span class="pn">{</span>
+    port<span class="pn">:</span>           <span class="num">2222</span><span class="pn">,</span>
+    maxConnections<span class="pn">:</span> <span class="num">100</span><span class="pn">,</span>
+  <span class="pn">},</span>
+<span class="pn">});</span></pre>
+
+<pre class="code code-pane" id="p-page"><span class="kw">import</span> { <span class="fn">card</span>, <span class="fn">timeline</span>, <span class="fn">link</span> } <span class="kw">from</span> <span class="str">"terminaltui"</span><span class="pn">;</span>
+
+<span class="kw">export const</span> metadata <span class="pn">=</span> <span class="pn">{</span>
+  label<span class="pn">:</span> <span class="str">"About"</span><span class="pn">,</span>
+  icon<span class="pn">:</span>  <span class="str">"◆"</span><span class="pn">,</span>
+  order<span class="pn">:</span> <span class="num">2</span><span class="pn">,</span>
+<span class="pn">};</span>
+
+<span class="kw">export default function</span> <span class="fn">About</span><span class="pn">() {</span>
+  <span class="kw">return</span> <span class="pn">[</span>
+    <span class="fn">card</span><span class="pn">({</span>
+      title<span class="pn">:</span> <span class="str">"About Me"</span><span class="pn">,</span>
+      body<span class="pn">:</span>  <span class="str">"Full-stack developer based in Portland."</span><span class="pn">,</span>
+    <span class="pn">}),</span>
+    <span class="fn">timeline</span><span class="pn">([</span>
+      <span class="pn">{</span> date<span class="pn">:</span> <span class="str">"2026"</span><span class="pn">,</span> title<span class="pn">:</span> <span class="str">"Started terminaltui"</span> <span class="pn">},</span>
+      <span class="pn">{</span> date<span class="pn">:</span> <span class="str">"2024"</span><span class="pn">,</span> title<span class="pn">:</span> <span class="str">"Joined Acme Corp"</span> <span class="pn">},</span>
+    <span class="pn">]),</span>
+    <span class="fn">link</span><span class="pn">(</span><span class="str">"GitHub"</span><span class="pn">,</span> <span class="str">"https://github.com/me"</span><span class="pn">),</span>
+  <span class="pn">];</span>
+<span class="pn">}</span></pre>
+
+<pre class="code code-pane" id="p-dyn"><span class="kw">import</span> { <span class="fn">card</span>, <span class="fn">section</span>, <span class="fn">badge</span> } <span class="kw">from</span> <span class="str">"terminaltui"</span><span class="pn">;</span>
+
+<span class="kw">type</span> <span class="ty">Params</span> <span class="pn">=</span> <span class="pn">{</span> params<span class="pn">:</span> <span class="pn">{</span> slug<span class="pn">:</span> <span class="ty">string</span> <span class="pn">} };</span>
+
+<span class="kw">export default async function</span> <span class="fn">Project</span><span class="pn">({</span> params <span class="pn">}:</span> <span class="ty">Params</span><span class="pn">) {</span>
+  <span class="kw">const</span> data <span class="pn">=</span> <span class="kw">await</span> <span class="fn">fetch</span><span class="pn">(</span>
+    <span class="str">`/api/projects/</span><span class="pn">${</span>params.slug<span class="pn">}</span><span class="str">`</span>
+  <span class="pn">).</span><span class="fn">then</span><span class="pn">(</span>r <span class="pn">=&gt;</span> r.<span class="fn">json</span><span class="pn">());</span>
+
+  <span class="kw">return</span> <span class="pn">[</span>
+    <span class="fn">section</span><span class="pn">({</span> title<span class="pn">:</span> data.name<span class="pn">,</span> level<span class="pn">:</span> <span class="num">1</span> <span class="pn">}),</span>
+    <span class="fn">badge</span><span class="pn">(</span>data.status<span class="pn">,</span> <span class="pn">{</span> tone<span class="pn">:</span> <span class="str">"success"</span> <span class="pn">}),</span>
+    <span class="fn">card</span><span class="pn">({</span> title<span class="pn">:</span> <span class="str">"Description"</span><span class="pn">,</span> body<span class="pn">:</span> data.description <span class="pn">}),</span>
+  <span class="pn">];</span>
+<span class="pn">}</span></pre>
+
+<pre class="code code-pane" id="p-api"><span class="com">// api/stats.ts becomes GET /api/stats</span>
+
+<span class="kw">export async function</span> <span class="fn">GET</span><span class="pn">()</span> <span class="pn">{</span>
+  <span class="kw">return</span> <span class="pn">{</span>
+    users<span class="pn">:</span>     <span class="num">45_231</span><span class="pn">,</span>
+    uptime<span class="pn">:</span>    <span class="num">99.97</span><span class="pn">,</span>
+    requests<span class="pn">:</span>  <span class="num">1_284_512</span><span class="pn">,</span>
+  <span class="pn">};</span>
+<span class="pn">}</span>
+
+<span class="kw">export async function</span> <span class="fn">POST</span><span class="pn">(</span>req<span class="pn">:</span> <span class="ty">Request</span><span class="pn">)</span> <span class="pn">{</span>
+  <span class="kw">const</span> body <span class="pn">=</span> <span class="kw">await</span> req.<span class="fn">json</span><span class="pn">();</span>
+  <span class="kw">return</span> <span class="pn">{</span> ok<span class="pn">:</span> <span class="kw">true</span> <span class="pn">};</span>
+<span class="pn">}</span></pre>
+
+<pre class="code code-pane" id="p-grid"><span class="kw">import</span> { <span class="fn">row</span>, <span class="fn">col</span>, <span class="fn">card</span>, <span class="fn">container</span> } <span class="kw">from</span> <span class="str">"terminaltui"</span><span class="pn">;</span>
+
+<span class="kw">export default function</span> <span class="fn">Dashboard</span><span class="pn">() {</span>
+  <span class="kw">return</span> <span class="pn">[</span>
+    <span class="fn">container</span><span class="pn">([</span>
+      <span class="fn">row</span><span class="pn">([</span>
+        <span class="fn">col</span><span class="pn">(</span>statsCard<span class="pn">,</span> <span class="pn">{</span> span<span class="pn">:</span> <span class="num">3</span><span class="pn">,</span> xs<span class="pn">:</span> <span class="num">12</span> <span class="pn">}),</span>
+        <span class="fn">col</span><span class="pn">(</span>chartCard<span class="pn">,</span> <span class="pn">{</span> span<span class="pn">:</span> <span class="num">9</span><span class="pn">,</span> xs<span class="pn">:</span> <span class="num">12</span> <span class="pn">}),</span>
+      <span class="pn">],</span> <span class="pn">{</span> gap<span class="pn">:</span> <span class="num">1</span> <span class="pn">}),</span>
+
+      <span class="fn">row</span><span class="pn">([</span>
+        <span class="fn">col</span><span class="pn">([</span><span class="fn">card</span><span class="pn">({</span> title<span class="pn">:</span> <span class="str">"Revenue"</span><span class="pn">,</span> body<span class="pn">:</span> <span class="str">"$1.2M"</span> <span class="pn">})],</span> <span class="pn">{</span> span<span class="pn">:</span> <span class="num">4</span> <span class="pn">}),</span>
+        <span class="fn">col</span><span class="pn">([</span><span class="fn">card</span><span class="pn">({</span> title<span class="pn">:</span> <span class="str">"Users"</span><span class="pn">,</span>   body<span class="pn">:</span> <span class="str">"45,231"</span> <span class="pn">})],</span> <span class="pn">{</span> span<span class="pn">:</span> <span class="num">4</span> <span class="pn">}),</span>
+        <span class="fn">col</span><span class="pn">([</span><span class="fn">card</span><span class="pn">({</span> title<span class="pn">:</span> <span class="str">"Uptime"</span><span class="pn">,</span>  body<span class="pn">:</span> <span class="str">"99.97%"</span> <span class="pn">})],</span> <span class="pn">{</span> span<span class="pn">:</span> <span class="num">4</span> <span class="pn">}),</span>
+      <span class="pn">]),</span>
+    <span class="pn">],</span> <span class="pn">{</span> maxWidth<span class="pn">:</span> <span class="num">120</span><span class="pn">,</span> center<span class="pn">:</span> <span class="kw">true</span> <span class="pn">})</span>
+  <span class="pn">];</span>
+<span class="pn">}</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ssh" class="sec">
+  <div class="wrap">
+    <div class="ssh-grid">
+      <div>
+        <h2>Host any TUI over SSH.</h2>
+        <p class="intro" style="margin-bottom:32px;">One server, many sessions. Each connection is independent. Auto-detects the client TERM for color depth.</p>
+
+        <div class="cmd" style="margin-bottom:12px;">
+          <span class="prompt" aria-hidden="true">$</span>
+          <span class="text">terminaltui serve <span class="arg">--port 2222</span></span>
+        </div>
+        <div class="cmd">
+          <span class="prompt" aria-hidden="true">$</span>
+          <span class="text">ssh localhost <span class="arg">-p 2222</span></span>
+        </div>
+      </div>
+
+      <div class="term" aria-hidden="true">
+        <div class="term-bar">
+          <div class="lights"><i></i><i></i><i></i></div>
+          <div class="title">terminaltui serve</div>
+          <div></div>
+        </div>
+        <div class="term-body" style="padding:18px 22px; min-height:auto; line-height:1.7;">
+          <div class="t-line cyan">[connect] 198.51.100.42  xterm-256color  session #047</div>
+          <div class="t-line cyan">[connect] 203.0.113.18   xterm-kitty     session #048</div>
+          <div class="t-line cyan">[connect] 192.0.2.74     vt100           session #049</div>
+          <div class="t-line cyan">[connect] 198.51.100.99  xterm-256color  session #050</div>
+          <div class="t-line">&nbsp;</div>
+          <div class="t-line dim">active 4 / 100   uptime 03:42:18</div>
+          <div class="t-line">&nbsp;</div>
+          <div class="t-line green">  ◆ home    ▸ projects   ▸ writing   ▸ contact</div>
+          <div class="t-line muted">  ↑↓ navigate   ↵ select   q quit</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="start" class="sec">
+  <div class="wrap">
+    <h2>Get started.</h2>
+    <p class="intro">Four commands.</p>
+
+    <div class="quick-grid">
+      <div class="qstep">
+        <div class="qstep-n">01</div>
+        <div class="qstep-cmd">npx terminaltui <span class="arg">init my-site</span></div>
+        <div class="qstep-desc">Scaffold a new project from a template.</div>
+      </div>
+      <div class="qstep">
+        <div class="qstep-n">02</div>
+        <div class="qstep-cmd">npx terminaltui <span class="arg">dev</span></div>
+        <div class="qstep-desc">Compile and run live in your terminal.</div>
+      </div>
+      <div class="qstep">
+        <div class="qstep-n">03</div>
+        <div class="qstep-cmd">terminaltui <span class="arg">serve</span></div>
+        <div class="qstep-desc">Optional. Host over SSH.</div>
+      </div>
+      <div class="qstep">
+        <div class="qstep-n">04</div>
+        <div class="qstep-cmd">npm <span class="arg">publish</span></div>
+        <div class="qstep-desc">Anyone can run <code style="font-family:var(--mono);color:var(--green)">npx your-site</code>.</div>
+      </div>
+    </div>
+
+    <table class="cli-table">
+      <tbody>
+        <tr><td class="cmd-cell">terminaltui <span class="arg">init [template]</span></td><td class="desc-cell">Scaffold a new project from a template.</td></tr>
+        <tr><td class="cmd-cell">terminaltui <span class="arg">dev [path]</span></td><td class="desc-cell">Compile and run.</td></tr>
+        <tr><td class="cmd-cell">terminaltui <span class="arg">serve [path]</span></td><td class="desc-cell">Host the TUI over SSH.</td></tr>
+        <tr><td class="cmd-cell">terminaltui <span class="arg">build</span></td><td class="desc-cell">Bundle for npm publish.</td></tr>
+        <tr><td class="cmd-cell">terminaltui <span class="arg">demo [name]</span></td><td class="desc-cell">Run a built-in demo.</td></tr>
+        <tr><td class="cmd-cell">terminaltui <span class="arg">test</span></td><td class="desc-cell">Run headless emulator tests.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div style="font-family:var(--mono); font-size:14px; color:var(--ink); font-weight:500; margin-bottom:8px;">terminaltui</div>
+        <p>A TypeScript framework for interactive terminal websites and apps.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Project</h5>
+        <ul>
+          <li><a href="https://github.com/OmarMusayev/terminaltui">GitHub</a></li>
+          <li><a href="https://www.npmjs.com/package/terminaltui">npm</a></li>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/blob/main/LICENSE">License</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Docs</h5>
+        <ul>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/blob/main/docs/getting-started.md">Getting started</a></li>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/blob/main/docs/components.md">Components</a></li>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/blob/main/docs/routing.md">Routing</a></li>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/blob/main/docs/serve.md">SSH hosting</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Author</h5>
+        <ul>
+          <li><a href="https://github.com/OmarMusayev">Omar Musayev</a></li>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/issues">Issues</a></li>
+          <li><a href="https://github.com/OmarMusayev/terminaltui/discussions">Discussions</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot-meta">
+      <div>© 2026 Omar Musayev. MIT License.</div>
+      <div>v1.6.0</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* hero terminal */
+(() => {
+  const body = document.getElementById('hero-term-body');
+  if(!body) return;
+
+  const ASCII = [
+    "  ████████╗ ██╗   ██╗ ██╗",
+    "  ╚══██╔══╝ ██║   ██║ ██║",
+    "     ██║    ██║   ██║ ██║",
+    "     ██║    ╚██████╔╝ ██║",
+    "     ╚═╝     ╚═════╝  ╚═╝",
+  ];
+
+  const script = [
+    { type:'cmd',  text:'npx terminaltui dev', delay: 60 },
+    { type:'wait', delay: 280 },
+    { type:'line', text:'scanning pages/  6 routes', cls:'dim' },
+    { type:'line', text:'scanning api/    2 endpoints', cls:'dim' },
+    { type:'line', text:'theme: cyberpunk', cls:'magenta' },
+    { type:'wait', delay: 320 },
+    { type:'block', lines: ASCII, cls:'t-ascii green', delay: 40 },
+    { type:'wait', delay: 200 },
+    { type:'line', text:'  Omar Musayev', cls:'bold' },
+    { type:'line', text:'  Software Engineer', cls:'muted' },
+    { type:'wait', delay: 260 },
+    { type:'line', text:'┌─────────────────────────────────────────────┐', cls:'t-frame' },
+    { type:'line', text:'│  ◆ home      ▸ about     ▸ projects/        │', cls:'t-frame' },
+    { type:'line', text:'│  ▸ writing   ▸ contact   ▸ /api/stats       │', cls:'t-frame' },
+    { type:'line', text:'└─────────────────────────────────────────────┘', cls:'t-frame' },
+    { type:'wait', delay: 220 },
+    { type:'line', text:'  ↑↓ navigate   ↵ select   q quit', cls:'amber' },
+  ];
+
+  function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; }
+
+  let row = el('div', 't-line t-prompt');
+  body.appendChild(row);
+  const cursor = el('span','t-cursor');
+  row.appendChild(cursor);
+
+  let i = 0, j = 0;
+  function step(){
+    if(i >= script.length){
+      setTimeout(() => { body.innerHTML = ''; row = el('div','t-line t-prompt'); body.appendChild(row); row.appendChild(cursor); i=0; j=0; step(); }, 4500);
+      return;
+    }
+    const s = script[i];
+    if(s.type === 'cmd'){
+      if(j < s.text.length){
+        const ch = document.createTextNode(s.text[j]); row.insertBefore(ch, cursor); j++;
+        setTimeout(step, s.delay + Math.random()*40);
+      } else { i++; j = 0; setTimeout(step, 200); }
+    } else if(s.type === 'wait'){ i++; setTimeout(step, s.delay);
+    } else if(s.type === 'line'){
+      if(cursor.parentNode) cursor.parentNode.removeChild(cursor);
+      body.appendChild(el('div', 't-line ' + (s.cls||''), s.text));
+      i++; setTimeout(step, 60);
+    } else if(s.type === 'block'){
+      if(cursor.parentNode) cursor.parentNode.removeChild(cursor);
+      body.appendChild(el('div','t-line',' '));
+      s.lines.forEach((ln,k) => setTimeout(() => body.appendChild(el('div','t-line ' + (s.cls||''), ln)), k * s.delay));
+      setTimeout(() => { body.appendChild(el('div','t-line',' ')); i++; step(); }, s.lines.length * s.delay + 80);
+    }
+  }
+  step();
+})();
+
+/* copy button */
+(() => {
+  const btn = document.getElementById('copy-btn');
+  if(!btn) return;
+  btn.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText('npx terminaltui init my-site');
+      btn.textContent = 'Copied'; btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+    }catch(e){ btn.textContent = 'Failed'; setTimeout(() => { btn.textContent = 'Copy'; }, 1800); }
+  });
+})();
+
+/* code tabs */
+(() => {
+  const tabs = document.querySelectorAll('#code-tabs .code-tab');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.code-pane').forEach(p => p.classList.remove('active'));
+    const pane = document.getElementById(t.dataset.pane);
+    if(pane) pane.classList.add('active');
+  }));
+})();
+
+/* demos */
+(() => {
+  const grid = document.getElementById('demo-grid');
+  if(!grid) return;
+
+  const previews = {
+    portfolio: `┌─ projects ──────────────────────┐\n│ ◆ <span style="color:#0fffd4">aurora-cli</span>     ts    1.2k★  │\n│   typesafe terminal scaffolds   │\n│                                 │\n│ ▸ <span style="color:#ff2cde">phosphor</span>       rust   480★  │\n│ ▸ <span style="color:#ffe600">midnight</span>       ts     211★  │\n└─────────────────────────────────┘\n  skills <span style="color:#0fffd4">▰▰▰▰▰▰▰▰</span>▱▱  typescript`,
+    restaurant: `<span style="color:#fabd2f">menu</span>\n  ◆ <span style="color:#b8bb26">ribollata</span>          16  v\n    tuscan bread soup\n  ▸ <span style="color:#b8bb26">cacio e pepe</span>       18\n  ▸ <span style="color:#b8bb26">branzino al sale</span>   34  gf\n  ▸ <span style="color:#b8bb26">tiramisu</span>           12\n\n  <span style="color:#d3869b">[ reserve a table ]</span>`,
+    dashboard: `<span style="color:#39ff14">live  47ms</span>\n  cpu   <span style="color:#39ff14">▰▰▰▰▰▰▱▱▱▱</span>  62%\n  mem   <span style="color:#39ff14">▰▰▰▰▱▱▱▱▱▱</span>  41%\n  net   <span style="color:#39ff14">▰▰▰▰▰▰▰▰▱▱</span>  12 mb/s\n\n  <span style="color:#9eff8a">[200]</span> /api/users      18ms\n  <span style="color:#9eff8a">[200]</span> /api/sessions   22ms\n  <span style="color:#fb4934">[503]</span> /api/payments   timeout`,
+    server: `<span style="color:#39ff14">server-dashboard  4 nodes</span>\n  node-01  <span style="color:#39ff14">●</span> ok    cpu 41%   mem 62%\n  node-02  <span style="color:#39ff14">●</span> ok    cpu 28%   mem 55%\n  node-03  <span style="color:#fabd2f">●</span> warn  cpu 88%   mem 71%\n  node-04  <span style="color:#39ff14">●</span> ok    cpu 12%   mem 33%\n\n  containers 47   logs tail`,
+    startup: `<span style="color:#bb9af7">pricing</span>\n   hobby      <span style="color:#7aa2f7">$ 0</span>     1 site\n   pro        <span style="color:#7aa2f7">$ 12</span>    unlimited\n ◆ team       <span style="color:#9ece6a">$ 49</span>    teams\n\n   <span style="color:#7dcfff">[ start free trial ]</span>\n   ↵ select   esc back`,
+    conference: `<span style="color:#88c0d0">schedule  day 1</span>\n  09:00  <span style="color:#a3be8c">opening keynote</span>\n  10:00  ◆ kate  runtime systems\n  11:00  ▸ rui   type holes\n  12:30  lunch   sponsor row\n\n  speakers 12   tracks 3`,
+    band: `<span style="color:#eb6f92">tour 2026</span>\n  may 03   <span style="color:#f6c177">brooklyn</span>      sold out\n  may 09   <span style="color:#f6c177">london</span>        £24\n  may 17   <span style="color:#f6c177">berlin</span>        €22\n  may 24   <span style="color:#f6c177">tokyo</span>         ¥3500\n\n  <span style="color:#c4a7e7">[ join mailing list ]</span>`,
+    coffee: `<span style="color:#f5c2e7">today</span>\n  ◆ <span style="color:#a6e3a1">single origin ethiopia</span>  4.5\n  ▸ <span style="color:#a6e3a1">cortado</span>                  3.8\n  ▸ <span style="color:#a6e3a1">honey iced latte</span>         5.2\n  ▸ <span style="color:#a6e3a1">cold brew 12hr</span>           4.0\n\n  beans 6 origins`,
+    freelancer: `<span style="color:#bb9b6a">services</span>\n  ◆ identity systems     <span style="color:#d4a373">from $4k</span>\n  ▸ editorial websites   <span style="color:#d4a373">from $6k</span>\n  ▸ design audits        <span style="color:#d4a373">$1.5k</span>\n\n  selected 2018 to 2026\n  <span style="color:#a0826d">[ start a project ]</span>`,
+  };
+
+  const items = [
+    { name:'Developer Portfolio', theme:'cyberpunk',  cmd:'npx terminaltui demo developer-portfolio', preview:'portfolio' },
+    { name:'Restaurant',          theme:'gruvbox',    cmd:'npx terminaltui demo restaurant',           preview:'restaurant' },
+    { name:'Dashboard',           theme:'hacker',     cmd:'npx terminaltui demo dashboard',            preview:'dashboard' },
+    { name:'Server Dashboard',    theme:'hacker',     cmd:'npx terminaltui demo server-dashboard',     preview:'server' },
+    { name:'Startup',             theme:'tokyoNight', cmd:'npx terminaltui demo startup',              preview:'startup' },
+    { name:'Conference',          theme:'nord',       cmd:'npx terminaltui demo conference',           preview:'conference' },
+    { name:'Band',                theme:'rosePine',   cmd:'npx terminaltui demo band',                 preview:'band' },
+    { name:'Coffee Shop',         theme:'catppuccin', cmd:'npx terminaltui demo coffee-shop',          preview:'coffee' },
+    { name:'Freelancer',          theme:'custom',     cmd:'npx terminaltui demo freelancer',           preview:'freelancer' },
+  ];
+
+  grid.innerHTML = items.map(d => `
+    <article class="demo">
+      <h3 class="demo-name">${d.name}</h3>
+      <div class="demo-theme">${d.theme}</div>
+      <div class="demo-cmd">$ ${d.cmd.replace(/^(\S+ \S+ \S+) (.+)$/, '<span>$1</span> <span class="arg">$2</span>')}</div>
+      <div class="preview"><div class="preview-term"><div class="h">${d.name}</div><pre>${previews[d.preview]||''}</pre></div></div>
+    </article>
+  `).join('');
+})();
+
+/* themes */
+(() => {
+  const wrap = document.getElementById('themes');
+  if(!wrap) return;
+  const themes = [
+    { name:'cyberpunk',   cols:['#ff2cde','#0fffd4','#ffe600','#00b3ff','#ff7a18'] },
+    { name:'dracula',     cols:['#ff79c6','#bd93f9','#50fa7b','#f1fa8c','#8be9fd'] },
+    { name:'nord',        cols:['#88c0d0','#81a1c1','#a3be8c','#ebcb8b','#bf616a'] },
+    { name:'monokai',     cols:['#f92672','#a6e22e','#fd971f','#66d9ef','#ae81ff'] },
+    { name:'solarized',   cols:['#268bd2','#859900','#b58900','#cb4b16','#dc322f'] },
+    { name:'gruvbox',     cols:['#fb4934','#fabd2f','#b8bb26','#83a598','#d3869b'] },
+    { name:'catppuccin',  cols:['#f5c2e7','#f9e2af','#a6e3a1','#94e2d5','#cba6f7'] },
+    { name:'tokyoNight',  cols:['#7aa2f7','#bb9af7','#7dcfff','#9ece6a','#f7768e'] },
+    { name:'rosePine',    cols:['#eb6f92','#f6c177','#ebbcba','#9ccfd8','#c4a7e7'] },
+    { name:'hacker',      cols:['#39ff14','#9eff8a','#0aff60','#1f3d1f','#0a3a0a'] },
+  ];
+  wrap.innerHTML = themes.map(t => `
+    <div class="theme">
+      <div class="swatches">${t.cols.map(c => `<span style="background:${c}"></span>`).join('')}</div>
+      <div class="name">${t.name}</div>
+    </div>
+  `).join('');
+})();
+</script>
+</body>
+</html>
