@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex,follow" />
+<title>404 — terminaltui</title>
+<meta name="description" content="The page you were looking for does not exist." />
+<meta name="theme-color" content="#0a0b0a" />
+<link rel="icon" type="image/svg+xml" href="/terminaltui/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400&display=swap" rel="stylesheet" />
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; height:100%; }
+  body{
+    background:#0a0b0a; color:#ecebe4;
+    font-family:"Inter",-apple-system,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:grid; place-items:center; padding:24px;
+  }
+  .wrap{ max-width:560px; text-align:center; }
+  .code{
+    font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;
+    font-size:13px; color:#5a5b54; letter-spacing:0.04em;
+  }
+  h1{
+    font-family:"Instrument Serif",serif; font-weight:400;
+    font-size:clamp(72px, 14vw, 128px); line-height:1;
+    margin:24px 0 16px; letter-spacing:-0.02em;
+  }
+  h1 em{ font-style:italic; color:#8effbe; }
+  p{ font-size:17px; line-height:1.55; color:#c5c4bb; margin:0 0 32px; }
+  a.btn{
+    display:inline-block; padding:12px 18px; border:1px solid #232624;
+    background:#121413; color:#ecebe4; text-decoration:none;
+    font-family:"JetBrains Mono",ui-monospace,Menlo,monospace; font-size:13px;
+    transition:border-color .15s, color .15s;
+  }
+  a.btn:hover{ border-color:#8effbe; color:#8effbe; }
+</style>
+</head>
+<body>
+  <main class="wrap" role="main">
+    <div class="code">HTTP 404 / page not found</div>
+    <h1>Lost in the <em>terminal</em>.</h1>
+    <p>This route does not exist on the GitHub Pages site. The repository, npm package, and docs are still where you left them.</p>
+    <a class="btn" href="/terminaltui/">$ cd /</a>
+  </main>
+</body>
+</html>
