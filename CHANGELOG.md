@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.1] - 2026-04-28
+
+### Fixed
+
+- **`terminaltui init` now scaffolds the file-based shape** — every template was still emitting the pre-1.6.0 layout (`site.config.ts` with a `pages: [...]` array) using removed exports `defineSite`/`page`, plus `banner: ascii(...)` (a content block, not a banner spec). Running `npm run dev` on a fresh project failed immediately with `No config.ts found alongside a pages/ directory`. All six templates (minimal, portfolio, landing, restaurant, blog, creative) now emit `config.ts` with `defineConfig({...})` + `pages/<name>.ts` files exporting `metadata` and a default render function, matching the demo layout.
+- **Typo'd template/theme names no longer fall back silently** — `init` now prints `'X' is not a known template — using 'minimal'` instead of accepting any string and quietly defaulting.
+
+---
+
 ## [1.6.0] - 2026-04-28
 
 ### Removed (breaking)
