@@ -1,5 +1,52 @@
 # Changelog
 
+## [1.7.0] - 2026-05-01
+
+Project-wide review pass. Two production-impacting bugs, multi-session SSH correctness, and a sweep of dead code from the 1.6.0 cleanup that didn't get fully removed.
+
+### Fixed (production bugs)
+
+- **`:theme` command crashed on use** — `runtime-pages.ts` used `require()` inside an ESM-only package; the first `:theme dracula` raised `ReferenceError: require is not defined`. Switched to a static import.
+- **`requireEnv` and `rateLimit` middleware were silently bypassed** — `runMiddleware().catch()` fell through to `doNavigate`, so a thrown middleware (which is how both built-ins signal failure) rendered the page anyway. Throws now surface a `Blocked: <message>` feedback line and the navigation aborts.
+- **Concurrent SSH sessions clobbered each other** — `_renderCallback`, `_navigateFn`, and `apiBaseUrl` were module-level globals; the most recent `runtime.start()` won, so older sessions' `state.set()` and `navigate()` calls hit the wrong runtime. Added `core/runtime-context.ts` with `AsyncLocalStorage`; helpers consult the active context first and fall back to the legacy global for tests / cross-package fetcher imports.
+- **`createPersistentState()` leaked process listeners** — each call added three (`exit`/`SIGINT`/`SIGTERM`) handlers; SSH sessions or hot-reloads triggered `MaxListenersExceededWarning`. Now a single shared exit-flush handler is registered once.
+- **`asyncContent` render storm** — the loading branch scheduled `setTimeout(rt.render, 100)` on every render, compounding to N²-style render bursts. One guarded spinner timer per runtime now.
+- **`stringWidth` adopted unevenly** — `Timeline.ts`, `Divider.ts`, the inline accordion in `runtime-render.ts`, and `TextInput.ts` masking used `.length` (UTF-16 code units) where they needed display width or codepoint count. CJK and emoji rendered miscounted.
+- **`ascii/image.ts` emitted raw 24-bit ANSI** — bypassed the 256-color fallback path, so colored ASCII images rendered as garbage in Apple Terminal. Added `fgColorRgb()` to `style/colors.ts`; image renderers route through it.
+
+### Removed (breaking)
+
+These were either internal-only by design or removed in 1.6.0 but the export survived:
+
+- `componentRegistry`, `Component` (interface), `ComponentRegistry` class — the registry was decorative; `runtime-block-render.ts`'s switch was authoritative. Replaced internally with a `FOCUSABLE_TYPES` set.
+- `ApiServer`, `setApiBaseUrl`, `FileRouter` — internal classes that should never have been part of the public surface.
+- `dynamic(deps, render)` overload — `deps` was stored but never read. Single-arg API only.
+
+### Changed
+
+- **Test runner**: `test/run-all.ts` now globs `test-*.ts` and `**/*.test.ts` instead of an allowlist of 10 files. Default suite went from 1,469 to 2,127 passing assertions across 25 suites. `--stress`, `--demos`, and `--all` flags opt into the slower suites.
+- **`terminaltui serve` single-file path removed** — `startSingleFileSession` deleted; running `serve` on a non-file-based project prints a clear error pointing at `terminaltui init`.
+- **`compileFile` skips esbuild bundling under tsx/ts-node** — projects whose pages import the framework via relative paths no longer trip on native binaries (`ssh2`'s `.node` files). Bundle path also externalizes relative `src/index.js` imports for the rare projects that compile production builds.
+- **`compileFile` cache key is sha1 of absolute path** instead of last-80-char tail. Eliminates the (theoretical) collision when two deeply nested projects share a path tail.
+- **`box-model` is closer to the single source of truth it claimed to be** — `flex-engine.estimateBlockHeight` (card branch) now derives chrome from `COMPONENT_DEFAULTS`; `components/layout/Panel.ts` uses `computeBoxDimensions` instead of inline arithmetic with mislabeled variable names.
+
+### Security hardening
+
+- `exec` / `execSync` → `spawn` / `spawnSync` with array args in `helpers/open-url.ts`, `helpers/clipboard.ts`, and `core/ssh-server.ts` (host-key generation). No shell interpolation.
+- `terminaltui art create <type> <name>` validates `name` against `/^[a-z0-9][a-z0-9_-]*$/i` (path-traversal guard).
+- `api/server.ts` caps request bodies at 1 MB.
+
+### Notes
+
+- SSH `serve` keeps its allow-all default; password auth remains opt-in via `auth.passwords`.
+- `ARCHITECTURE.md` rewritten to match the post-1.6.0 reality (removed `routing/` section, dropped `runSite` references, fixed the dependency graph, documented `runtime-context`).
+
+### Removed dead files (no behavior change)
+
+`src/core/renderer.ts` (Cell-diff renderer, 0 importers), `src/layout/engine.ts`, `src/layout/constraints.ts`, `src/ascii/fonts-extra.ts`, `src/cli/init-templates.ts`, `src/components/registry.ts`. Plus the matching test cleanup (5 stress harnesses + 9 directory-based tests + 3 manual harnesses, all of which targeted the single-file API removed in 1.6.0).
+
+---
+
 ## [1.6.1] - 2026-04-28
 
 ### Fixed
