@@ -95,9 +95,13 @@ function createRunDir(): string {
   mkdirSync(dir, { recursive: true });
 
   const runContent = `
-import config from "${DEMO_DIR}/site.config.js";
-import { runSite } from "${PROJECT_ROOT}/src/index.js";
-runSite(config);
+import config from "${DEMO_DIR}/config.js";
+import { runFileBasedSite } from "${PROJECT_ROOT}/src/index.js";
+runFileBasedSite({
+  config,
+  pagesDir: "${DEMO_DIR}/pages",
+  outDir: "${DEMO_DIR}/.terminaltui",
+});
 `;
   writeFileSync(join(dir, "run.ts"), runContent);
   return dir;

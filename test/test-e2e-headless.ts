@@ -5,9 +5,10 @@
  * without needing an interactive terminal.
  */
 import {
-  defineSite, page, card, timeline, link, section, quote,
-  hero, table, list, divider, spacer, badge, markdown,
+  card, timeline, link, section, quote,
+  hero, table, list, badge, markdown,
 } from "../src/index.js";
+import type { Site } from "../src/config/types.js";
 import { TUIRuntime } from "../src/core/runtime.js";
 import { setColorMode, fgColor, reset, bold } from "../src/style/colors.js";
 import { themes } from "../src/style/theme.js";
@@ -58,55 +59,57 @@ const ctx: RenderContext = { width: 80, theme, borderStyle: "rounded" };
 
 console.log("End-to-End Headless Tests\n");
 
-// ── Test 1: defineSite + page helpers ──────────────────
-console.log("1. Config parsing (defineSite + helpers)");
-let site: ReturnType<typeof defineSite> | null = null;
+// ── Test 1: Site config + helpers ──────────────────
+console.log("1. Config parsing (Site + helpers)");
+let site: Site | null = null;
 assertNoThrow(() => {
-  site = defineSite({
-    name: "Test Site",
-    tagline: "A test tagline",
-    theme: "cyberpunk",
-    pages: [
-      page("about", {
-        title: "About",
-        icon: "◆",
-        content: [
-          markdown("Hello **world**"),
-          spacer(),
-          divider(),
-        ],
-      }),
-      page("projects", {
-        title: "Projects",
-        icon: "◈",
-        content: [
-          card({ title: "Project A", body: "Description here", tags: ["TS", "Node"] }),
-          card({ title: "Project B", subtitle: "★ 100", body: "Another one", url: "https://example.com" }),
-        ],
-      }),
-      page("experience", {
-        title: "Experience",
-        content: [
-          timeline([
-            { title: "Job A", subtitle: "Company", period: "2024", description: "Did things" },
-            { title: "Job B", subtitle: "Startup", period: "2022", description: "More things" },
-          ]),
-        ],
-      }),
-      page("contact", {
-        title: "Contact",
-        content: [
-          link("GitHub", "https://github.com"),
-          link("Email", "mailto:test@test.com"),
-          quote("Great software is made by great teams", { attribution: "Someone" }),
-          badge("New"),
-          table(["Language", "Level"], [["TypeScript", "Expert"], ["Rust", "Advanced"]]),
-          list(["Item 1", "Item 2", "Item 3"]),
-        ],
-      }),
-    ],
-  });
-}, "defineSite() creates a valid config");
+  site = {
+    config: {
+      name: "Test Site",
+      tagline: "A test tagline",
+      theme: "cyberpunk",
+      pages: [
+        {
+          id: "about",
+          title: "About",
+          icon: "◆",
+          content: [markdown("Hello **world**")],
+        },
+        {
+          id: "projects",
+          title: "Projects",
+          icon: "◈",
+          content: [
+            card({ title: "Project A", body: "Description here", tags: ["TS", "Node"] }),
+            card({ title: "Project B", subtitle: "★ 100", body: "Another one", url: "https://example.com" }),
+          ],
+        },
+        {
+          id: "experience",
+          title: "Experience",
+          content: [
+            timeline([
+              { title: "Job A", subtitle: "Company", period: "2024", description: "Did things" },
+              { title: "Job B", subtitle: "Startup", period: "2022", description: "More things" },
+            ]),
+          ],
+        },
+        {
+          id: "contact",
+          title: "Contact",
+          content: [
+            link("GitHub", "https://github.com"),
+            link("Email", "mailto:test@test.com"),
+            quote("Great software is made by great teams", "Someone"),
+            badge("New"),
+            table(["Language", "Level"], [["TypeScript", "Expert"], ["Rust", "Advanced"]]),
+            list(["Item 1", "Item 2", "Item 3"]),
+          ],
+        },
+      ],
+    },
+  };
+}, "Site config object is well-formed");
 
 assert(site !== null, "Site config is not null");
 assert(site!.config.pages.length === 4, `Has 4 pages, got ${site!.config.pages.length}`);

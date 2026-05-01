@@ -63,9 +63,13 @@ function createLauncher(): string {
   mkdirSync(dir, { recursive: true });
 
   const runContent = `
-import config from "${PROJECT_ROOT}/demos/coffee-shop/site.config.js";
-import { runSite } from "${PROJECT_ROOT}/src/index.js";
-runSite(config);
+import config from "${PROJECT_ROOT}/demos/coffee-shop/config.js";
+import { runFileBasedSite } from "${PROJECT_ROOT}/src/index.js";
+runFileBasedSite({
+  config,
+  pagesDir: "${PROJECT_ROOT}/demos/coffee-shop/pages",
+  outDir: "${PROJECT_ROOT}/demos/coffee-shop/.terminaltui",
+});
 `;
 
   writeFileSync(join(dir, "run.ts"), runContent);

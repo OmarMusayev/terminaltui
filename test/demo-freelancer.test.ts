@@ -15,7 +15,7 @@ import { TUIEmulator } from "../src/emulator/index.js";
 // ── Config ──────────────────────────────────────────────────
 
 const PROJECT_ROOT = join(import.meta.dirname, "..");
-const DEMO_CONFIG = join(PROJECT_ROOT, "demos/freelancer/site.config.ts");
+const DEMO_DIR = join(PROJECT_ROOT, "demos/freelancer");
 
 // ── Test Harness ────────────────────────────────────────────
 
@@ -64,9 +64,13 @@ function createRunner(): string {
   mkdirSync(dir, { recursive: true });
 
   const runContent = `
-import config from "${DEMO_CONFIG}";
-import { runSite } from "${PROJECT_ROOT}/src/index.js";
-runSite(config);
+import config from "${DEMO_DIR}/config.js";
+import { runFileBasedSite } from "${PROJECT_ROOT}/src/index.js";
+runFileBasedSite({
+  config,
+  pagesDir: "${DEMO_DIR}/pages",
+  outDir: "${DEMO_DIR}/.terminaltui",
+});
 `;
 
   writeFileSync(join(dir, "run.ts"), runContent);

@@ -31,9 +31,13 @@ function createRunDir(demoName: string): string {
   mkdirSync(dir, { recursive: true });
   const demoDir = join(PROJECT_ROOT, "demos", demoName);
   writeFileSync(join(dir, "run.ts"), `
-import config from "${demoDir}/site.config.js";
-import { runSite } from "${PROJECT_ROOT}/src/index.js";
-runSite(config);
+import config from "${demoDir}/config.js";
+import { runFileBasedSite } from "${PROJECT_ROOT}/src/index.js";
+runFileBasedSite({
+  config,
+  pagesDir: "${demoDir}/pages",
+  outDir: "${demoDir}/.terminaltui",
+});
 `);
   return dir;
 }

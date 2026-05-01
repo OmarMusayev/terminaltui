@@ -11,9 +11,13 @@ function createRunDir(): string {
   const dir = join(tmpdir(), `tui-portfolio-test-${Date.now()}`);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "run.ts"), `
-import config from "${DEMO_DIR}/site.config.js";
-import { runSite } from "${PROJECT_ROOT}/src/index.js";
-runSite(config);
+import config from "${DEMO_DIR}/config.js";
+import { runFileBasedSite } from "${PROJECT_ROOT}/src/index.js";
+runFileBasedSite({
+  config,
+  pagesDir: "${DEMO_DIR}/pages",
+  outDir: "${DEMO_DIR}/.terminaltui",
+});
 `);
   return dir;
 }
@@ -37,14 +41,14 @@ async function main() {
 
     await emu.waitForBoot();
     assert(emu.screen.text().length > 0, "Boot: screen has content");
-    const menuItems = emu.screen.menu();
-    assert(menuItems.length >= 4, "Boot: menu items visible");
+    const menu = emu.screen.menu();
+    assert(menu.items.length >= 4, "Boot: menu items visible");
 
-    for (let i = 0; i < menuItems.length; i++) {
+    for (let i = 0; i < menu.items.length; i++) {
       await emu.goHome(); await emu.waitForIdle();
       for (let j = 0; j < i; j++) { await emu.press("down"); await emu.waitForIdle(); }
       await emu.press("enter"); await emu.waitForIdle();
-      assert(emu.isRunning(), `Page ${i} (${menuItems[i]}): running`);
+      assert(emu.isRunning(), `Page ${i} (${menu.items[i]}): running`);
       assert(emu.screen.text().length > 0, `Page ${i}: has content`);
       await emu.press("down"); await emu.waitForIdle();
       await emu.press("down"); await emu.waitForIdle();

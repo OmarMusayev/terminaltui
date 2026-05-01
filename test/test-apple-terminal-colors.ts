@@ -6,9 +6,8 @@
  * 1. Color mode is detected as "256" (never truecolor)
  * 2. fgColor() / bgColor() emit only \x1b[38;5;Nm / \x1b[48;5;Nm codes
  * 3. No truecolor escape codes (\x1b[38;2; or \x1b[48;2;) appear anywhere
- * 4. The ScreenBuffer renderer also avoids truecolor
- * 5. Gradient text avoids truecolor
- * 6. NO_COLOR mode strips all color codes
+ * 4. Gradient text avoids truecolor
+ * 5. NO_COLOR mode strips all color codes
  */
 
 // Must set env BEFORE importing the color module (auto-detects on load)
@@ -18,7 +17,6 @@ delete process.env.NO_COLOR;
 
 // Dynamic import so env is set first
 const colors = await import("../src/style/colors.js");
-const renderer = await import("../src/core/renderer.js");
 
 let passed = 0;
 let failed = 0;
@@ -62,20 +60,13 @@ for (const hex of testColors) {
   assert(COLOR256_RE.test(result), `bgColor("${hex}") uses 256-color format`);
 }
 
-// ── Test 4: ScreenBuffer cellToAnsi ────────────────────
-console.log("\n4. ScreenBuffer rendering");
-const buf = new renderer.ScreenBuffer(10, 1);
-buf.setCell(0, 0, { char: "X", fg: "#ff0000", bg: "#00ff00", bold: true });
-const output = buf.flush();
-assert(!TRUECOLOR_RE.test(output), "ScreenBuffer flush has no truecolor codes");
-
-// ── Test 5: Gradient text ──────────────────────────────
-console.log("\n5. Gradient text");
+// ── Test 4: Gradient text ──────────────────────────────
+console.log("\n4. Gradient text");
 const gradOutput = colors.applyGradientToText("Hello World", ["#ff0000", "#0000ff"]);
 assert(!TRUECOLOR_RE.test(gradOutput), "Gradient text has no truecolor codes");
 
-// ── Test 6: rgbTo256 conversion accuracy ───────────────
-console.log("\n6. rgbTo256 conversion");
+// ── Test 5: rgbTo256 conversion accuracy ───────────────
+console.log("\n5. rgbTo256 conversion");
 assert(colors.rgbTo256(0, 0, 0) === 16, "Black maps to 16");
 assert(colors.rgbTo256(255, 255, 255) === 231, "White maps to 231");
 assert(colors.rgbTo256(128, 128, 128) >= 232 && colors.rgbTo256(128, 128, 128) <= 255,
@@ -83,8 +74,8 @@ assert(colors.rgbTo256(128, 128, 128) >= 232 && colors.rgbTo256(128, 128, 128) <
 const redIdx = colors.rgbTo256(255, 0, 0);
 assert(redIdx === 16 + 36 * 5, `Pure red maps to index ${16 + 36 * 5}, got ${redIdx}`);
 
-// ── Test 7: NO_COLOR mode ──────────────────────────────
-console.log("\n7. NO_COLOR mode");
+// ── Test 6: NO_COLOR mode ──────────────────────────────
+console.log("\n6. NO_COLOR mode");
 colors.setColorMode("none");
 assert(colors.fgColor("#ff0000") === "", "fgColor returns empty in none mode");
 assert(colors.bgColor("#00ff00") === "", "bgColor returns empty in none mode");

@@ -4,7 +4,7 @@
  * Run with: npx tsx test/test-select-radio.ts
  */
 
-import { defineSite, page, select, radioGroup } from "../src/index.js";
+import { select, radioGroup } from "../src/index.js";
 import { VirtualTerminal } from "../src/emulator/vterm.js";
 import { ScreenReader } from "../src/emulator/screen-reader.js";
 import { renderSelect } from "../src/components/Select.js";
@@ -457,38 +457,28 @@ test("radioGroup() parser returns correct type", () => {
   assertEqual(block.options.length, 1, "options length");
 });
 
-test("select() includes in defineSite page content", () => {
-  const site = defineSite({
-    name: "Test Site",
-    pages: [
-      page("form", {
-        title: "Form",
-        icon: "\u270f\ufe0f",
-        content: [
-          select({
-            id: "lang",
-            label: "Language",
-            options: [
-              { label: "TypeScript", value: "ts" },
-              { label: "Rust", value: "rs" },
-            ],
-          }),
-          radioGroup({
-            id: "level",
-            label: "Level",
-            options: [
-              { label: "Beginner", value: "beg" },
-              { label: "Advanced", value: "adv" },
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
-  assertEqual(site.config.pages.length, 1, "site has 1 page");
-  assertEqual(site.config.pages[0].content.length, 2, "page has 2 content blocks");
-  assertEqual(site.config.pages[0].content[0].type, "select", "first block is select");
-  assertEqual(site.config.pages[0].content[1].type, "radioGroup", "second block is radioGroup");
+test("select() and radioGroup() compose as content blocks", () => {
+  const blocks = [
+    select({
+      id: "lang",
+      label: "Language",
+      options: [
+        { label: "TypeScript", value: "ts" },
+        { label: "Rust", value: "rs" },
+      ],
+    }),
+    radioGroup({
+      id: "level",
+      label: "Level",
+      options: [
+        { label: "Beginner", value: "beg" },
+        { label: "Advanced", value: "adv" },
+      ],
+    }),
+  ];
+  assertEqual(blocks.length, 2, "two content blocks");
+  assertEqual(blocks[0].type, "select", "first block is select");
+  assertEqual(blocks[1].type, "radioGroup", "second block is radioGroup");
 });
 
 // ═══════════════════════════════════════════════════════════

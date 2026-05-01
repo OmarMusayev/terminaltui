@@ -11,9 +11,13 @@ function createRunDir(): string {
   const dir = join(tmpdir(), `tui-portfolio-qa-${Date.now()}`);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "run.ts"), `
-import config from "${DEMO_DIR}/site.config.js";
-import { runSite } from "${PROJECT_ROOT}/src/index.js";
-runSite(config);
+import config from "${DEMO_DIR}/config.js";
+import { runFileBasedSite } from "${PROJECT_ROOT}/src/index.js";
+runFileBasedSite({
+  config,
+  pagesDir: "${DEMO_DIR}/pages",
+  outDir: "${DEMO_DIR}/.terminaltui",
+});
 `);
   return dir;
 }

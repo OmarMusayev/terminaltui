@@ -7,14 +7,13 @@
  * Run: npx tsx test/test-inputs.ts
  */
 
-import { defineSite, page, textInput, form, button, section } from "../src/index.js";
+import { textInput, form, button } from "../src/index.js";
 import { VirtualTerminal } from "../src/emulator/vterm.js";
 import { renderTextInput, type TextInputRenderState } from "../src/components/TextInput.js";
 import { renderButton } from "../src/components/Button.js";
 import { stripAnsi, type RenderContext } from "../src/components/base.js";
 import { defaultTheme } from "../src/style/theme.js";
 import { createInputState, type InputFieldState } from "../src/data/types.js";
-import type { TextInputBlock, ButtonBlock, FormBlock, SiteConfig, Site } from "../src/config/types.js";
 
 // ─── Test Harness ─────────────────────────────────────────
 
@@ -91,33 +90,7 @@ const contactForm = form({
   },
 });
 
-const siteConfig: SiteConfig = {
-  name: "Input Test Site",
-  theme: "dracula",
-  pages: [
-    page("form-page", {
-      title: "Contact Form",
-      icon: "\u2709",
-      content: [
-        section("Contact Us", [contactForm]),
-      ],
-    }),
-  ],
-};
-
-// ═════════════════════════════════════════════════════════════
-// SITE CONFIG TESTS
-// ═════════════════════════════════════════════════════════════
-
-console.log("\n\x1b[1m  Site Config\x1b[0m\n");
-
-test("defineSite parses config with form inputs", () => {
-  const site: Site = defineSite(siteConfig);
-  assert(site !== null && site !== undefined, "site should be defined");
-  assert(site.config.pages.length === 1, "should have 1 page");
-  const pageContent = site.config.pages[0].content;
-  assert(Array.isArray(pageContent), "page content should be an array");
-});
+console.log("\n\x1b[1m  Block Helpers\x1b[0m\n");
 
 test("textInput helper creates correct block type", () => {
   assertEqual(nameInput.type, "textInput", "type");

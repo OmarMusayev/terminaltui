@@ -181,16 +181,7 @@ console.log("\ndynamic:");
   assert("dynamic(renderFn) creates DynamicBlock with type 'dynamic'", d.type === "dynamic");
 }
 
-// 2. dynamic(deps, renderFn) stores deps array
-{
-  const d = dynamic(["count", "name"], () => ({ type: "text", value: "hi" } as any));
-  assert(
-    "dynamic(deps, renderFn) stores deps array",
-    Array.isArray(d.deps) && d.deps.length === 2 && d.deps[0] === "count" && d.deps[1] === "name",
-  );
-}
-
-// 3. The render function is callable and returns ContentBlock(s)
+// 2. The render function is callable and returns ContentBlock(s)
 {
   const d = dynamic(() => ({ type: "text", value: "rendered" } as any));
   const result = d.render();
@@ -200,7 +191,7 @@ console.log("\ndynamic:");
   );
 }
 
-// 4. Each dynamic() call gets a unique _dynamicId
+// 3. Each dynamic() call gets a unique _dynamicId
 {
   const d1 = dynamic(() => ({ type: "text", value: "" } as any));
   const d2 = dynamic(() => ({ type: "text", value: "" } as any));
