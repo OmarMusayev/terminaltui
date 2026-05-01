@@ -13,57 +13,8 @@ export interface RenderContext {
   panelHeight?: number;
 }
 
-/**
- * Standard component interface. Components can be implemented as either:
- * 1. A class implementing this interface (for complex stateful components)
- * 2. A plain render function registered via the ComponentRegistry
- *
- * All built-in components use pattern #2 for simplicity.
- */
-export interface Component {
-  /** Component type identifier (e.g. "card", "timeline", "textInput"). */
-  readonly type: string;
-  /** Whether this component can receive focus. */
-  readonly focusable: boolean;
-  /** Render the component to an array of ANSI-styled lines. */
-  render(block: ContentBlock, ctx: RenderContext): string[];
-}
-
 /** A function that renders a content block to string lines. */
 export type ComponentRenderer = (block: any, ctx: RenderContext, ...extra: any[]) => string[];
-
-/**
- * Maps block type strings to their render functions.
- * Used by the runtime to dispatch rendering without a giant switch statement.
- */
-export class ComponentRegistry {
-  private renderers = new Map<string, ComponentRenderer>();
-  private focusableTypes = new Set<string>();
-
-  /** Register a component renderer for a block type. */
-  register(type: string, renderer: ComponentRenderer, focusable = false): void {
-    this.renderers.set(type, renderer);
-    if (focusable) this.focusableTypes.add(type);
-  }
-
-  /** Get the renderer for a block type, or undefined if not registered. */
-  getRenderer(type: string): ComponentRenderer | undefined {
-    return this.renderers.get(type);
-  }
-
-  /** Check if a block type is focusable. */
-  isFocusable(type: string): boolean {
-    return this.focusableTypes.has(type);
-  }
-
-  /** Check if a renderer is registered for this type. */
-  has(type: string): boolean {
-    return this.renderers.has(type);
-  }
-}
-
-/** Global component registry instance. */
-export const componentRegistry = new ComponentRegistry();
 
 // ─── Unicode-aware display width ──────────────────────────
 

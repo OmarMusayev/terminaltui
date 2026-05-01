@@ -76,7 +76,7 @@ export async function buildProject(configPath: string): Promise<void> {
 /**
  * Generate a self-contained entry point that bundles config.ts + every page +
  * every api/ handler into one file. The output instantiates TUIRuntime
- * directly — no public defineSite/page/runSite helpers needed.
+ * directly so no extra helpers are needed.
  */
 async function createFileBasedEntryPoint(
   projectDir: string,

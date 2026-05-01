@@ -6,9 +6,13 @@ import type { ContentBlock, DynamicBlock, FormBlock, ColumnsBlock, RowsBlock, Gr
 import { renderChat, type ChatState, type ChatMessage } from "../components/Chat.js";
 import { fgColor, reset, bold } from "../style/colors.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
-import { componentRegistry } from "../components/base.js";
-// Initialize the registry (side-effect import)
-import "../components/registry.js";
+
+/** Block types that participate in focus / spatial navigation. */
+const FOCUSABLE_TYPES = new Set<string>([
+  "card", "link", "hero", "tabs", "accordion", "gallery",
+  "textInput", "textArea", "select", "checkbox", "toggle",
+  "radioGroup", "numberInput", "searchInput", "button",
+]);
 import { renderText } from "../components/Text.js";
 import { renderCard } from "../components/Card.js";
 import { renderTimeline } from "../components/Timeline.js";
@@ -77,9 +81,14 @@ export function invalidateDynamicCache(rt: RT): void {
   rt.dynamicCache.clear();
 }
 
-/** Check if a block type is focusable. Uses the component registry. */
+/** Check if a block type is focusable. */
 export function isBlockFocusable(block: ContentBlock): boolean {
-  return componentRegistry.isFocusable(block.type);
+  return FOCUSABLE_TYPES.has(block.type);
+}
+
+/** Whether the given block type participates in focus navigation. */
+export function isFocusableType(type: string): boolean {
+  return FOCUSABLE_TYPES.has(type);
 }
 
 /** Render content blocks as string lines. */

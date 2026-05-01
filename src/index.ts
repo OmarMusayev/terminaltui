@@ -129,8 +129,7 @@ export { computeBoxDimensions, COMPONENT_DEFAULTS } from "./layout/box-model.js"
 export type { BoxDimensions, BoxOptions } from "./layout/box-model.js";
 
 // Component system
-export { componentRegistry } from "./components/base.js";
-export type { Component, ComponentRenderer, RenderContext } from "./components/base.js";
+export type { ComponentRenderer, RenderContext } from "./components/base.js";
 
 // ASCII Art System
 export { renderBanner, centerBanner, getBannerWidth } from "./ascii/banner.js";
@@ -222,12 +221,9 @@ export type { ConfigField, ConfigSchema, ConfigContainer } from "./config/define
 export { loadEnv } from "./config/env-loader.js";
 
 // ─── API Routes ──────────────────────────────────────
-export { ApiServer } from "./api/server.js";
-export { setApiBaseUrl } from "./api/resolve.js";
 export type { ApiRequest, ApiHandler } from "./api/types.js";
 
 // ─── File-Based Router ───────────────────────────────
-export { FileRouter } from "./router/resolver.js";
 export type {
   Route,
   RouteTable,

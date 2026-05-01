@@ -50,16 +50,6 @@ import type {
 } from "./types.js";
 import type { Theme } from "../style/theme.js";
 
-// ─── Site Definition ───────────────────────────────────────
-
-/**
- * Creates a terminal UI site from a configuration object.
- * Validates that the config has a name and at least one page.
- *
- * @param config - The site configuration
- * @returns A Site object ready to be passed to `runSite()`
- *
- * @example
 // ─── Content Helpers ───────────────────────────────────────
 
 /** Groups content blocks under a titled section with a divider. */

@@ -15,7 +15,8 @@ import type {
 import { layoutColumns, layoutRows, layoutGrid } from "./panel-layout.js";
 import { shouldCollapseColumns, effectiveGridCols } from "./responsive.js";
 import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "./grid-system.js";
-import { componentRegistry } from "../components/base.js";
+import { isFocusableType } from "../core/runtime-block-render.js";
+import { computeBoxDimensions, COMPONENT_DEFAULTS } from "./box-model.js";
 
 /**
  * Compute FocusRect for every focusable item in the content tree.
@@ -255,7 +256,7 @@ function walkBlocks(
       }
 
       default: {
-        const focusable = componentRegistry.isFocusable(block.type);
+        const focusable = isFocusableType(block.type);
         const h = estimateBlockHeight(block, availWidth);
         if (focusable) {
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: h });
@@ -269,13 +270,23 @@ function walkBlocks(
   return cursorY;
 }
 
-/** Estimate the rendered height of a block (in terminal rows). */
+/**
+ * Estimate the rendered height of a block (in terminal rows).
+ *
+ * Heights here approximate what each component renderer actually produces.
+ * Width-dependent terms (like `card.body` wrapping) derive their chrome from
+ * `COMPONENT_DEFAULTS` so a padding/border change propagates here automatically.
+ */
 function estimateBlockHeight(block: ContentBlock, width: number): number {
   switch (block.type) {
     case "card": {
-      let h = 3; // top border + title + bottom border
+      const cardDims = computeBoxDimensions(width, COMPONENT_DEFAULTS.card);
+      // Body wraps inside the content area minus the leading icon prefix ("◆ ").
+      const bodyWidth = Math.max(1, cardDims.content - 2);
+      // border (top+bottom) + 1 title line.
+      let h = cardDims.border * 2 + 1;
       if (block.subtitle) h++;
-      if (block.body) h += Math.ceil(block.body.length / Math.max(1, width - 6)) + 1;
+      if (block.body) h += Math.ceil(block.body.length / bodyWidth) + 1;
       if (block.tags && block.tags.length > 0) h++;
       return Math.max(3, h);
     }

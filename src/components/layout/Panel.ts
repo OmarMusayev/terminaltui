@@ -6,8 +6,9 @@
 import type { PanelConfig, ContentBlock } from "../../config/types.js";
 import type { RenderContext } from "../base.js";
 import { stringWidth, truncate } from "../base.js";
-import { fgColor, reset, bold, dim } from "../../style/colors.js";
+import { fgColor, reset, bold } from "../../style/colors.js";
 import { getBorderChars, type BorderStyle } from "../../style/borders.js";
+import { computeBoxDimensions } from "../../layout/box-model.js";
 
 export interface PanelRenderOptions {
   active?: boolean;
@@ -38,10 +39,10 @@ export function renderPanel(
   const hasTitle = !!config.title && !hasBorder;
   const titleLines = hasTitle ? 1 : 0;
 
-  const borderV = hasBorder ? 2 : 0;
-  const borderH = hasBorder ? 2 : 0;
-  const innerWidth = Math.max(0, width - borderV - padding * 2);
-  const innerHeight = Math.max(0, height - borderH - padding * 2 - titleLines);
+  const widthDims = computeBoxDimensions(width, { border: hasBorder, padding });
+  const innerWidth = widthDims.content;
+  const heightChrome = widthDims.border * 2 + widthDims.padding * 2 + titleLines;
+  const innerHeight = Math.max(0, height - heightChrome);
 
   if (innerWidth <= 0 || innerHeight <= 0) {
     const lines: string[] = [];

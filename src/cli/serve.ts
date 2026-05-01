@@ -25,19 +25,22 @@ export async function runServe(args: string[]): Promise<void> {
   // Dynamically import SSHServer (ssh2 checked at runtime)
   const { SSHServer } = await import("../core/ssh-server.js");
 
+  if (!isFileBased) {
+    console.error(
+      `\n  Single-file site configs are no longer supported.\n\n` +
+      `  Use a file-based project: a directory with config.ts (or config.js)\n` +
+      `  alongside a pages/ directory. See terminaltui init for a starter.\n`,
+    );
+    process.exit(1);
+  }
+
   const server = new SSHServer(
     {
       port: flags.port,
       hostKeyPath: flags.hostKeyPath,
       maxConnections: flags.maxConnections,
     },
-    async (terminalIO: TerminalIO) => {
-      if (isFileBased) {
-        return startFileBasedSession(projectDir, terminalIO);
-      } else {
-        return startSingleFileSession(absPath, projectDir, terminalIO);
-      }
-    },
+    async (terminalIO: TerminalIO) => startFileBasedSession(projectDir, terminalIO),
   );
 
   // Graceful shutdown
@@ -105,42 +108,6 @@ async function startFileBasedSession(projectDir: string, terminalIO: TerminalIO)
 
   const runtime = new TUIRuntime({ config: siteConfig }, terminalIO);
   (runtime as any)._fileRouter = router;
-  await runtime.start();
-  return runtime;
-}
-
-async function startSingleFileSession(absPath: string, projectDir: string, terminalIO: TerminalIO): Promise<any> {
-  const outDir = join(projectDir, ".terminaltui");
-  mkdirSync(outDir, { recursive: true });
-  const outFile = join(outDir, "compiled.mjs");
-
-  try {
-    const { build } = await import("esbuild");
-    await build({
-      entryPoints: [absPath],
-      outfile: outFile,
-      bundle: true,
-      format: "esm",
-      platform: "node",
-      external: ["terminaltui"],
-      target: "node18",
-    });
-  } catch {
-    throw new Error(`Cannot compile ${absPath}. Install esbuild: npm install esbuild`);
-  }
-
-  const { pathToFileURL } = await import("node:url");
-  const fileUrl = pathToFileURL(outFile).href;
-  // Add cache-busting query to avoid module cache across sessions
-  const module = await import(`${fileUrl}?t=${Date.now()}`);
-  const site = module.default;
-
-  if (!site || !site.config) {
-    throw new Error("site.config.ts must export a default value created with defineSite()");
-  }
-
-  const { TUIRuntime } = await import("../core/runtime.js");
-  const runtime = new TUIRuntime(site, terminalIO);
   await runtime.start();
   return runtime;
 }

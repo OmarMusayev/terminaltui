@@ -3,35 +3,21 @@ import type { ContentBlock } from "../config/types.js";
 export interface DynamicBlock {
   type: "dynamic";
   render: () => ContentBlock | ContentBlock[];
-  deps?: string[];
   _dynamicId: string;
 }
 
 let dynamicIdCounter = 0;
 
 /**
- * Create a dynamic content block that re-renders when state changes.
+ * Create a dynamic content block that re-renders when any state changes.
  *
- * Overload 1: dynamic(renderFn) — re-renders on any state change
- * Overload 2: dynamic(deps, renderFn) — accepts a deps array for forward compatibility.
- *   Currently all dynamic blocks re-render on any state change regardless of deps.
- *   Targeted re-rendering based on deps is planned for a future release.
+ * Targeted re-rendering based on a deps array was previously claimed but
+ * never implemented; if you need that, scope state into a smaller container.
  */
-export function dynamic(
-  depsOrRender: string[] | (() => ContentBlock | ContentBlock[]),
-  maybeRender?: () => ContentBlock | ContentBlock[],
-): DynamicBlock {
-  if (typeof depsOrRender === "function") {
-    return {
-      type: "dynamic",
-      render: depsOrRender,
-      _dynamicId: `dynamic-${dynamicIdCounter++}`,
-    };
-  }
+export function dynamic(render: () => ContentBlock | ContentBlock[]): DynamicBlock {
   return {
     type: "dynamic",
-    deps: depsOrRender,
-    render: maybeRender!,
+    render,
     _dynamicId: `dynamic-${dynamicIdCounter++}`,
   };
 }

@@ -416,7 +416,6 @@ export interface AsyncContentBlock {
 export interface DynamicBlock {
   type: "dynamic";
   render: () => ContentBlock | ContentBlock[];
-  deps?: string[];
   _dynamicId?: string;
 }
 
