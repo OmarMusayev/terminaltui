@@ -1,4 +1,5 @@
 import type { StateContainer, StateListener, WildcardListener, Unsubscribe } from "./types.js";
+import { currentRuntime } from "../core/runtime-context.js";
 
 // Global tracking for auto-dependency detection in computed/dynamic
 let _tracking = false;
@@ -46,13 +47,24 @@ function trackAccess(stateId: string, key: string): void {
 
 let stateIdCounter = 0;
 
-// Global render callback — set by the runtime to trigger re-renders
+// Fallback render callback — used outside of an AsyncLocalStorage context
+// (e.g. unit tests). Inside an active runtime, currentRuntime().render is preferred
+// and isolates per-session work, which the global cannot do across SSH sessions.
 let _renderCallback: (() => void) | null = null;
 export function setRenderCallback(cb: (() => void) | null): void {
   _renderCallback = cb;
 }
 export function getRenderCallback(): (() => void) | null {
   return _renderCallback;
+}
+
+function triggerRender(): void {
+  const rt = currentRuntime();
+  if (rt) {
+    rt.render();
+    return;
+  }
+  _renderCallback?.();
 }
 
 /**
@@ -84,7 +96,7 @@ export function createState<T extends Record<string, any>>(initial: T): StateCon
     }
     for (const fn of wildcardListeners) fn(key, newVal);
     // Trigger global re-render
-    _renderCallback?.();
+    triggerRender();
   }
 
   function flushBatch(): void {
@@ -98,7 +110,7 @@ export function createState<T extends Record<string, any>>(initial: T): StateCon
       for (const fn of wildcardListeners) fn(key, newVal);
     }
     if (changes.size > 0) {
-      _renderCallback?.();
+      triggerRender();
     }
   }
 

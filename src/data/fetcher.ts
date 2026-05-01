@@ -1,5 +1,6 @@
 import { globalCache } from "./cache.js";
 import { resolveUrl } from "../api/resolve.js";
+import { currentRuntime } from "../core/runtime-context.js";
 
 export interface FetcherOptions<T = any> {
   url?: string;
@@ -96,6 +97,13 @@ export function fetcher<T = any>(options: FetcherOptions<T>): FetcherResult<T> {
       _onChange();
       return;
     }
+    const rt = currentRuntime();
+    if (rt) {
+      rt.render();
+      return;
+    }
+    // Cross-package fallback: when runtime (dev source) and fetcher (installed npm)
+    // are separate module copies, AsyncLocalStorage doesn't bridge them.
     const globalCb = (globalThis as any).__terminaltui_render_callback__;
     if (typeof globalCb === "function") globalCb();
   }

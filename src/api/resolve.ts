@@ -1,14 +1,21 @@
 /**
  * URL resolution for API routes.
  *
- * Uses globalThis so the base URL is shared across module instances —
- * this is critical because in dev mode the runtime (source) and
- * fetcher/request (npm package) may be separate module copies.
+ * Inside an active runtime, the base URL comes from AsyncLocalStorage so
+ * concurrent SSH sessions don't see each other's port. Outside, we fall
+ * back to a globalThis slot — this matters in dev mode where the runtime
+ * (source) and fetcher/request (npm package) may be separate module copies.
  */
+import { currentRuntime } from "../core/runtime-context.js";
 
 const KEY = "__terminaltui_api_base_url__";
 
 export function setApiBaseUrl(url: string | null): void {
+  const rt = currentRuntime();
+  if (rt) {
+    rt.apiBaseUrl = url;
+    return;
+  }
   if (url) {
     (globalThis as any)[KEY] = url;
   } else {
@@ -17,6 +24,8 @@ export function setApiBaseUrl(url: string | null): void {
 }
 
 export function getApiBaseUrl(): string | null {
+  const rt = currentRuntime();
+  if (rt && rt.apiBaseUrl !== undefined) return rt.apiBaseUrl;
   return (globalThis as any)[KEY] ?? null;
 }
 

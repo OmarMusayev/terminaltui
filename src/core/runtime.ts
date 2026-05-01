@@ -38,6 +38,8 @@ import type { FocusItem, FormResult } from "./runtime-types.js";
 import type { TerminalIO } from "./terminal-io.js";
 import { ProcessTerminalIO } from "./terminal-io.js";
 
+import { runtimeContext, type RuntimeRef } from "./runtime-context.js";
+
 // Delegated modules
 import { handleCommandMode, handleNavigationMode, handleEditMode } from "./runtime-input.js";
 import { renderMain, renderBlock as _renderBlock, renderContentBlocks as _renderContentBlocks, resolveDynamic, isBlockFocusable as _isBlockFocusable } from "./runtime-render.js";
@@ -71,11 +73,13 @@ export class TUIRuntime {
   /** @internal */ notifications = new NotificationManager();
   /** @internal */ notificationTimer: ReturnType<typeof setInterval> | null = null;
   /** @internal */ asyncManager = new AsyncContentManager();
+  /** @internal */ spinnerTimer: ReturnType<typeof setTimeout> | null = null;
   /** @internal */ resolvedPageContent: Map<string, ContentBlock[]> = new Map();
   /** @internal */ formRegistry: Map<string, FormBlock> = new Map();
   /** @internal */ currentParams: RouteParams = {};
   /** @internal */ dynamicCache: Map<string, ContentBlock[]> = new Map();
   /** @internal */ apiServer: ApiServer | null = null;
+  /** @internal */ apiBaseUrl: string | null = null;
   /** @internal */ focusRects: FocusRect[] = [];
   /** @internal */ terminalIO: TerminalIO;
   /** @internal */ _screen: Screen;
@@ -147,6 +151,15 @@ export class TUIRuntime {
   }
 
   async start(): Promise<void> {
+    // Run inside an AsyncLocalStorage context so that all input handlers,
+    // timers, and async chains forked from here resolve `currentRuntime()` to
+    // this instance. Without this, concurrent SSH sessions would clobber each
+    // other's render/navigate/api-base-url through shared module-level state.
+    const ref: RuntimeRef = this;
+    await runtimeContext.run(ref, () => this.startInner());
+  }
+
+  private async startInner(): Promise<void> {
     loadEnv();
 
     if (this.site.api && Object.keys(this.site.api).length > 0) {
@@ -169,6 +182,9 @@ export class TUIRuntime {
     }
     setColorMode(this._colorMode);
 
+    // Legacy callbacks for code paths outside an AsyncLocalStorage scope
+    // (cross-package fetcher.ts; unit tests). Inside an active runtime,
+    // currentRuntime() is consulted first so these clobbers don't matter.
     setRenderCallback(() => this.render());
     let renderTimer: ReturnType<typeof setTimeout> | null = null;
     (globalThis as any).__terminaltui_render_callback__ = () => {
@@ -225,6 +241,7 @@ export class TUIRuntime {
     if (this.bootTimer) clearInterval(this.bootTimer);
     if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
     if (this.notificationTimer) clearInterval(this.notificationTimer);
+    if (this.spinnerTimer) { clearTimeout(this.spinnerTimer); this.spinnerTimer = null; }
     destroyAllFetchers();
     if (this.apiServer) { this.apiServer.stop(); setApiBaseUrl(null); }
     delete (globalThis as any).__terminaltui_render_callback__;

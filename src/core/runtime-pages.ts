@@ -11,6 +11,7 @@ import type {
 import type { RouteParams } from "../router/types.js";
 import { runMiddleware } from "../middleware/index.js";
 import { resolveDynamic } from "./runtime-render.js";
+import { themes } from "../style/theme.js";
 import type { FocusItem } from "./runtime-types.js";
 import type { FocusRect } from "../layout/types.js";
 import { computeFocusPositions } from "../layout/flex-engine.js";
@@ -78,8 +79,10 @@ export function navigateToPage(rt: RT, pageId: string, params?: RouteParams): vo
         return;
       }
       doNavigate(rt, pageId, params);
-    }).catch(() => {
-      doNavigate(rt, pageId, params);
+    }).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      const firstLine = msg.split("\n")[0];
+      showFeedback(rt, `Blocked: ${firstLine}`);
     });
   } else {
     doNavigate(rt, pageId, params);
@@ -376,9 +379,8 @@ export function executeCommand(rt: RT, cmd: string): void {
 
   if (trimmed.startsWith("theme ")) {
     const themeName = trimmed.slice(6).trim();
-    const { themes } = require("../style/theme.js");
-    if (themes[themeName]) {
-      rt.theme = themes[themeName];
+    if (themes[themeName as keyof typeof themes]) {
+      rt.theme = themes[themeName as keyof typeof themes];
       showFeedback(rt, `Theme: ${themeName}`);
     } else {
       showFeedback(rt, `Unknown theme: ${themeName}`);

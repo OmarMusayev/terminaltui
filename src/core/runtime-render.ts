@@ -9,7 +9,7 @@ import { renderBanner, centerBanner } from "../ascii/banner.js";
 import { getSpinnerFrame } from "../animation/spinner.js";
 import type { ScreenSize } from "./screen.js";
 import { renderMenu, type MenuItem } from "../components/Menu.js";
-import { pad, wrapText, type RenderContext } from "../components/base.js";
+import { pad, wrapText, stringWidth, truncate, type RenderContext } from "../components/base.js";
 import { renderFormResult } from "../components/Form.js";
 import type { FocusItem } from "./runtime-types.js";
 import type { FocusRect } from "../layout/types.js";
@@ -50,6 +50,7 @@ interface RT {
   registerForms(blocks: ContentBlock[]): void;
   currentFocusedBlock?: ContentBlock;
   screenSize: ScreenSize;
+  spinnerTimer: ReturnType<typeof setTimeout> | null;
   render(): void;
 }
 
@@ -385,7 +386,16 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
   }
 }
 
-/** Render accordion items inline with per-item focus tracking. */
+/**
+ * Render accordion items inline with per-item focus tracking.
+ *
+ * Distinct from `renderAccordion` in components/Accordion.ts: this variant
+ * walks items in the runtime's content-page render loop so each item gets
+ * its own focus rect. The standalone version is used when accordions appear
+ * inside layout cells (panel/columns/rows/grid) where per-item focus isn't
+ * tracked. Visual styling (cursor character, indent) differs between them
+ * by design.
+ */
 function renderAccordionInline(
   rt: RT, block: ContentBlock, allContentLines: string[], ctx: RenderContext,
   contentWidth: number, focusedAccordionItemIdx: (b: ContentBlock) => number,
@@ -407,7 +417,8 @@ function renderAccordionInline(
     const labelColor = isItemOpen || isItemFocused ? ctx.theme.accent : ctx.theme.text;
     const accDims = computeBoxDimensions(contentWidth, COMPONENT_DEFAULTS.accordion);
     const maxLabelW = Math.max(0, accDims.content - 2);
-    const headerLine = fgColor(labelColor) + bold + `  ${arrow} ${item.label.length > maxLabelW ? item.label.substring(0, maxLabelW - 1) + "\u2026" : item.label}` + reset;
+    const truncatedLabel = stringWidth(item.label) > maxLabelW ? truncate(item.label, maxLabelW) : item.label;
+    const headerLine = fgColor(labelColor) + bold + `  ${arrow} ${truncatedLabel}` + reset;
     allContentLines.push(isItemFocused ? indicator + headerLine : " " + headerLine);
 
     if (isItemOpen) {
@@ -421,7 +432,10 @@ function renderAccordionInline(
   }
 }
 
-/** Render timeline items inline with per-item focus tracking. */
+/**
+ * Render timeline items inline with per-item focus tracking.
+ * See `renderAccordionInline` doc-comment for the design split.
+ */
 function renderTimelineInline(
   rt: RT, block: ContentBlock, allContentLines: string[], ctx: RenderContext,
   contentWidth: number, currentFocus: FocusItem | undefined, indicator: string,
@@ -478,7 +492,15 @@ function renderAsyncContentBlock(
     const spinner = getSpinnerFrame("dots", Math.floor(Date.now() / 80));
     allContentLines.push(" " + fgColor(ctx.theme.accent) + spinner + reset +
       fgColor(ctx.theme.muted) + " " + (block.loading ?? "Loading...") + reset);
-    setTimeout(() => rt.render(), 100);
+    // Schedule one spinner tick per runtime — multiple loading blocks share it.
+    // Without this guard, every render scheduled a new timer, compounding to
+    // a render storm proportional to (loading-blocks × renders).
+    if (!rt.spinnerTimer) {
+      rt.spinnerTimer = setTimeout(() => {
+        rt.spinnerTimer = null;
+        rt.render();
+      }, 100);
+    }
     return;
   }
   if (state.status === "error") {
