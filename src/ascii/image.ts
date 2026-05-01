@@ -70,10 +70,6 @@ function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
-function colorWrap(ch: string, r: number, g: number, b: number): string {
-  return `\x1b[38;2;${r};${g};${b}m${ch}\x1b[0m`;
-}
-
 // ---------------------------------------------------------------------------
 // Dithering
 // ---------------------------------------------------------------------------

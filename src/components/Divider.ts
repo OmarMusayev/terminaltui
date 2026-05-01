@@ -1,7 +1,6 @@
 import type { RenderContext } from "./base.js";
 import { fgColor, reset } from "../style/colors.js";
-import { getBorderChars } from "../style/borders.js";
-import type { BorderStyle } from "../style/borders.js";
+import { stringWidth, truncate } from "./base.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderDivider(ctx: RenderContext, options?: { style?: string; label?: string; color?: string }): string[] {
@@ -13,11 +12,11 @@ export function renderDivider(ctx: RenderContext, options?: { style?: string; la
   if (options?.style === "label" && options.label) {
     const maxLabelLen = Math.max(0, width - 8);
     let labelText = options.label;
-    if (labelText.length > maxLabelLen) {
-      labelText = labelText.slice(0, Math.max(0, maxLabelLen - 1)) + "\u2026";
+    if (stringWidth(labelText) > maxLabelLen) {
+      labelText = truncate(labelText, maxLabelLen);
     }
     const label = ` ${labelText} `;
-    const remaining = Math.max(0, width - label.length - 4);
+    const remaining = Math.max(0, width - stringWidth(label) - 4);
     const left = Math.floor(remaining / 2);
     const right = remaining - left;
     return [

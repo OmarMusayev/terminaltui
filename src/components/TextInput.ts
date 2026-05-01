@@ -36,8 +36,8 @@ export function renderTextInput(
     // Show placeholder
     displayText = fgColor(theme.subtle) + dim + (config.placeholder ?? "") + reset;
   } else if (config.mask && rawValue.length > 0) {
-    // Password mode
-    displayText = fgColor(theme.text) + "\u25cf".repeat(rawValue.length) + reset;
+    // Password mode \u2014 one bullet per user-visible codepoint, not per UTF-16 unit
+    displayText = fgColor(theme.text) + "\u25cf".repeat([...rawValue].length) + reset;
   } else {
     displayText = fgColor(theme.text) + rawValue + reset;
   }
@@ -47,7 +47,7 @@ export function renderTextInput(
     const pos = Math.min(state.cursorPos, rawValue.length);
     let visibleValue: string;
     if (config.mask) {
-      visibleValue = "\u25cf".repeat(rawValue.length);
+      visibleValue = "\u25cf".repeat([...rawValue].length);
     } else {
       visibleValue = rawValue;
     }

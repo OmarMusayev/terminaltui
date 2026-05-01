@@ -2,7 +2,7 @@
  * Image rendering mode implementations: ASCII, braille, blocks, shading.
  * Split from image.ts to keep files under 400 lines.
  */
-import { fgColor, reset } from "../style/colors.js";
+import { fgColorRgb, reset } from "../style/colors.js";
 
 interface PixelGrid {
   data: Uint8Array;
@@ -19,7 +19,7 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 function colorWrap(ch: string, r: number, g: number, b: number): string {
-  return fgColor(`#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`) + ch + reset;
+  return fgColorRgb(r, g, b) + ch + reset;
 }
 
 function sampleColor(pixels: PixelGrid, x: number, y: number, w: number, h: number): [number, number, number] {

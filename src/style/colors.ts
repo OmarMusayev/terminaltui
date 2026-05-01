@@ -121,13 +121,19 @@ export function fgColor(hex: string): string {
   if (colorMode === "none") return "";
   const rgb = hexToRgb(hex);
   if (!rgb) return "";
+  return fgColorRgb(rgb.r, rgb.g, rgb.b);
+}
+
+/** Same as fgColor but takes RGB directly. Honors colorMode (256-color fallback for Apple Terminal). */
+export function fgColorRgb(r: number, g: number, b: number): string {
+  if (colorMode === "none") return "";
   if (colorMode === "16") {
-    return `\x1b[${rgbTo16(rgb.r, rgb.g, rgb.b)}m`;
+    return `\x1b[${rgbTo16(r, g, b)}m`;
   }
   if (colorMode === "256") {
-    return `\x1b[38;5;${rgbTo256(rgb.r, rgb.g, rgb.b)}m`;
+    return `\x1b[38;5;${rgbTo256(r, g, b)}m`;
   }
-  return `\x1b[38;2;${rgb.r};${rgb.g};${rgb.b}m`;
+  return `\x1b[38;2;${r};${g};${b}m`;
 }
 
 export function bgColor(hex: string): string {

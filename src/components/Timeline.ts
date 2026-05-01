@@ -1,6 +1,6 @@
 import type { RenderContext } from "./base.js";
 import type { TimelineItem } from "../config/types.js";
-import { styled, wrapText, pad, truncate } from "./base.js";
+import { wrapText, truncate, stringWidth } from "./base.js";
 import { getBorderChars } from "../style/borders.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
@@ -26,9 +26,9 @@ export function renderTimeline(items: TimelineItem[], ctx: RenderContext, style?
     let titleLine: string;
     if (item.subtitle) {
       const combined = item.title + " \u00b7 " + item.subtitle;
-      if (combined.length > maxContentWidth) {
+      if (stringWidth(combined) > maxContentWidth) {
         // Try truncating subtitle first
-        const availableForSubtitle = maxContentWidth - item.title.length - 3; // 3 for " · "
+        const availableForSubtitle = maxContentWidth - stringWidth(item.title) - 3;
         if (availableForSubtitle > 0) {
           titleLine = connector + fgColor(theme.accent) + bold + item.title + reset +
             fgColor(theme.muted) + " \u00b7 " + truncate(item.subtitle, availableForSubtitle) + reset;
