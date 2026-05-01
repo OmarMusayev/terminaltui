@@ -19,6 +19,11 @@ export function artCreate(args: string[]): void {
     process.exit(1);
   }
 
+  if (!/^[a-z0-9][a-z0-9_-]*$/i.test(name)) {
+    console.error(`Invalid name: "${name}". Use letters, digits, "_" or "-" only.`);
+    process.exit(1);
+  }
+
   const artDir = resolve(process.cwd(), "art");
   const typeDir = join(artDir, type + "s");
   const filePath = join(typeDir, `${name}.txt`);

@@ -5,6 +5,7 @@
 import { resolve, dirname, join } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
 import type { PageModule, LayoutModule, ApiModule, FileBasedConfig } from "./types.js";
 
 /** Cache of compiled modules by absolute file path. */
@@ -19,8 +20,15 @@ export async function compileFile(
   outDir: string,
 ): Promise<string> {
   const absPath = resolve(filePath);
-  const outFile = join(outDir, fileToOutName(absPath));
 
+  // In dev (tsx/ts-node), import the source file directly — skips a wasteful
+  // bundle pass and avoids hitting native binary deps (e.g. ssh2's .node files)
+  // when a project's pages import the framework via a relative path.
+  if (process.execArgv.some(a => a.includes("tsx") || a.includes("ts-node"))) {
+    return absPath;
+  }
+
+  const outFile = join(outDir, fileToOutName(absPath));
   mkdirSync(outDir, { recursive: true });
 
   try {
@@ -31,14 +39,13 @@ export async function compileFile(
       bundle: true,
       format: "esm",
       platform: "node",
-      external: ["terminaltui"],
+      // Externalize the framework regardless of whether the project imports it
+      // by package name or a relative path into src/. The `*` patterns let
+      // esbuild treat any matching path as an external dep at runtime.
+      external: ["terminaltui", "*/src/index.js", "*/src/index.ts", "ssh2", "node-pty"],
       target: "node18",
     });
   } catch (err: any) {
-    // In dev mode with tsx/ts-node, .ts files can be imported directly
-    if (process.execArgv.some(a => a.includes("tsx") || a.includes("ts-node"))) {
-      return absPath;
-    }
     throw new Error(
       `Failed to compile ${filePath}. esbuild is required for file-based routing in production.\n` +
       `Install it: npm install esbuild\n\n` +
@@ -51,12 +58,17 @@ export async function compileFile(
 
 /**
  * Generate a unique output filename from a source path.
+ *
+ * Uses a sha1 of the absolute path so the cache key is collision-free.
+ * The previous "last 80 chars" scheme could collide for deeply nested
+ * paths sharing a tail (e.g. two projects' identical pages/index.ts).
+ * The basename prefix is preserved to keep filenames recognizable in /dist.
  */
 function fileToOutName(absPath: string): string {
-  // Replace path separators and non-alphanumeric chars with underscores
-  const safeName = absPath.replace(/[^a-zA-Z0-9]/g, "_");
-  // Use last 80 chars to keep it short but unique
-  return safeName.slice(-80) + ".mjs";
+  const hash = createHash("sha1").update(absPath).digest("hex").slice(0, 12);
+  const base = absPath.split(/[/\\]/).pop() ?? "module";
+  const safeBase = base.replace(/\.[tj]sx?$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `${safeBase}.${hash}.mjs`;
 }
 
 /**

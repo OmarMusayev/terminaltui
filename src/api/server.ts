@@ -113,12 +113,27 @@ export class ApiServer {
   }
 
   private parseBody(req: IncomingMessage): Promise<unknown> {
+    // 1 MB cap. The server is bound to 127.0.0.1 today, so this is mostly
+    // defense-in-depth — but it stops a runaway page-side fetch from
+    // ballooning the host process by streaming a giant body.
+    const MAX_BODY_BYTES = 1 * 1024 * 1024;
     return new Promise((resolve, reject) => {
       let data = "";
+      let bytes = 0;
+      let aborted = false;
       req.on("data", (chunk: Buffer) => {
+        if (aborted) return;
+        bytes += chunk.length;
+        if (bytes > MAX_BODY_BYTES) {
+          aborted = true;
+          req.destroy(new Error("Request body too large"));
+          reject(new Error("Request body too large"));
+          return;
+        }
         data += chunk.toString();
       });
       req.on("end", () => {
+        if (aborted) return;
         if (!data) {
           resolve(undefined);
           return;

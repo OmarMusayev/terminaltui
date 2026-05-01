@@ -4,7 +4,7 @@
  */
 import { generateKeyPairSync, createPrivateKey } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { dirname } from "node:path";
 import type { TerminalIO } from "./terminal-io.js";
 
@@ -110,9 +110,14 @@ export class SSHServer {
     }
 
     console.log(`  \x1b[2mGenerating host key: ${this.options.hostKeyPath}\x1b[0m`);
-    try {
-      execSync(`ssh-keygen -t rsa -b 2048 -f "${this.options.hostKeyPath}" -N "" -q`, { stdio: "pipe" });
-    } catch {
+    // Array args (no shell) — hostKeyPath is a CLI flag the user controls,
+    // but we still avoid interpolation as defense in depth.
+    const result = spawnSync(
+      "ssh-keygen",
+      ["-t", "rsa", "-b", "2048", "-f", this.options.hostKeyPath, "-N", "", "-q"],
+      { stdio: "pipe" },
+    );
+    if (result.status !== 0) {
       // Fallback: generate with Node.js crypto (PEM format, widely supported)
       const { privateKey } = generateKeyPairSync("rsa", {
         modulusLength: 2048,
