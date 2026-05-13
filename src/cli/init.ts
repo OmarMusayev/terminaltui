@@ -1,6 +1,28 @@
-import { join, resolve } from "node:path";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
+
+function getFrameworkVersion(): string {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    for (const candidate of [
+      join(here, "..", "..", "package.json"),
+      join(here, "..", "package.json"),
+      join(here, "..", "..", "..", "package.json"),
+    ]) {
+      if (existsSync(candidate)) {
+        const pkg = JSON.parse(readFileSync(candidate, "utf-8"));
+        if (pkg.name === "terminaltui" && typeof pkg.version === "string") {
+          return pkg.version;
+        }
+      }
+    }
+  } catch {
+    // fall through
+  }
+  return "1.0.0";
+}
 
 const TEMPLATES = ["minimal", "portfolio", "landing", "restaurant", "blog", "creative"] as const;
 type Template = typeof TEMPLATES[number];
@@ -91,7 +113,7 @@ export async function scaffoldProject(templateArg?: string): Promise<void> {
       prepublishOnly: "npm run build",
     },
     dependencies: {
-      terminaltui: "^1.6.0",
+      terminaltui: `^${getFrameworkVersion()}`,
     },
     engines: { node: ">=18" },
   }, null, 2);

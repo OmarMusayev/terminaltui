@@ -1,0 +1,4 @@
+dist/
+node_modules/
+.terminaltui/
+package-lock.json

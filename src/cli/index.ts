@@ -163,6 +163,7 @@ const DEMO_NAMES = [
   "freelancer",
   "startup",
   "server-dashboard",
+  "mac-monitor",
 ] as const;
 
 async function runDemo(name?: string) {
@@ -182,6 +183,7 @@ async function runDemo(name?: string) {
     \x1b[36mfreelancer\x1b[0m            Freelancer landing page
     \x1b[36mstartup\x1b[0m               Startup landing page
     \x1b[36mserver-dashboard\x1b[0m      System metrics, container table, log stream
+    \x1b[36mmac-monitor\x1b[0m           Live macOS Activity Monitor (CPU/mem/GPU/disk/net/battery) — darwin only
 
   Example:
     npx terminaltui demo restaurant

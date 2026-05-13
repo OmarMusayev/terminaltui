@@ -1,0 +1,49 @@
+{
+  "name": "mac-monitor",
+  "version": "1.0.2",
+  "description": "Real-time macOS Activity Monitor in your terminal. Live CPU, memory, GPU, disk, network, battery, and process stats with spatial navigation. Built with terminaltui.",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "mac-monitor": "dist/cli.js"
+  },
+  "scripts": {
+    "dev": "npx terminaltui dev config.ts",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [
+    "macos",
+    "monitor",
+    "activity-monitor",
+    "system-monitor",
+    "terminal",
+    "tui",
+    "cpu",
+    "memory",
+    "gpu",
+    "disk",
+    "battery",
+    "processes",
+    "dashboard",
+    "htop",
+    "top",
+    "npx"
+  ],
+  "author": "Omar Musayev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OmarMusayev/terminaltui.git",
+    "directory": "demos/mac-monitor"
+  },
+  "homepage": "https://github.com/OmarMusayev/terminaltui/tree/main/demos/mac-monitor",
+  "os": [
+    "darwin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ]
+}

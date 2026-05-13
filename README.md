@@ -1,8 +1,8 @@
 # terminaltui
 
-![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-1500%2B-brightgreen)
+![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2127-brightgreen)
 
-Build interactive terminal websites and apps. Write pages, get a TUI, distribute via `npx` or `ssh`.
+> **Next.js for the terminal.** Write a `pages/` directory of TypeScript files. Get an interactive TUI with file-based routing, components, themes, and SSH hosting. Distribute it with `npx`.
 
 ![terminaltui demo](assets/recordings/hero.gif)
 
@@ -14,7 +14,7 @@ cd my-site
 npx terminaltui dev
 ```
 
-Or try a built-in demo instantly:
+Or try a built-in demo instantly — zero install, zero scaffold:
 
 ```bash
 npx terminaltui demo restaurant
@@ -24,7 +24,21 @@ npx terminaltui demo restaurant
 
 ## What is this?
 
-terminaltui turns declarative TypeScript into fully interactive terminal applications with keyboard navigation, animations, theming, and ASCII art. Users run your app with a single `npx` command. No browser, no Electron, no React.
+terminaltui is a **framework** for building interactive terminal apps in TypeScript. You write pages, it handles routing, navigation, layout, state, and rendering. Users run your app with a single `npx` command, or you host it over SSH and they connect with `ssh`. No browser, no Electron, no React.
+
+If you've used Next.js, you already know the shape: `pages/about.ts` becomes `/about`, `pages/projects/[slug].ts` is a dynamic route, `api/stats.ts` is a `GET /api/stats` endpoint.
+
+**How it compares:**
+
+|  | terminaltui | [Ink](https://github.com/vadimdemedes/ink) | [Pastel](https://github.com/vadimdemedes/pastel) | [Bubble Tea](https://github.com/charmbracelet/bubbletea) |
+|---|---|---|---|---|
+| Lang | TypeScript | TypeScript (React) | TypeScript (Ink-based) | Go |
+| Shape | **Framework** (pages, routing, layouts) | Component library | CLI command router | TUI framework (Elm-style) |
+| File-based routing for **screens** | Yes | No | No (routes CLI subcommands) | No |
+| SSH hosting built in | `terminaltui serve` | No | No | Via `charmbracelet/wish` |
+| `npx` distribution | First-class | First-class | First-class | No (Go binary) |
+| Components included | 30+ | Bring your own | Inherits from Ink | Via `bubbles` |
+| AI codegen-native | `claude/SKILL.md` ships in package | No | No | No |
 
 ---
 
@@ -176,6 +190,7 @@ npx terminaltui demo developer-portfolio
 npx terminaltui demo freelancer
 npx terminaltui demo startup
 npx terminaltui demo server-dashboard
+npx terminaltui demo mac-monitor   # macOS only — live system stats
 ```
 
 | Demo | Theme | Highlights |
@@ -189,6 +204,7 @@ npx terminaltui demo server-dashboard
 | Freelancer | custom | Testimonial quotes, contact form |
 | Startup | tokyoNight | Pricing tiers, feature accordion |
 | Server Dashboard | hacker | System metrics, container table, log stream |
+| Mac Monitor | hacker | Live macOS system stats (CPU/mem/GPU/disk/net/battery/processes), dynamic routes for per-process detail — darwin only |
 
 ### Restaurant
 ![restaurant demo](assets/recordings/restaurant.gif)
@@ -250,7 +266,7 @@ A real portfolio built with terminaltui.
 
 ## For AI Agents
 
-terminaltui ships with `claude/SKILL.md` -- a 2,000+ line API reference designed for AI code generation. The `terminaltui create` and `terminaltui convert` commands generate tailored prompts for Claude Code.
+terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed for AI code generation. The `terminaltui create` and `terminaltui convert` commands generate tailored prompts for Claude Code.
 
 The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the app in a PTY, read the screen, send keystrokes, assert content.
 
@@ -282,7 +298,7 @@ The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the a
 
 - **TypeScript** -- strict mode, zero `any` in public API
 - **1 required dependency** (esbuild) -- ssh2 is optional for `serve`
-- **1,500+ assertions** across unit, integration, emulator, and demo suites
+- **2,100+ assertions** across unit, integration, emulator, and demo suites
 - **Apple Terminal compatible** -- auto-detects and uses 256-color fallback
 
 ## Contributing
