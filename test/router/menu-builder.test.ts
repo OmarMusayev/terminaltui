@@ -227,6 +227,56 @@ console.log("\x1b[1m  Manual order\x1b[0m");
   assertEqual(menu[3].page, "contact", "manual order: contact fourth");
 }
 
+// ─── Robustness: non-string labels ────────────────────────
+
+console.log("\x1b[1m  Robustness: non-string labels\x1b[0m");
+{
+  // Function-typed labels (used by parameterized pages for runtime page titles)
+  // must not crash the menu sort or appear as the menu label — they fall
+  // through to the titlecased filename so the menu stays consistent.
+  const table = makeTable([
+    makeRoute({ name: "home", depth: 0 }),
+    makeRoute({ name: "post", depth: 0 }),
+    makeRoute({ name: "about", depth: 0 }),
+  ]);
+
+  const meta = new Map<string, PageMetadata>();
+  // Cast to any so we can assign a function — the type forbids it, but
+  // user code that does this should not crash the framework.
+  meta.set("post", { label: ((p: any) => `Post ${p.id}`) as any });
+  meta.set("about", { label: "About" });
+
+  let menu: ReturnType<typeof buildMenu> = [];
+  let threw = false;
+  try {
+    menu = buildMenu(table, meta);
+  } catch {
+    threw = true;
+  }
+
+  assert(!threw, "buildMenu does not throw on function-typed label");
+  const postItem = menu.find((m) => m.page === "post");
+  assert(postItem !== undefined, "post still appears in menu");
+  assertEqual(postItem?.label, "Post", "function-typed label falls back to titlecased filename");
+
+  // Non-string labels must also survive the sort comparator path.
+  const table2 = makeTable([
+    makeRoute({ name: "alpha", depth: 0 }),
+    makeRoute({ name: "beta", depth: 0 }),
+  ]);
+  const meta2 = new Map<string, PageMetadata>();
+  meta2.set("alpha", { label: ((_: any) => "Z-runtime") as any });
+  meta2.set("beta", { label: "Beta" });
+
+  let threw2 = false;
+  try {
+    buildMenu(table2, meta2);
+  } catch {
+    threw2 = true;
+  }
+  assert(!threw2, "sort comparator does not throw on function-typed labels");
+}
+
 // ─── Results ──────────────────────────────────────────────
 console.log("");
 if (failed > 0) {

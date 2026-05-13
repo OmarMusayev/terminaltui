@@ -81,7 +81,9 @@ function isTopLevelMenuRoute(route: Route): boolean {
 
 /**
  * Resolve the menu label for a route.
- * Priority: menuConfig.labels → metadata.label → titlecased filename
+ * Priority: menuConfig.labels → metadata.label (if string) → titlecased filename.
+ * Function-typed labels (used by parameterized pages for runtime titles) fall
+ * through to the titlecase fallback so the menu doesn't carry a non-string label.
  */
 function resolveMenuLabel(
   route: Route,
@@ -93,8 +95,11 @@ function resolveMenuLabel(
     return menuConfig.labels[route.name];
   }
 
-  // Check metadata label
-  if (meta?.label) return meta.label;
+  // Check metadata label (must be a string — function-typed labels are for
+  // runtime page titles, not menu entries, so we fall through to the filename)
+  if (typeof meta?.label === "string" && meta.label.length > 0) {
+    return meta.label;
+  }
 
   // Titlecase the filename/directory name
   const baseName = route.isIndex ? route.parentDir : route.name;
@@ -129,6 +134,9 @@ function resolveMenuOrder(route: Route, meta: PageMetadata | undefined): number 
 
 /**
  * Sort menu items: ordered first (by order value), then alphabetical.
+ * Label is defensively coerced to string — resolveMenuLabel should already
+ * guarantee a string, but a misconfigured page module could slip a non-string
+ * through and we'd rather sort it under "[object …]" than crash.
  */
 function menuSortComparator(a: AutoMenuItem, b: AutoMenuItem): number {
   // Both have explicit order
@@ -140,7 +148,7 @@ function menuSortComparator(a: AutoMenuItem, b: AutoMenuItem): number {
   // Only b has order
   if (b.order !== Infinity) return 1;
   // Both unordered: alphabetical
-  return a.label.localeCompare(b.label);
+  return String(a.label).localeCompare(String(b.label));
 }
 
 /**

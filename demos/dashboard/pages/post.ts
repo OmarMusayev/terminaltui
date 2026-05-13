@@ -11,6 +11,7 @@ export const metadata = {
   label: (p: { id: string }) => `Post #${p.id}`,
   icon: "->",
   loading: (p: { id: string }) => `Loading post #${p.id}...`,
+  hidden: true,
 };
 
 export default async function PostDetail(p: { id: string }) {
