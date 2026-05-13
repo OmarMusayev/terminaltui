@@ -69,7 +69,8 @@
     "demos/mac-monitor",
     "demos/restaurant",
     "demos/server-dashboard",
-    "demos/startup"
+    "demos/startup",
+    "demos/welcome"
   ],
   "engines": {
     "node": ">=18"

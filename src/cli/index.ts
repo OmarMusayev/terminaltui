@@ -33,6 +33,9 @@ async function main() {
     case "demo":
       await runDemo(args[1]);
       break;
+    case "try":
+      await runDemo("welcome");
+      break;
     case "validate":
       await runValidate();
       break;
@@ -154,6 +157,7 @@ async function runCreateCommand() {
 }
 
 const DEMO_NAMES = [
+  "welcome",
   "restaurant",
   "dashboard",
   "band",
@@ -174,6 +178,7 @@ async function runDemo(name?: string) {
   Usage:  terminaltui demo <name>
 
   Available demos:
+    \x1b[1m\x1b[36mwelcome\x1b[0m               5-page guided tour of the framework (also: \x1b[1mterminaltui try\x1b[0m)
     \x1b[36mrestaurant\x1b[0m            Fine dining menu, wine list, reservations
     \x1b[36mdashboard\x1b[0m             Monitoring dashboard with live data
     \x1b[36mband\x1b[0m                  Band site with music, shows, merch
@@ -347,19 +352,20 @@ function findConfig(): string | null {
 
 function printHelp() {
   console.log(`
-  terminaltui - Turn any website into a beautiful terminal experience
+  terminaltui - Next.js for the terminal. Interactive TUI websites and apps in TypeScript.
 
   Usage:
     terminaltui <command> [options]
 
   Commands:
+    try          Run a 5-page guided tour of the framework — zero install, zero config
     init [tpl]   Scaffold a new project (templates: minimal, portfolio, landing, restaurant, blog, creative)
     create       Interactive prompt builder — describe what you want, AI builds it
     convert      Drop terminaltui docs into your project for AI-assisted conversion
     validate     Check file-based routing project for common issues
     dev          Start development preview (auto-starts API server if routes defined)
     serve        Host your TUI over SSH (anyone can connect with ssh)
-    demo [name]  Run a built-in demo (restaurant, dashboard, band, coffee-shop, conference, etc.)
+    demo [name]  Run a built-in demo (welcome, restaurant, dashboard, mac-monitor, etc.)
     build        Bundle for npm publish (includes API routes)
     test         Run automated tests on site in current directory
     art          Manage art assets (list, preview, create, validate)
@@ -376,11 +382,11 @@ function printHelp() {
     --max-connections <N>   Max simultaneous connections (default: 100)
 
   Examples:
+    npx terminaltui try            # 5-page guided tour
     terminaltui init portfolio
     terminaltui dev
     terminaltui serve --port 2222
     terminaltui create
-    terminaltui convert
     terminaltui build
     terminaltui test --sizes --verbose
 `);
