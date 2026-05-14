@@ -21,10 +21,10 @@
 <link rel="canonical" href="https://terminaltui.dev/" />
 <link rel="alternate" type="text/html" href="https://github.com/OmarMusayev/terminaltui" title="terminaltui on GitHub" />
 <link rel="alternate" type="text/html" href="https://www.npmjs.com/package/terminaltui" title="terminaltui on npm" />
-<link rel="icon" type="image/svg+xml" href="/terminaltui/favicon.svg" />
-<link rel="alternate icon" type="image/png" href="/terminaltui/favicon.svg" />
-<link rel="mask-icon" href="/terminaltui/favicon.svg" color="#8effbe" />
-<link rel="sitemap" type="application/xml" href="/terminaltui/sitemap.xml" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="alternate icon" type="image/png" href="/favicon.svg" />
+<link rel="mask-icon" href="/favicon.svg" color="#8effbe" />
+<link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="terminaltui — Interactive terminal websites and apps in TypeScript" />
@@ -57,8 +57,8 @@
   "applicationSubCategory": "Framework",
   "operatingSystem": "macOS, Linux, Windows",
   "description": "A TypeScript framework for building interactive terminal websites and applications. File-based routing, 12-column grid, spatial navigation, themes, ASCII art, and SSH hosting.",
-  "softwareVersion": "1.6.0",
-  "datePublished": "2026-04-28",
+  "softwareVersion": "1.8.1",
+  "datePublished": "2026-05-14",
   "license": "https://opensource.org/licenses/MIT",
   "author": { "@id": "https://terminaltui.dev/#author" },
   "publisher": { "@id": "https://terminaltui.dev/#author" },
@@ -163,17 +163,19 @@
   "@context": "https://schema.org",
   "@type": "ItemList",
   "name": "terminaltui reference apps",
-  "description": "Nine production-style demo apps that ship with terminaltui and can be run from npm with a single command.",
+  "description": "Eleven production-style demo apps that ship with terminaltui and can be run from npm with a single command.",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Developer Portfolio", "url": "https://terminaltui.dev/#demos", "description": "Cyberpunk theme. Skill bars, sparklines, project grid." },
-    { "@type": "ListItem", "position": 2, "name": "Restaurant",          "url": "https://terminaltui.dev/#demos", "description": "Gruvbox theme. Tabbed menu, reservation form, split layout." },
-    { "@type": "ListItem", "position": 3, "name": "Dashboard",           "url": "https://terminaltui.dev/#demos", "description": "Hacker theme. Live API data, persistent state, parameterized routes." },
-    { "@type": "ListItem", "position": 4, "name": "Server Dashboard",    "url": "https://terminaltui.dev/#demos", "description": "Hacker theme. System metrics, container table, log stream." },
-    { "@type": "ListItem", "position": 5, "name": "Startup",             "url": "https://terminaltui.dev/#demos", "description": "Tokyo Night theme. Pricing tiers, feature accordion." },
-    { "@type": "ListItem", "position": 6, "name": "Conference",          "url": "https://terminaltui.dev/#demos", "description": "Nord theme. Schedule tabs, speaker grid, sponsor tiers." },
-    { "@type": "ListItem", "position": 7, "name": "Band",                "url": "https://terminaltui.dev/#demos", "description": "Rosé Pine theme. Album cards, tour dates, mailing list." },
-    { "@type": "ListItem", "position": 8, "name": "Coffee Shop",         "url": "https://terminaltui.dev/#demos", "description": "Catppuccin theme. Tabbed menu, catering form." },
-    { "@type": "ListItem", "position": 9, "name": "Freelancer",          "url": "https://terminaltui.dev/#demos", "description": "Custom theme. Testimonial quotes, contact form." }
+    { "@type": "ListItem", "position": 1,  "name": "Welcome Tour",        "url": "https://terminaltui.dev/#demos", "description": "Cyberpunk theme. The 5-page guided tour opened by 'npx terminaltui try'." },
+    { "@type": "ListItem", "position": 2,  "name": "Developer Portfolio", "url": "https://terminaltui.dev/#demos", "description": "Cyberpunk theme. Skill bars, sparklines, project grid." },
+    { "@type": "ListItem", "position": 3,  "name": "Restaurant",          "url": "https://terminaltui.dev/#demos", "description": "Gruvbox theme. Tabbed menu, reservation form, split layout." },
+    { "@type": "ListItem", "position": 4,  "name": "Dashboard",           "url": "https://terminaltui.dev/#demos", "description": "Hacker theme. Live API data, persistent state, parameterized routes." },
+    { "@type": "ListItem", "position": 5,  "name": "Server Dashboard",    "url": "https://terminaltui.dev/#demos", "description": "Hacker theme. System metrics, container table, log stream." },
+    { "@type": "ListItem", "position": 6,  "name": "Mac Monitor",         "url": "https://terminaltui.dev/#demos", "description": "Hacker theme. Live macOS activity monitor: CPU, memory, GPU, disk, network, battery." },
+    { "@type": "ListItem", "position": 7,  "name": "Startup",             "url": "https://terminaltui.dev/#demos", "description": "Tokyo Night theme. Pricing tiers, feature accordion." },
+    { "@type": "ListItem", "position": 8,  "name": "Conference",          "url": "https://terminaltui.dev/#demos", "description": "Nord theme. Schedule tabs, speaker grid, sponsor tiers." },
+    { "@type": "ListItem", "position": 9,  "name": "Band",                "url": "https://terminaltui.dev/#demos", "description": "Rosé Pine theme. Album cards, tour dates, mailing list." },
+    { "@type": "ListItem", "position": 10, "name": "Coffee Shop",         "url": "https://terminaltui.dev/#demos", "description": "Catppuccin theme. Tabbed menu, catering form." },
+    { "@type": "ListItem", "position": 11, "name": "Freelancer",          "url": "https://terminaltui.dev/#demos", "description": "Custom theme. Testimonial quotes, contact form." }
   ]
 }
 </script>
@@ -578,7 +580,7 @@
 
         <div class="cmd" role="group" aria-label="Install command">
           <span class="prompt" aria-hidden="true">$</span>
-          <span class="text" id="cmd-text">npx terminaltui <span class="arg">init my-site</span></span>
+          <span class="text" id="cmd-text">npx terminaltui <span class="arg">try</span></span>
           <button id="copy-btn" type="button" aria-label="Copy command">Copy</button>
         </div>
 
@@ -652,7 +654,7 @@
 
 <section id="demos" class="sec">
   <div class="wrap">
-    <h2>Nine reference apps.</h2>
+    <h2>Eleven reference apps.</h2>
     <p class="intro">Each demo runs from npm with a single command. Hover any tile to preview the rendered terminal.</p>
 
     <div class="demo-grid" id="demo-grid"></div>
@@ -1049,7 +1051,7 @@
   if(!btn) return;
   btn.addEventListener('click', async () => {
     try{
-      await navigator.clipboard.writeText('npx terminaltui init my-site');
+      await navigator.clipboard.writeText('npx terminaltui try');
       btn.textContent = 'Copied'; btn.classList.add('copied');
       setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
     }catch(e){ btn.textContent = 'Failed'; setTimeout(() => { btn.textContent = 'Copy'; }, 1800); }
@@ -1090,6 +1092,8 @@
   if(!grid) return;
 
   const previews = {
+    welcome: `<span style="color:#ff2cde">TERMINALTUI</span>\n  ◆ home              [1]\n  ▸ showcase          [2]\n  ▸ themes            [3]\n  ▸ live data         [4]\n  ▸ get started       [5]\n\n  <span style="color:#0fffd4">$ npx terminaltui try</span>`,
+    mac: `<span style="color:#39ff14">system monitor</span>\n  cpu   <span style="color:#39ff14">▰▰▰▰▰▱▱▱▱▱</span>  47%\n  mem   <span style="color:#39ff14">▰▰▰▰▱▱▱▱▱▱</span>  38%   12gb\n  gpu   <span style="color:#39ff14">▰▰▰▱▱▱▱▱▱▱</span>  22%\n  disk  <span style="color:#39ff14">▰▰▰▰▰▰▱▱▱▱</span>  142 / 512 gb\n\n  processes 287   battery 87%`,
     portfolio: `┌─ projects ──────────────────────┐\n│ ◆ <span style="color:#0fffd4">aurora-cli</span>     ts    1.2k★  │\n│   typesafe terminal scaffolds   │\n│                                 │\n│ ▸ <span style="color:#ff2cde">phosphor</span>       rust   480★  │\n│ ▸ <span style="color:#ffe600">midnight</span>       ts     211★  │\n└─────────────────────────────────┘\n  skills <span style="color:#0fffd4">▰▰▰▰▰▰▰▰</span>▱▱  typescript`,
     restaurant: `<span style="color:#fabd2f">menu</span>\n  ◆ <span style="color:#b8bb26">ribollata</span>          16  v\n    tuscan bread soup\n  ▸ <span style="color:#b8bb26">cacio e pepe</span>       18\n  ▸ <span style="color:#b8bb26">branzino al sale</span>   34  gf\n  ▸ <span style="color:#b8bb26">tiramisu</span>           12\n\n  <span style="color:#d3869b">[ reserve a table ]</span>`,
     dashboard: `<span style="color:#39ff14">live  47ms</span>\n  cpu   <span style="color:#39ff14">▰▰▰▰▰▰▱▱▱▱</span>  62%\n  mem   <span style="color:#39ff14">▰▰▰▰▱▱▱▱▱▱</span>  41%\n  net   <span style="color:#39ff14">▰▰▰▰▰▰▰▰▱▱</span>  12 mb/s\n\n  <span style="color:#9eff8a">[200]</span> /api/users      18ms\n  <span style="color:#9eff8a">[200]</span> /api/sessions   22ms\n  <span style="color:#fb4934">[503]</span> /api/payments   timeout`,
@@ -1102,10 +1106,12 @@
   };
 
   const items = [
+    { name:'Welcome Tour',        theme:'cyberpunk',  cmd:'npx terminaltui try',                       preview:'welcome' },
     { name:'Developer Portfolio', theme:'cyberpunk',  cmd:'npx terminaltui demo developer-portfolio', preview:'portfolio' },
     { name:'Restaurant',          theme:'gruvbox',    cmd:'npx terminaltui demo restaurant',           preview:'restaurant' },
     { name:'Dashboard',           theme:'hacker',     cmd:'npx terminaltui demo dashboard',            preview:'dashboard' },
     { name:'Server Dashboard',    theme:'hacker',     cmd:'npx terminaltui demo server-dashboard',     preview:'server' },
+    { name:'Mac Monitor',         theme:'hacker',     cmd:'npx terminaltui demo mac-monitor',          preview:'mac' },
     { name:'Startup',             theme:'tokyoNight', cmd:'npx terminaltui demo startup',              preview:'startup' },
     { name:'Conference',          theme:'nord',       cmd:'npx terminaltui demo conference',           preview:'conference' },
     { name:'Band',                theme:'rosePine',   cmd:'npx terminaltui demo band',                 preview:'band' },
