@@ -1,6 +1,6 @@
 {
   "name": "terminaltui",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "main": "dist/index.js",
   "scripts": {
     "test": "npx tsx test/run-all.ts",
@@ -93,6 +93,7 @@
     }
   },
   "dependencies": {
-    "esbuild": ">=0.17.0"
+    "esbuild": ">=0.17.0",
+    "terminaltui": "^1.8.0"
   }
 }

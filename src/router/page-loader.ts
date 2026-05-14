@@ -33,16 +33,31 @@ export async function compileFile(
 
   try {
     const { build } = await import("esbuild");
+    // Plugin: rewrite relative imports that land on the framework's
+    // src/index.js (`../../src/index.js`, `../../../src/index.js`, …) to the
+    // package name `terminaltui`. Externalizing the literal relative path
+    // would break at runtime, because the output .mjs lives one level deeper
+    // than the source (under `.terminaltui/`), so the same relative path
+    // resolves to a different location. Rewriting to a bare-specifier import
+    // lets Node's normal package resolution find the framework regardless
+    // of where the .mjs ends up.
+    const frameworkAliasPlugin = {
+      name: "framework-alias",
+      setup(b: any) {
+        b.onResolve({ filter: /(?:^|\/)src\/index\.[jt]s$/ }, (args: any) => ({
+          path: "terminaltui",
+          external: true,
+        }));
+      },
+    };
     await build({
       entryPoints: [absPath],
       outfile: outFile,
       bundle: true,
       format: "esm",
       platform: "node",
-      // Externalize the framework regardless of whether the project imports it
-      // by package name or a relative path into src/. The `*` patterns let
-      // esbuild treat any matching path as an external dep at runtime.
-      external: ["terminaltui", "*/src/index.js", "*/src/index.ts", "ssh2", "node-pty"],
+      external: ["terminaltui", "ssh2", "node-pty"],
+      plugins: [frameworkAliasPlugin],
       target: "node18",
     });
   } catch (err: any) {

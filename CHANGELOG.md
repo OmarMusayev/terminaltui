@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.1] - 2026-05-14
+
+Hotfix for v1.8.0. `npx terminaltui try` crashed at startup with `Cannot find module '<pkg>/demos/src/index.js'` — the demos' relative framework imports (`../../src/index.js`) were externalized as literal strings, then resolved relative to the compiled `.mjs`'s location (one level deeper than the source), so the path landed inside `demos/` instead of the package root.
+
+### Fixed
+
+- **`runDemo()` failed when invoked from an installed copy of the package** — added an esbuild `onResolve` plugin in `compileFile` that rewrites any relative `*/src/index.js` (or `.ts`) import to the bare specifier `"terminaltui"`. Node's normal package resolution then finds the framework regardless of where the `.mjs` cache file ends up. Local dev (tsx mode) is unaffected — `compileFile` short-circuits in that mode and never runs esbuild.
+
+---
+
 ## [1.8.0] - 2026-05-14
 
 Launch-readiness release. Adds `npx terminaltui try` as a one-command pitch, ships two new bundled demos (`welcome`, `mac-monitor`), exposes `setTheme()` as a runtime helper, and fixes three bugs that surfaced while building the launch tour.
