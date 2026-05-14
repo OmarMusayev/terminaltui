@@ -66,30 +66,57 @@ Sleep 700ms
 Down
 Sleep 700ms
 
-# ── Themes page — the wow moment
+# ── Themes page — the wow moment, driven by button presses.
+#    The page loads with initial focus on the cyberpunk button (row 1
+#    left). Spatial nav lets us move around the grid; Enter on a button
+#    fires onPress → setTheme(name) → the whole UI re-renders in that
+#    palette.
+#
+#      [cyberpunk] [dracula]
+#      [nord]      [monokai]
+#      [solarized] [gruvbox]
+#      [catppuccin][tokyoNight]
+#      [rosePine]  [hacker]
 Type "3"
+Sleep 2400ms
+
+# Switch to nord (row 2 left). One Down from cyberpunk.
+Down
+Sleep 700ms
+Enter
 Sleep 2200ms
 
-Type ":theme nord"
+# Switch to tokyoNight (row 4 right). Down to solarized, Down to catppuccin,
+# Right to tokyoNight.
+Down
+Sleep 300ms
+Down
+Sleep 300ms
+Right
+Sleep 700ms
 Enter
-Sleep 1400ms
+Sleep 2200ms
 
-Type ":theme tokyoNight"
+# Switch to hacker (row 5 right). One Down from tokyoNight.
+Down
+Sleep 700ms
 Enter
-Sleep 1400ms
+Sleep 2200ms
 
-Type ":theme rosePine"
+# Pop back up to cyberpunk (row 1 left) before leaving the page.
+# From hacker (row 5 right) → 4 Ups put us at dracula (row 1 right) → Left = cyberpunk.
+Up
+Sleep 200ms
+Up
+Sleep 200ms
+Up
+Sleep 200ms
+Up
+Sleep 200ms
+Left
+Sleep 500ms
 Enter
-Sleep 1400ms
-
-Type ":theme hacker"
-Enter
-Sleep 1400ms
-
-# Back to cyberpunk for the rest
-Type ":theme cyberpunk"
-Enter
-Sleep 1400ms
+Sleep 1800ms
 
 # ── Live data — let the sparklines actually animate
 Type "4"
