@@ -235,7 +235,10 @@ export function handleNavigationMode(rt: RT, key: KeyPress): void {
     default:
       if (action.startsWith("jump")) {
         const num = parseInt(action.replace("jump", ""));
-        if (rt.router.isHome()) {
+        // Number jumps work from any page — pressing "3" from inside Showcase
+        // navigates straight to page 3 instead of being a dead keystroke.
+        // (Edit/command mode swallow the key before this branch fires.)
+        {
           const idx = num - 1;
           if (idx < rt.focus.count) {
             rt.focus.focusIndex = idx;

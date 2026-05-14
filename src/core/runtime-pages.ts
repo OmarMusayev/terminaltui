@@ -370,26 +370,35 @@ export function showFeedback(rt: RT, msg: string): void {
 
 /** Execute a :command. */
 export function executeCommand(rt: RT, cmd: string): void {
-  const trimmed = cmd.trim().toLowerCase();
+  const trimmed = cmd.trim();
+  // The verb is matched case-insensitively (`:theme`, `:THEME`, `:Theme` all
+  // work) but the argument keeps its original case — theme names like
+  // `tokyoNight` and `rosePine` are camelCase and would never match if we
+  // lowercased them.
+  const spaceIdx = trimmed.indexOf(" ");
+  const verb = (spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx)).toLowerCase();
+  const arg = spaceIdx === -1 ? "" : trimmed.slice(spaceIdx + 1).trim();
 
-  if (trimmed === "q" || trimmed === "quit") {
+  if (verb === "q" || verb === "quit") {
     (rt as any).stop();
     return;
   }
 
-  if (trimmed.startsWith("theme ")) {
-    const themeName = trimmed.slice(6).trim();
-    if (themes[themeName as keyof typeof themes]) {
-      rt.theme = themes[themeName as keyof typeof themes];
-      showFeedback(rt, `Theme: ${themeName}`);
+  if (verb === "theme") {
+    if (themes[arg as keyof typeof themes]) {
+      rt.theme = themes[arg as keyof typeof themes];
+      showFeedback(rt, `Theme: ${arg}`);
     } else {
-      showFeedback(rt, `Unknown theme: ${themeName}`);
+      showFeedback(rt, `Unknown theme: ${arg}`);
     }
     return;
   }
 
-  if (rt.site.easterEggs?.commands?.[trimmed]) {
-    const action = rt.site.easterEggs.commands[trimmed];
+  // Easter-egg commands are matched against the lowercased full command,
+  // preserving the prior behavior (egg keys were always defined lowercase).
+  const easterKey = trimmed.toLowerCase();
+  if (rt.site.easterEggs?.commands?.[easterKey]) {
+    const action = rt.site.easterEggs.commands[easterKey];
     if (typeof action === "string") {
       showFeedback(rt, action);
     } else if (!rt.isServeMode) {
