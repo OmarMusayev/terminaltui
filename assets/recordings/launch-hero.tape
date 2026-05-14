@@ -9,10 +9,10 @@ Output assets/recordings/launch-hero.gif
 
 Set Shell zsh
 Set FontFamily "JetBrainsMono Nerd Font"
-Set FontSize 16
-Set Width 1600
-Set Height 1000
-Set Padding 24
+Set FontSize 20
+Set Width 2400
+Set Height 1500
+Set Padding 32
 Set TypingSpeed 50ms
 Set PlaybackSpeed 1.0
 Set Theme { "name": "Synthwave", "background": "#1a1028", "foreground": "#f0e4cf", "cursor": "#ff7edb", "cursorAccent": "#1a1028", "selection": "#ff7edb", "black": "#1a1028", "brightBlack": "#3b2d5e", "red": "#f97e72", "brightRed": "#ff8c82", "green": "#72f1b8", "brightGreen": "#95ffd2", "yellow": "#fede5d", "brightYellow": "#f9f871", "blue": "#6fc1ff", "brightBlue": "#8be9fd", "magenta": "#ff7edb", "brightMagenta": "#ff92df", "cyan": "#36f9f6", "brightCyan": "#70fcf6", "white": "#f0e4cf", "brightWhite": "#fefefe" }

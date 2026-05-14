@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.8.0] - 2026-05-14
+
+Launch-readiness release. Adds `npx terminaltui try` as a one-command pitch, ships two new bundled demos (`welcome`, `mac-monitor`), exposes `setTheme()` as a runtime helper, and fixes three bugs that surfaced while building the launch tour.
+
+### Added
+
+- **`npx terminaltui try`** — opens a 5-page guided tour of the framework (home, components showcase, themes picker, live data, get-started) in a Synthwave palette. Doubles as a smoke test for someone discovering the framework via README. Source under `demos/welcome/`.
+- **`mac-monitor` demo** — bundled real-time macOS system monitor (CPU, memory, processes, network). Lives at `demos/mac-monitor/`; runs with `npx terminaltui dev demos/mac-monitor/site.config.ts`.
+- **`setTheme(name)`** is now exported from the package root — call from a button's `onPress` to swap the active theme in-place. Returns `false` if the name isn't recognized; the runtime re-renders on success.
+- **Code of Conduct, security policy, PR template** under `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.github/PULL_REQUEST_TEMPLATE.md`.
+
+### Fixed
+
+- **`menu-builder` crashed when `metadata.label` was a function** — both `resolveMenuLabel` and the sort comparator assumed string labels, and parameterized routes that derive their menu label at runtime (`label: ({ params }) => …`) threw `a.label.localeCompare is not a function` on first render. Now type-checked + coerced with `String(...)` in the comparator.
+- **`:theme tokyoNight` and `:theme rosePine` failed** — `executeCommand` lowercased the entire trimmed input before dispatch, so the camelCase argument never matched the theme registry key. Now splits verb from argument and only lowercases the verb. Added `test/test-commands.test.ts` (+11 assertions) to pin the behavior.
+- **Number-key page jumps only worked from the home menu** — README claimed they worked from anywhere; `runtime-input.ts` had an `isHome()` guard that contradicted the docs. Guard removed.
+- **`init` scaffolder hardcoded `^1.6.0`** — generated `package.json` files pinned the framework two versions behind. Now reads the framework's own version dynamically by walking up to the nearest `package.json`.
+
+### Changed
+
+- **README repositioned as "Next.js for the terminal"** — added comparison table vs Ink/Pastel/Bubble Tea, hero recording, test-count badge.
+- Test count: 2,127 → 2,142 across 26 suites.
+
+### Notes
+
+- Memory: the build hosts a 2,400×1,500 GPU-encoded MP4 + 1,440×900 GIF + 1,600×1,000 social-share PNG under `assets/recordings/`. These are not shipped to npm consumers (not in the `files` array).
+
+---
+
 ## [1.7.0] - 2026-05-01
 
 Project-wide review pass. Two production-impacting bugs, multi-session SSH correctness, and a sweep of dead code from the 1.6.0 cleanup that didn't get fully removed.
