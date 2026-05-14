@@ -1,4 +1,4 @@
-# https://omarmusayev.github.io/terminaltui/
+# https://terminaltui.dev/
 
 User-agent: *
 Allow: /
@@ -64,4 +64,4 @@ Allow: /
 User-agent: YandexBot
 Allow: /
 
-Sitemap: https://omarmusayev.github.io/terminaltui/sitemap.xml
+Sitemap: https://terminaltui.dev/sitemap.xml
