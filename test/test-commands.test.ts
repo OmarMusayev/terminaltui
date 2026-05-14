@@ -32,6 +32,12 @@ function makeStubRuntime() {
     isServeMode: false,
     stop() { this.stopped = true; },
     render() { /* no-op */ },
+    setTheme(name: string): boolean {
+      const t = themes[name as keyof typeof themes];
+      if (!t) return false;
+      this.theme = t;
+      return true;
+    },
   };
   return stub;
 }

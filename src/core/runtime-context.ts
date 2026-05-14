@@ -20,6 +20,12 @@ export interface RuntimeRef {
   render(): void;
   navigateToPage(pageId: string, params?: Record<string, string>): void;
   apiBaseUrl?: string | null;
+  /**
+   * Switch the active theme. Returns true if the name resolved to a
+   * built-in theme and the swap was applied, false otherwise.
+   * Optional because legacy runtimes may not implement it.
+   */
+  setTheme?(name: string): boolean;
 }
 
 export const runtimeContext = new AsyncLocalStorage<RuntimeRef>();

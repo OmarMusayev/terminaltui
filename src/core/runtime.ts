@@ -306,6 +306,18 @@ export class TUIRuntime {
     setColorMode(prev);
   }
   /** @internal */ navigateToPage(pageId: string, params?: RouteParams): void { _navigateToPage(this as any, pageId, params); }
+  /**
+   * Swap the active theme. Used by both the `:theme` command and the
+   * public `setTheme()` helper that pages call from button onPress.
+   * Returns false if the name doesn't match a built-in theme.
+   */
+  setTheme(name: string): boolean {
+    const theme = themes[name as keyof typeof themes];
+    if (!theme) return false;
+    this.theme = theme;
+    this.render();
+    return true;
+  }
   /** @internal */ enterPage(): void { _enterPage(this as any); }
   /** @internal */ getCurrentPage(): PageConfig | undefined { return _getCurrentPage(this as any); }
   /** @internal */ getPageContent(page: PageConfig): ContentBlock[] | null { return _getPageContent(this as any, page); }

@@ -39,6 +39,7 @@ interface RT {
   screenSize: ScreenSize;
   isServeMode: boolean;
   render(): void;
+  setTheme(name: string): boolean;
 }
 
 /** Navigate to a page or route, with optional params and middleware. */
@@ -385,8 +386,7 @@ export function executeCommand(rt: RT, cmd: string): void {
   }
 
   if (verb === "theme") {
-    if (themes[arg as keyof typeof themes]) {
-      rt.theme = themes[arg as keyof typeof themes];
+    if (rt.setTheme(arg)) {
       showFeedback(rt, `Theme: ${arg}`);
     } else {
       showFeedback(rt, `Unknown theme: ${arg}`);

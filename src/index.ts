@@ -112,6 +112,7 @@ export type {
 
 // Theme
 export { themes, defaultTheme } from "./style/theme.js";
+export { setTheme } from "./style/set-theme.js";
 export type { Theme, BuiltinThemeName } from "./style/theme.js";
 
 // Color system
