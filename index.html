@@ -151,10 +151,11 @@
     { "@type": "HowToTool", "name": "npm or pnpm" }
   ],
   "step": [
-    { "@type": "HowToStep", "position": 1, "name": "Scaffold", "text": "Run npx terminaltui init my-site to scaffold a new project from a template.", "url": "https://terminaltui.dev/#start" },
-    { "@type": "HowToStep", "position": 2, "name": "Run", "text": "Run npx terminaltui dev to compile your project and run it live in the terminal.", "url": "https://terminaltui.dev/#start" },
-    { "@type": "HowToStep", "position": 3, "name": "Serve over SSH (optional)", "text": "Run terminaltui serve to host your TUI over SSH. Anyone can connect with ssh and see it rendered with no install on their side.", "url": "https://terminaltui.dev/#ssh" },
-    { "@type": "HowToStep", "position": 4, "name": "Publish", "text": "Run npm publish so anyone can run your app via npx your-site.", "url": "https://terminaltui.dev/#start" }
+    { "@type": "HowToStep", "position": 1, "name": "Try the tour",  "text": "Run npx terminaltui try to take a 5-page guided tour of the framework. No install required.", "url": "https://terminaltui.dev/#start" },
+    { "@type": "HowToStep", "position": 2, "name": "Scaffold",      "text": "Run npx terminaltui init my-site to scaffold a new project from a template.", "url": "https://terminaltui.dev/#start" },
+    { "@type": "HowToStep", "position": 3, "name": "Run",           "text": "Run npx terminaltui dev to compile your project and run it live in the terminal.", "url": "https://terminaltui.dev/#start" },
+    { "@type": "HowToStep", "position": 4, "name": "Serve over SSH (optional)", "text": "Run terminaltui serve to host your TUI over SSH. Anyone can connect with ssh and see it rendered with no install on their side.", "url": "https://terminaltui.dev/#ssh" },
+    { "@type": "HowToStep", "position": 5, "name": "Publish",       "text": "Run npm publish so anyone can run your app via npx your-site.", "url": "https://terminaltui.dev/#start" }
   ]
 }
 </script>
@@ -870,26 +871,31 @@
 <section id="start" class="sec">
   <div class="wrap">
     <h2>Get started.</h2>
-    <p class="intro">Four commands.</p>
+    <p class="intro">Five commands.</p>
 
     <div class="quick-grid">
       <div class="qstep">
         <div class="qstep-n">01</div>
+        <div class="qstep-cmd">npx terminaltui <span class="arg">try</span></div>
+        <div class="qstep-desc">Take a 5-page guided tour. No install.</div>
+      </div>
+      <div class="qstep">
+        <div class="qstep-n">02</div>
         <div class="qstep-cmd">npx terminaltui <span class="arg">init my-site</span></div>
         <div class="qstep-desc">Scaffold a new project from a template.</div>
       </div>
       <div class="qstep">
-        <div class="qstep-n">02</div>
+        <div class="qstep-n">03</div>
         <div class="qstep-cmd">npx terminaltui <span class="arg">dev</span></div>
         <div class="qstep-desc">Compile and run live in your terminal.</div>
       </div>
       <div class="qstep">
-        <div class="qstep-n">03</div>
+        <div class="qstep-n">04</div>
         <div class="qstep-cmd">terminaltui <span class="arg">serve</span></div>
         <div class="qstep-desc">Optional. Host over SSH.</div>
       </div>
       <div class="qstep">
-        <div class="qstep-n">04</div>
+        <div class="qstep-n">05</div>
         <div class="qstep-cmd">npm <span class="arg">publish</span></div>
         <div class="qstep-desc">Anyone can run <code style="font-family:var(--mono);color:var(--green)">npx your-site</code>.</div>
       </div>
