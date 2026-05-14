@@ -1,10 +1,12 @@
 # terminaltui
 
-![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2127-brightgreen)
+![npm](https://img.shields.io/npm/v/terminaltui) ![license](https://img.shields.io/github/license/OmarMusayev/terminaltui) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2142-brightgreen)
 
 > **Next.js for the terminal.** Write a `pages/` directory of TypeScript files. Get an interactive TUI with file-based routing, components, themes, and SSH hosting. Distribute it with `npx`.
 
-![terminaltui demo](assets/recordings/hero.gif)
+![terminaltui — 5-page tour rendered in a Synthwave-themed terminal: ANSI Shadow banner, navigable menu, components showcase, live theme switching, animated sparklines](assets/recordings/launch-hero.gif)
+
+*Try it yourself: `npx terminaltui try`*
 
 ## Quick Start
 
