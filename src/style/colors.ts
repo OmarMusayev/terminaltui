@@ -58,6 +58,15 @@ let colorMode: ColorMode = detectColorSupport();
 /** Sets the color output mode (truecolor, 256, 16, or none). */
 export function setColorMode(mode: ColorMode): void {
   colorMode = mode;
+  // Recompute the text-attribute live bindings so a runtime mode change
+  // (per-SSH-connection color, or a test forcing a mode) actually takes
+  // effect. They'd otherwise stay frozen to the mode detected at load.
+  reset = colorMode === "none" ? "" : "\x1b[0m";
+  bold = colorMode === "none" ? "" : "\x1b[1m";
+  dim = colorMode === "none" ? "" : "\x1b[2m";
+  italic = colorMode === "none" ? "" : "\x1b[3m";
+  underline = colorMode === "none" ? "" : "\x1b[4m";
+  inverse = colorMode === "none" ? "" : "\x1b[7m";
 }
 
 /** Returns the current color output mode. */
@@ -198,9 +207,11 @@ export function applyGradientToText(text: string, colors: string[]): string {
   return result + reset;
 }
 
-export const reset = colorMode === "none" ? "" : "\x1b[0m";
-export const bold = colorMode === "none" ? "" : "\x1b[1m";
-export const dim = colorMode === "none" ? "" : "\x1b[2m";
-export const italic = colorMode === "none" ? "" : "\x1b[3m";
-export const underline = colorMode === "none" ? "" : "\x1b[4m";
-export const inverse = colorMode === "none" ? "" : "\x1b[7m";
+// Exported as `let` (live bindings) so setColorMode() can update them at
+// runtime — see setColorMode above. Initialized from the load-time mode.
+export let reset = colorMode === "none" ? "" : "\x1b[0m";
+export let bold = colorMode === "none" ? "" : "\x1b[1m";
+export let dim = colorMode === "none" ? "" : "\x1b[2m";
+export let italic = colorMode === "none" ? "" : "\x1b[3m";
+export let underline = colorMode === "none" ? "" : "\x1b[4m";
+export let inverse = colorMode === "none" ? "" : "\x1b[7m";
