@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.8.2] - 2026-06-01
+
+Infrastructure and correctness release. Adds a CI pipeline and a publish guard, removes a self-referential dependency that bloated every install, and fixes a color bug where text attributes ignored runtime color-mode changes. CI caught that color bug on its first run — it passed locally but failed on bare-environment runners.
+
+### Fixed
+
+- **`bold`/`dim`/`italic`/`underline`/`inverse`/`reset` ignored `setColorMode()`** — they were evaluated once at module load from the ambient color mode, so any runtime mode change (notably per-SSH-connection color derived from the client's `TERM`) left them frozen to whatever was detected at import. They're now live bindings recomputed by `setColorMode()`.
+- **The package depended on itself** — `dependencies` listed `terminaltui`, so every install pulled a nested older copy of the package. Removed; runtime dependencies are now just `esbuild`, matching the README's "1 required dependency."
+- **`createPersistentState` test used a hardcoded `/tmp/` path** — now `os.tmpdir()`, so the suite runs on Windows.
+
+### Added
+
+- **CI pipeline** (`.github/workflows/ci.yml`) — typecheck + test + build across Ubuntu (node 18/20/22), macOS, and Windows, plus a production-dependency `npm audit`. The full suite (2,142 assertions) now runs on every push and pull request.
+- **`prepublishOnly` guard** — `typecheck && test && build` runs before publish, so a broken build can't ship.
+
+### Changed
+
+- Pinned `tsx` as a devDependency (tests no longer rely on `npx` auto-download).
+- Pinned `picomatch` to `^4.0.4` via `overrides` to clear a high-severity advisory in dev tooling.
+
+---
+
 ## [1.8.1] - 2026-05-14
 
 Hotfix for v1.8.0. `npx terminaltui try` crashed at startup with `Cannot find module '<pkg>/demos/src/index.js'` — the demos' relative framework imports (`../../src/index.js`) were externalized as literal strings, then resolved relative to the compiled `.mjs`'s location (one level deeper than the source), so the path landed inside `demos/` instead of the package root.
