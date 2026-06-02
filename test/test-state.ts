@@ -8,6 +8,8 @@ import { computed } from "../src/state/computed.js";
 import { dynamic } from "../src/state/dynamic.js";
 import { createPersistentState } from "../src/state/persistent.js";
 import { existsSync, unlinkSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 let passed = 0;
 let failed = 0;
@@ -206,7 +208,7 @@ console.log("\ndynamic:");
 
 console.log("\ncreatePersistentState:");
 
-const tmpPath = `/tmp/terminaltui-test-${Date.now()}.json`;
+const tmpPath = join(tmpdir(), `terminaltui-test-${Date.now()}.json`);
 
 // 1. Creates state with defaults
 {
