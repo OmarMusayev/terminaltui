@@ -14,6 +14,11 @@ import { renderButton } from "../src/components/Button.js";
 import { stripAnsi, type RenderContext } from "../src/components/base.js";
 import { defaultTheme } from "../src/style/theme.js";
 import { createInputState, type InputFieldState } from "../src/data/types.js";
+import { setColorMode } from "../src/style/colors.js";
+
+// Force a deterministic color mode so color assertions don't depend on the
+// ambient terminal — CI has no COLORTERM/TERM, which would detect as "none".
+setColorMode("256");
 
 // ─── Test Harness ─────────────────────────────────────────
 
