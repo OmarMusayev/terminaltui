@@ -9,7 +9,8 @@
     "test:emulator": "npx tsx test/test-emulator.ts",
     "build": "tsup src/index.ts src/cli/index.ts src/emulator/index.ts --format esm --dts --clean --external ssh2",
     "dev": "tsup src/index.ts --format esm --dts --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "keywords": [
     "tui",
@@ -79,6 +80,7 @@
     "@types/node": "^25.5.0",
     "@types/ssh2": "^1.15.0",
     "tsup": "^8.5.1",
+    "tsx": "^4.19.0",
     "typescript": "^5.9.3"
   },
   "optionalDependencies": {
@@ -93,7 +95,9 @@
     }
   },
   "dependencies": {
-    "esbuild": ">=0.17.0",
-    "terminaltui": "^1.8.0"
+    "esbuild": ">=0.17.0"
+  },
+  "overrides": {
+    "picomatch": "^4.0.4"
   }
 }

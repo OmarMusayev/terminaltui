@@ -1,6 +1,6 @@
 # terminaltui
 
-[![npm](https://img.shields.io/npm/v/terminaltui)](https://www.npmjs.com/package/terminaltui) [![license](https://img.shields.io/github/license/OmarMusayev/terminaltui)](LICENSE) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2142-brightgreen) [![website](https://img.shields.io/badge/website-terminaltui.dev-ff7edb)](https://terminaltui.dev)
+[![CI](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/terminaltui)](https://www.npmjs.com/package/terminaltui) [![license](https://img.shields.io/github/license/OmarMusayev/terminaltui)](LICENSE) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2142-brightgreen) [![website](https://img.shields.io/badge/website-terminaltui.dev-ff7edb)](https://terminaltui.dev)
 
 > **Next.js for the terminal.** Write a `pages/` directory of TypeScript files. Get an interactive TUI with file-based routing, components, themes, and SSH hosting. Distribute it with `npx`.
 
