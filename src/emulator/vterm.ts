@@ -10,6 +10,7 @@ import {
   emptyCell, hexToRgb, handleCSI as csiDispatch,
   type VTermState,
 } from "./vterm-parser.js";
+import { charWidth } from "../components/base.js";
 
 // Re-export parser utilities so existing deep imports still work
 export { emptyCell, cloneStyle, hexToRgb, handleSGR } from "./vterm-parser.js";
@@ -92,9 +93,17 @@ export class VirtualTerminal {
   /** Find first occurrence of a string on screen. */
   find(str: string): { row: number; col: number } | null {
     for (let r = 0; r < this._rows; r++) {
-      const line = this._buffer[r].map(c => c.char).join("");
+      // Map string indices back to buffer columns: wide-char continuation
+      // cells hold "" (0 units) and surrogate pairs hold 2 units per cell.
+      let line = "";
+      const colOf: number[] = [];
+      for (let c = 0; c < this._cols; c++) {
+        const chars = this._buffer[r][c].char;
+        for (let k = 0; k < chars.length; k++) colOf.push(c);
+        line += chars;
+      }
       const idx = line.indexOf(str);
-      if (idx >= 0) return { row: r, col: idx };
+      if (idx >= 0) return { row: r, col: colOf[idx] };
     }
     return null;
   }
@@ -169,8 +178,10 @@ export class VirtualTerminal {
   write(data: string): void {
     this._lastWriteTime = Date.now();
     for (let i = 0; i < data.length; i++) {
-      const ch = data[i];
-      const code = ch.charCodeAt(0);
+      // Iterate by code point so surrogate pairs (emoji) stay intact
+      const code = data.codePointAt(i)!;
+      const ch = code > 0xffff ? data.slice(i, i + 2) : data[i];
+      if (code > 0xffff) i++;
 
       switch (this._parseState) {
         case "ground":
@@ -305,11 +316,25 @@ export class VirtualTerminal {
   }
 
   private _putChar(ch: string): void {
-    if (this._cursorCol >= this._cols) {
+    const width = charWidth(ch.codePointAt(0) ?? 0);
+
+    if (width === 0) {
+      // Combining mark / variation selector — attach to the previous cell
+      const r = this._cursorRow;
+      let c = Math.min(this._cursorCol, this._cols) - 1;
+      if (c >= 0 && this._buffer[r][c].char === "") c--; // skip continuation
+      if (c >= 0) this._buffer[r][c].char += ch;
+      return;
+    }
+
+    if (this._cursorCol + width > this._cols) {
       this._cursorCol = 0;
       this._lineFeed();
     }
-    this._buffer[this._cursorRow][this._cursorCol] = {
+    const row = this._cursorRow;
+    const col = this._cursorCol;
+    this._repairWideAt(row, col);
+    this._buffer[row][col] = {
       char: ch,
       fg: this._style.fg,
       bg: this._style.bg,
@@ -319,7 +344,27 @@ export class VirtualTerminal {
       underline: this._style.underline,
       inverse: this._style.inverse,
     };
-    this._cursorCol++;
+    if (width === 2 && col + 1 < this._cols) {
+      // Continuation cell: char "" keeps text()/ansi() joins width-correct
+      this._repairWideAt(row, col + 1);
+      this._buffer[row][col + 1] = { ...this._buffer[row][col], char: "" };
+    }
+    this._cursorCol += width;
+  }
+
+  /**
+   * Before overwriting (row, col), blank the orphaned half of any wide
+   * char that spans this cell so the row never holds a dangling lead
+   * or continuation.
+   */
+  private _repairWideAt(row: number, col: number): void {
+    const cell = this._buffer[row][col];
+    if (cell.char === "") {
+      if (col > 0) this._buffer[row][col - 1] = { ...this._buffer[row][col - 1], char: " " };
+    } else if (charWidth(cell.char.codePointAt(0) ?? 0) === 2 &&
+               col + 1 < this._cols && this._buffer[row][col + 1].char === "") {
+      this._buffer[row][col + 1] = { ...this._buffer[row][col + 1], char: " " };
+    }
   }
 
   private _lineFeed(): void {

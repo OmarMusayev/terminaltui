@@ -2,6 +2,7 @@ import type { RenderContext } from "./base.js";
 import type { TextAreaBlock } from "../config/types.js";
 import { renderBox } from "./Box.js";
 import { stringWidth, wrapText } from "./base.js";
+import { snapToCodePoint } from "./text-cursor.js";
 import { fgColor, bold, dim, reset } from "../style/colors.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
@@ -35,16 +36,24 @@ export function renderTextArea(
 
   // Wrap each line to fit innerWidth
   const wrappedLines: string[] = [];
-  const lineMap: { origLine: number; origCol: number }[] = []; // map wrapped line idx -> original pos
+  // Map wrapped line idx -> original line + code-unit start offset within it.
+  // wrapText drops the separator space at each word-wrap boundary, so each
+  // chunk's true start offset must be recovered (indexOf is safe: chunks
+  // appear in order and the gaps between them are only dropped spaces).
+  const lineMap: { origLine: number; origCol: number }[] = [];
   for (let li = 0; li < textLines.length; li++) {
     if (textLines[li].length === 0) {
       wrappedLines.push("");
       lineMap.push({ origLine: li, origCol: 0 });
     } else {
       const wrapped = wrapText(textLines[li], innerWidth);
+      let searchFrom = 0;
       for (const wl of wrapped) {
+        const found = textLines[li].indexOf(wl, searchFrom);
+        const origCol = found >= 0 ? found : searchFrom;
         wrappedLines.push(wl);
-        lineMap.push({ origLine: li, origCol: 0 });
+        lineMap.push({ origLine: li, origCol });
+        searchFrom = origCol + wl.length;
       }
     }
   }
@@ -53,32 +62,30 @@ export function renderTextArea(
   let cursorWrappedLine = 0;
   let cursorWrappedCol = 0;
   if (isEditing) {
-    let pos = state.cursorPos;
+    const pos = snapToCodePoint(rawValue, Math.min(state.cursorPos, rawValue.length));
+    // Locate the original line containing the cursor
+    let lineStart = 0;
+    let cursorLine = 0;
     for (let li = 0; li < textLines.length; li++) {
-      if (pos <= textLines[li].length) {
-        // Cursor is in this line
-        // Find which wrapped line
-        let wrappedStart = 0;
-        for (let wi = 0; wi < wrappedLines.length; wi++) {
-          if (lineMap[wi].origLine === li) {
-            if (pos <= wrappedLines[wi].length) {
-              cursorWrappedLine = wi;
-              cursorWrappedCol = pos;
-              break;
-            }
-            pos -= wrappedLines[wi].length;
-            if (pos > 0 && wi + 1 < wrappedLines.length && lineMap[wi + 1]?.origLine === li) {
-              // Continues to next wrapped line
-              continue;
-            }
-            cursorWrappedLine = wi;
-            cursorWrappedCol = wrappedLines[wi].length;
-            break;
-          }
-        }
+      const lineEnd = lineStart + textLines[li].length;
+      if (pos <= lineEnd || li === textLines.length - 1) {
+        cursorLine = li;
         break;
       }
-      pos -= textLines[li].length + 1; // +1 for \n
+      lineStart = lineEnd + 1; // +1 for \n
+    }
+    const col = Math.min(pos - lineStart, textLines[cursorLine].length);
+
+    // Find which wrapped chunk of that line holds the cursor column
+    for (let wi = 0; wi < wrappedLines.length; wi++) {
+      if (lineMap[wi].origLine !== cursorLine) continue;
+      const chunkEnd = lineMap[wi].origCol + wrappedLines[wi].length;
+      const lastOfLine = wi + 1 >= wrappedLines.length || lineMap[wi + 1].origLine !== cursorLine;
+      if (col <= chunkEnd || lastOfLine) {
+        cursorWrappedLine = wi;
+        cursorWrappedCol = Math.max(0, Math.min(col - lineMap[wi].origCol, wrappedLines[wi].length));
+        break;
+      }
     }
   }
 
@@ -102,8 +109,10 @@ export function renderTextArea(
 
       // Show cursor on this line if editing
       if (isEditing && lineIdx === cursorWrappedLine) {
-        const before = lineText.substring(0, cursorWrappedCol);
-        const after = lineText.substring(cursorWrappedCol);
+        // Never split inside a surrogate pair when splicing in the cursor block
+        const col = snapToCodePoint(lineText, cursorWrappedCol);
+        const before = lineText.substring(0, col);
+        const after = lineText.substring(col);
         lineText = fgColor(theme.text) + before +
           fgColor(theme.accent) + "\u2588" + reset +
           fgColor(theme.text) + after + reset;

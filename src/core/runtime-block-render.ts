@@ -66,14 +66,19 @@ export function resolveDynamic(rt: RT, block: DynamicBlock): ContentBlock[] {
   const id = block._dynamicId ?? "";
   const cached = rt.dynamicCache.get(id);
   if (cached) return cached;
+  let blocks: ContentBlock[];
   try {
     const result = block.render();
-    const blocks = Array.isArray(result) ? result : [result];
-    if (id) rt.dynamicCache.set(id, blocks);
-    return blocks;
-  } catch {
-    return [];
+    blocks = Array.isArray(result) ? result : [result];
+  } catch (err) {
+    // Surface user render() errors instead of silently rendering nothing.
+    const msg = err instanceof Error ? err.message : String(err);
+    blocks = [{ type: "text", content: `[dynamic block error: ${msg}]`, style: "plain" }];
   }
+  // Errors are cached like normal results so a throwing render() re-evaluates
+  // on the next state change instead of re-throwing every frame.
+  if (id) rt.dynamicCache.set(id, blocks);
+  return blocks;
 }
 
 /** Invalidate dynamic cache so next render re-evaluates. */

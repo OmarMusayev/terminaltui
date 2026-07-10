@@ -1,6 +1,6 @@
 import type { RenderContext } from "./base.js";
 import { fgColor, italic, dim, bold, reset } from "../style/colors.js";
-import { wrapText, stringWidth } from "./base.js";
+import { wrapText, stringWidth, truncate } from "./base.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 
 export function renderQuote(text: string, ctx: RenderContext, options?: { attribution?: string; style?: "border" | "indent" | "fancy" }): string[] {
@@ -22,9 +22,7 @@ export function renderQuote(text: string, ctx: RenderContext, options?: { attrib
     if (options?.attribution) {
       let attrText = "\u2014 " + options.attribution;
       // Truncate attribution if it exceeds available width
-      if (stringWidth(attrText) > innerWidth) {
-        attrText = attrText.substring(0, innerWidth - 1) + "\u2026";
-      }
+      attrText = truncate(attrText, innerWidth);
       const leftPad = Math.max(0, innerWidth - stringWidth(attrText));
       lines.push(
         fgColor(theme.accent) + "  \u2502 " + reset +

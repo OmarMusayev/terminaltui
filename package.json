@@ -10,7 +10,9 @@
     "build": "tsup src/index.ts src/cli/index.ts src/emulator/index.ts --format esm --dts --clean --external ssh2",
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "lint:dist": "node -e \"const fs=require('fs');const bad=fs.readdirSync('dist',{recursive:true}).map(String).filter(f=>/ \\\\d+(\\\\.|$)/.test(f));if(bad.length){console.error('iCloud conflict copies in dist:',bad);process.exit(1)}\"",
+    "prepack": "npm run typecheck && npm run build && npm run lint:dist",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "tui",
@@ -43,21 +45,27 @@
   "description": "Framework for building interactive terminal websites and apps — 30+ components, grid system, spatial navigation, themes, ASCII art, file-based routing",
   "type": "module",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./emulator": {
       "types": "./dist/emulator/index.d.ts",
-      "import": "./dist/emulator/index.js"
-    }
+      "import": "./dist/emulator/index.js",
+      "default": "./dist/emulator/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "bin": {
     "terminaltui": "dist/cli/index.js"
   },
   "files": [
     "dist",
+    "!**/* [0-9]",
+    "!**/* [0-9].*",
     "claude/SKILL.md",
     "claude/prompt.md",
     "claude/examples",
@@ -95,7 +103,7 @@
     }
   },
   "dependencies": {
-    "esbuild": ">=0.17.0"
+    "esbuild": "^0.27.4"
   },
   "overrides": {
     "picomatch": "^4.0.4"

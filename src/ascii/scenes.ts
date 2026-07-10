@@ -4,6 +4,7 @@
  */
 
 import { registry } from "../art-registry/index.js";
+import { stringWidth } from "../components/base.js";
 import type { SceneData } from "../art-registry/types.js";
 import { sceneOcean, sceneSpace, sceneClouds } from "./scenes-nature.js";
 import {
@@ -80,7 +81,7 @@ function centerLines(lines: string[], width: number): string[] {
   // Center art within width. NEVER truncate — art renders at its natural size.
   // If art is wider than width, just return it as-is (no padding, no clipping).
   return lines.map((line) => {
-    const lineW = line.length;
+    const lineW = stringWidth(line);
     if (lineW >= width) return line;
     const pad = Math.floor((width - lineW) / 2);
     return " ".repeat(pad) + line;

@@ -11,6 +11,7 @@ import type {
   Site, SiteConfig, PageConfig, ContentBlock, DynamicBlock, FormBlock,
 } from "../config/types.js";
 import type { RouteParams } from "../router/types.js";
+import type { ErrorContext } from "../lifecycle/types.js";
 import { setNavigateHandler } from "../router/navigate.js";
 import { setRenderCallback } from "../state/reactive.js";
 import { loadEnv } from "../config/env-loader.js";
@@ -85,6 +86,7 @@ export class TUIRuntime {
   /** @internal */ _screen: Screen;
   /** @internal */ _input: InputManager;
   /** @internal */ _colorMode: ColorMode = "256";
+  /** @internal */ handlingError = false;
 
   constructor(site: Site, terminalIO?: TerminalIO) {
     this.site = site.config;
@@ -227,24 +229,38 @@ export class TUIRuntime {
     // Only attach process-level signal handlers for local terminal sessions.
     // SSH sessions are cleaned up by the SSH server on channel close.
     if (this.terminalIO instanceof ProcessTerminalIO) {
-      const cleanup = () => this.cleanup();
-      process.on("SIGINT", cleanup);
-      process.on("SIGTERM", cleanup);
+      // Restore the terminal, then actually exit: registering a handler
+      // cancels Node's default terminate-on-signal, so without process.exit
+      // any user-held handle (timers, sockets) would leave a zombie with the
+      // UI already torn down. Exit codes follow the 128+signum convention.
+      const onSignal = (signal: "SIGINT" | "SIGTERM") => {
+        try { this.cleanup(); } catch { /* keep exiting */ }
+        process.exit(signal === "SIGINT" ? 130 : 143);
+      };
+      process.once("SIGINT", () => onSignal("SIGINT"));
+      process.once("SIGTERM", () => onSignal("SIGTERM"));
       process.on("uncaughtException", (err) => { this.cleanup(); console.error(err); process.exit(1); });
     }
   }
 
   cleanup(): void {
     this._input.stop();
-    animationEngine.stop();
     this.asyncManager.cleanup();
     if (this.bootTimer) clearInterval(this.bootTimer);
     if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
     if (this.notificationTimer) clearInterval(this.notificationTimer);
     if (this.spinnerTimer) { clearTimeout(this.spinnerTimer); this.spinnerTimer = null; }
-    destroyAllFetchers();
-    if (this.apiServer) { this.apiServer.stop(); setApiBaseUrl(null); }
-    delete (globalThis as any).__terminaltui_render_callback__;
+    if (this.apiServer) this.apiServer.stop();
+    // Process-global singletons (animation engine, fetcher registry, api base
+    // URL slot, render-callback fallback) are shared by every SSH session in
+    // this process — only the runtime that owns the local terminal may tear
+    // them down, or one session's disconnect would break its siblings.
+    if (this.terminalIO instanceof ProcessTerminalIO) {
+      animationEngine.stop();
+      destroyAllFetchers();
+      if (this.apiServer) setApiBaseUrl(null);
+      delete (globalThis as any).__terminaltui_render_callback__;
+    }
     this.terminalIO.write("\x1b[?25h");
     this.terminalIO.write("\x1b[?1049l");
     this.terminalIO.write("\x1b[0m");
@@ -263,7 +279,8 @@ export class TUIRuntime {
       const msg = this.site.animations.exitMessage;
       const y = Math.floor(rows / 2);
       const x = Math.max(0, Math.floor((columns - stringWidth(msg)) / 2));
-      this.terminalIO.write(`\x1b[${y};${x}H`);
+      // ANSI CUP is 1-based; y/x are 0-based offsets
+      this.terminalIO.write(`\x1b[${y + 1};${x + 1}H`);
       this.terminalIO.write(fgColor(this.theme.accent) + bold + msg + reset);
       await new Promise(r => setTimeout(r, 800));
     }
@@ -293,19 +310,80 @@ export class TUIRuntime {
   // ─── Delegated methods ──────────────────────────────────
 
   private handleKey(key: KeyPress): void {
-    if (this.commandMode) { handleCommandMode(this as any, key); return; }
-    if (this.inputMode.isEditing) { this.handleEditMode(key); return; }
-    handleNavigationMode(this as any, key);
+    try {
+      if (this.commandMode) { handleCommandMode(this as any, key); return; }
+      if (this.inputMode.isEditing) { this.handleEditMode(key); return; }
+      handleNavigationMode(this as any, key);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      if (!this.site.onError) throw error;
+      this.invokeOnError(error, { page: this.getCurrentPage()?.id, params: this.currentParams, phase: "action" });
+    }
+  }
+
+  /**
+   * Invoke the site-level onError lifecycle hook. If it returns fallback
+   * blocks they are painted directly (renderMain may be the failing path);
+   * a throwing hook must never take the app down.
+   * @internal
+   */
+  invokeOnError(error: Error, context: ErrorContext): void {
+    const hook = this.site.onError;
+    if (!hook) throw error;
+    if (this.handlingError) {
+      console.error("[terminaltui] error while handling error:", error);
+      return;
+    }
+    this.handlingError = true;
+    try {
+      const fallback = hook(error, context);
+      if (Array.isArray(fallback)) {
+        const { columns } = this.screenSize;
+        const ctx: RenderContext = {
+          width: Math.max(20, Math.min(120, columns - 2)),
+          theme: this.theme,
+          borderStyle: this.borderStyle,
+        };
+        const lines = this.renderContentBlocks(fallback, ctx);
+        this.terminalIO.write("\x1b[2J\x1b[H");
+        this.terminalIO.write(lines.join("\r\n"));
+      } else if (context.phase === "render") {
+        // Can't re-render through the failing pipeline; show a plain message.
+        this.terminalIO.write("\x1b[2J\x1b[H");
+        this.terminalIO.write(`Error: ${error.message}`);
+      } else {
+        this.showFeedback(`Error: ${error.message}`);
+      }
+    } catch (hookErr) {
+      console.error("[terminaltui] onError hook failed:", hookErr, "\noriginal error:", error);
+    } finally {
+      this.handlingError = false;
+    }
   }
 
   /** @internal */ handleEditMode(key: KeyPress): void { handleEditMode(this as any, key); }
   /** @internal */ render(): void {
     const prev = getColorMode();
     setColorMode(this._colorMode);
-    renderMain(this as any);
-    setColorMode(prev);
+    try {
+      renderMain(this as any);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      if (!this.site.onError || this.handlingError) throw error;
+      this.invokeOnError(error, { page: this.getCurrentPage()?.id, params: this.currentParams, phase: "render" });
+    } finally {
+      setColorMode(prev);
+    }
   }
-  /** @internal */ navigateToPage(pageId: string, params?: RouteParams): void { _navigateToPage(this as any, pageId, params); }
+  /** @internal */ navigateToPage(pageId: string, params?: RouteParams): void {
+    try {
+      _navigateToPage(this as any, pageId, params);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      if (!this.site.onError) throw error;
+      this.invokeOnError(error, { page: pageId, params, phase: "render" });
+    }
+  }
   /**
    * Swap the active theme. Used by both the `:theme` command and the
    * public `setTheme()` helper that pages call from button onPress.

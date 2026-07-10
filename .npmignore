@@ -7,3 +7,8 @@ demos/*/node_modules/
 
 # Never ship this — it's a separate npm package living alongside ours
 demos/mac-monitor/
+
+# iCloud Drive conflict copies (e.g. "index 2.js") re-materialize in dist/
+* [0-9]
+* [0-9].*
+* [0-9] [0-9]*

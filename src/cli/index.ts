@@ -7,6 +7,41 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "
 const args = process.argv.slice(2);
 const command = args[0];
 
+/**
+ * Best-effort terminal restore for errors that surface after the runtime
+ * entered alt-screen/raw mode. A startup crash (e.g. a throw inside the
+ * user's config during the first render) rejects runtime.start(), so the
+ * runtime's own cleanup never runs — without this the shell is left in the
+ * alternate buffer with a hidden cursor. Safe to call when nothing was set
+ * up: showing the cursor / leaving the alt screen are no-ops then.
+ */
+function restoreTerminal(): void {
+  const stdin = process.stdin;
+  try {
+    if (stdin.isTTY && stdin.isRaw) stdin.setRawMode(false);
+  } catch { /* stdin may already be closed */ }
+  if (process.stdout.isTTY) {
+    process.stdout.write("\x1b[?25h\x1b[?1049l\x1b[0m");
+  }
+}
+
+/**
+ * Restore the terminal, then print the error message followed by its dimmed
+ * stack frames — user-config failures need file:line to be actionable.
+ */
+function printCliError(prefix: string, err: any): void {
+  restoreTerminal();
+  const message = err instanceof Error ? err.message : String(err);
+  console.error(`${prefix}: ${message}`);
+  if (err instanceof Error && err.stack) {
+    // Slice from the first "at ..." frame — messages can span multiple lines.
+    const firstFrame = err.stack.search(/^\s+at /m);
+    if (firstFrame !== -1) {
+      console.error(`\x1b[2m${err.stack.slice(firstFrame)}\x1b[0m`);
+    }
+  }
+}
+
 async function main() {
   switch (command) {
     case "dev":
@@ -89,7 +124,7 @@ async function runDev() {
     const { buildAndRun } = await import("./dev.js");
     await buildAndRun(configPath);
   } catch (err: any) {
-    console.error("Error starting dev server:", err.message);
+    printCliError("Error starting dev server", err);
     process.exit(1);
   }
 }
@@ -119,7 +154,7 @@ async function runBuild() {
     const { buildProject } = await import("./build.js");
     await buildProject(configPath);
   } catch (err: any) {
-    console.error("Build error:", err.message);
+    printCliError("Build error", err);
     process.exit(1);
   }
 }
@@ -141,7 +176,7 @@ async function runTestCommand() {
     const { runTest } = await import("./test.js");
     await runTest({ configPath, cols, sizes, verbose });
   } catch (err: any) {
-    console.error("Test error:", err.message);
+    printCliError("Test error", err);
     process.exit(1);
   }
 }
@@ -214,7 +249,7 @@ async function runDemo(name?: string) {
     const { buildAndRun } = await import("./dev.js");
     await buildAndRun(srcPath);
   } catch (err: any) {
-    console.error("Error running demo:", err.message);
+    printCliError("Error running demo", err);
     process.exit(1);
   }
 }
@@ -258,7 +293,7 @@ async function runValidate() {
       process.exit(hasErrors ? 1 : 0);
     }
   } catch (err: any) {
-    console.error("Validation error:", err.message);
+    printCliError("Validation error", err);
     process.exit(1);
   }
 }
@@ -268,7 +303,7 @@ async function runServeCommand() {
     const { runServe } = await import("./serve.js");
     await runServe(args);
   } catch (err: any) {
-    console.error("Serve error:", err.message);
+    printCliError("Serve error", err);
     process.exit(1);
   }
 }
@@ -403,6 +438,6 @@ function printVersion() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  printCliError("Error", err);
   process.exit(1);
 });

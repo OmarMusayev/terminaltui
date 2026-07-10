@@ -90,6 +90,31 @@ const suites = allFiles.filter(shouldRun).map(file => ({
   file,
 }));
 
+/**
+ * Extract pass/fail counts from a suite's output. Tries the three summary
+ * formats used across suites; `glyphFallback` additionally counts per-test
+ * ✔/PASS/✓ marks (success path only — noisy on crash output).
+ */
+function parseCounts(output: string, glyphFallback: boolean): { passed: number; failed: number } {
+  const totalMatch = output.match(/Total:\s*(\d+)\s*Passed:\s*(\d+)\s*Failed:\s*(\d+)/i);
+  if (totalMatch) return { passed: parseInt(totalMatch[2]), failed: parseInt(totalMatch[3]) };
+
+  const summaryMatch = output.match(/(\d+)\s+passed.*?(\d+)\s+failed/i);
+  if (summaryMatch) return { passed: parseInt(summaryMatch[1]), failed: parseInt(summaryMatch[2]) };
+
+  // /s so multi-line "Passed: N\nFailed: M" summaries (test-data-config) match.
+  const summaryMatch2 = output.match(/Passed:\s*(\d+).*?Failed:\s*(\d+)/is);
+  if (summaryMatch2) return { passed: parseInt(summaryMatch2[1]), failed: parseInt(summaryMatch2[2]) };
+
+  if (glyphFallback) {
+    return {
+      passed: (output.match(/✔|PASS|✓/g) ?? []).length,
+      failed: (output.match(/✘|FAIL|✗/g) ?? []).length,
+    };
+  }
+  return { passed: 0, failed: 0 };
+}
+
 const results: SuiteResult[] = [];
 let totalPassed = 0;
 let totalFailed = 0;
@@ -101,33 +126,27 @@ for (const suite of suites) {
   const start = Date.now();
   process.stdout.write(`  ${suite.name}...`);
 
+  // PTY-driven demo suites boot real apps repeatedly; demo-all alone takes
+  // ~2 minutes, so give demo suites far more headroom than unit suites.
+  const isDemoSuite = /(^|\/)demo-.*\.test\.ts$/.test(suite.file);
+
   try {
     const output = execSync(`npx tsx ${suite.file}`, {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
-      timeout: 120000,
+      timeout: isDemoSuite ? 600000 : 120000,
     });
 
     const duration = Date.now() - start;
-    let passed = 0;
-    let failed = 0;
+    const { passed, failed } = parseCounts(output, true);
 
-    const totalMatch = output.match(/Total:\s*(\d+)\s*Passed:\s*(\d+)\s*Failed:\s*(\d+)/i);
-    const summaryMatch = output.match(/(\d+)\s+passed.*?(\d+)\s+failed/i);
-    const summaryMatch2 = output.match(/Passed:\s*(\d+).*?Failed:\s*(\d+)/i);
-
-    if (totalMatch) {
-      passed = parseInt(totalMatch[2]);
-      failed = parseInt(totalMatch[3]);
-    } else if (summaryMatch) {
-      passed = parseInt(summaryMatch[1]);
-      failed = parseInt(summaryMatch[2]);
-    } else if (summaryMatch2) {
-      passed = parseInt(summaryMatch2[1]);
-      failed = parseInt(summaryMatch2[2]);
-    } else {
-      passed = (output.match(/✔|PASS|✓/g) ?? []).length;
-      failed = (output.match(/✘|FAIL|✗/g) ?? []).length;
+    // A suite that exits 0 but yields zero parseable results is a runner
+    // blind spot (early return, unawaited main, summary drift) — fail loudly.
+    if (passed === 0 && failed === 0) {
+      totalFailed++;
+      results.push({ name: suite.name, passed: 0, failed: 1, duration });
+      console.log(` \x1b[31mNO TESTS DETECTED\x1b[0m (${duration}ms)`);
+      continue;
     }
 
     totalPassed += passed;
@@ -147,17 +166,7 @@ for (const suite of suites) {
     // Try to extract pass/fail counts from the output even though the process
     // exited non-zero. Suites that ran most of their assertions but had a few
     // failures should report the real numbers, not be flattened to "FAILED".
-    let passed = 0;
-    let failed = 0;
-    const totalMatch = output.match(/Total:\s*(\d+)\s*Passed:\s*(\d+)\s*Failed:\s*(\d+)/i);
-    const summaryMatch = output.match(/(\d+)\s+passed.*?(\d+)\s+failed/i);
-    if (totalMatch) {
-      passed = parseInt(totalMatch[2]);
-      failed = parseInt(totalMatch[3]);
-    } else if (summaryMatch) {
-      passed = parseInt(summaryMatch[1]);
-      failed = parseInt(summaryMatch[2]);
-    }
+    const { passed, failed } = parseCounts(output, false);
 
     if (passed === 0 && failed === 0) {
       // Suite crashed before printing a summary — count as a single failure.

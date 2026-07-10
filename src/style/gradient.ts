@@ -1,4 +1,5 @@
 import { createGradient, fgColor, reset } from "./colors.js";
+import { stringWidth, charWidth } from "../components/base.js";
 
 export function gradientText(text: string, colors: string[]): string {
   if (colors.length === 0) return text;
@@ -35,15 +36,16 @@ export function gradientLines(lines: string[], colors: string[]): string[] {
   // but ONLY applied to non-space characters. Spaces get a reset so
   // the terminal background shows through — this preserves letter forms
   // when the font uses solid block characters like █.
-  const maxLen = Math.max(...lines.map(l => l.length), 2);
+  const maxLen = Math.max(...lines.map(l => stringWidth(l)), 2);
   const gradientColors = createGradient(colors, maxLen);
 
   return lines.map(line => {
     let result = "";
     let inColor = false;
+    let col = 0; // display column, so wide chars advance the gradient correctly
 
-    for (let i = 0; i < line.length; i++) {
-      if (line[i] === " ") {
+    for (const ch of line) {
+      if (ch === " ") {
         // Reset before spaces so no color bleeds into the gap
         if (inColor) {
           result += reset;
@@ -51,9 +53,10 @@ export function gradientLines(lines: string[], colors: string[]): string[] {
         }
         result += " ";
       } else {
-        result += fgColor(gradientColors[i]) + line[i];
+        result += fgColor(gradientColors[Math.min(col, maxLen - 1)]) + ch;
         inColor = true;
       }
+      col += charWidth(ch.codePointAt(0) ?? 0);
     }
 
     return result + reset;

@@ -22,8 +22,8 @@ export function renderMenu(items: MenuItem[], selectedIndex: number, ctx: Render
     const numSuffix = ` [${number}]`;
 
     if (isSelected) {
-      // Format: "  ❯ icon label [n]" => prefix "  ❯ icon " = 2+1+1+1+1 = 6 + icon is 1 char + space = ~8
-      const prefixLen = 2 + 1 + 1 + 1 + 1 + 1; // "  ❯ icon " = 7 visible chars
+      // Format: "  ❯ icon label [n]" => prefix "  ❯ icon " = 6 cells + icon width
+      const prefixLen = 6 + stringWidth(icon);
       const availForLabel = Math.max(1, dims.content - prefixLen - stringWidth(numSuffix));
       const truncatedLabel = truncate(item.label, availForLabel);
       const cursor = fgColor(theme.accent) + "\u276f" + reset;
@@ -32,8 +32,8 @@ export function renderMenu(items: MenuItem[], selectedIndex: number, ctx: Render
       const num = fgColor(theme.muted) + dim + numSuffix + reset;
       lines.push(`  ${cursor}${iconStr}${label}${num}`);
     } else {
-      // Format: "     icon label [n]" => prefix "     icon " = 5 + 1 + 1 = 7 visible chars
-      const prefixLen = 5 + 1 + 1; // "     icon " = 7 visible chars
+      // Format: "     icon label [n]" => prefix "     icon " = 6 cells + icon width
+      const prefixLen = 6 + stringWidth(icon);
       const availForLabel = Math.max(1, dims.content - prefixLen - stringWidth(numSuffix));
       const truncatedLabel = truncate(item.label, availForLabel);
       const iconStr = fgColor(theme.muted) + `   ${icon} ` + reset;

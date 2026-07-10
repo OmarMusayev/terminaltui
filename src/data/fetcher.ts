@@ -5,6 +5,13 @@ import { currentRuntime } from "../core/runtime-context.js";
 export interface FetcherOptions<T = any> {
   url?: string;
   fetch?: () => Promise<T>;
+  /**
+   * Stable identity for this fetcher. Recommended when using a custom `fetch`
+   * function: fetchers are reused across renders by key, and without one the
+   * key is derived from the fetch function's source text — closures with
+   * identical source (e.g. created in a loop) would collide.
+   */
+  key?: string;
   method?: string;
   headers?: Record<string, string>;
   body?: any;
@@ -45,11 +52,17 @@ function getRegistry(): Map<string, FetcherResult<any>> {
 
 /** Build a stable cache key for a fetcher's options. */
 function buildKey(options: FetcherOptions): string {
+  if (options.key) {
+    return `key:${options.key}`;
+  }
   if (options.url) {
     return `${options.method ?? "GET"}:${options.url}`;
   }
-  // Custom fetch functions can't be meaningfully keyed — give each a unique id
-  return "custom-" + Math.random().toString(36).slice(2);
+  // Custom fetch functions: key by source text so the fetcher created on one
+  // render is reused on the next (inline arrows get a fresh identity per
+  // render, so the function reference itself can't be the key). A random key
+  // here would leak a new instance + refresh timer on every render.
+  return "custom:" + (options.fetch?.toString() ?? "none");
 }
 
 /** Destroy all registered fetchers. Called by the runtime on shutdown. */

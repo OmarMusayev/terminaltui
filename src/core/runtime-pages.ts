@@ -113,6 +113,13 @@ export function enterPage(rt: RT): void {
   rt.inputMode.reset();
   rt.formRegistry.clear();
 
+  // Stop refresh timers from previously-visited pages — a stale timer would
+  // keep fetching in the background and clobber this page's focus state.
+  // The current page's timer (if any) is re-created by loadAsyncPageContent.
+  for (const p of rt.site.pages) {
+    rt.asyncManager.clearRefresh(`page-${p.id}`);
+  }
+
   const currentPage = getCurrentPage(rt);
   if (!currentPage) return;
 
@@ -147,6 +154,12 @@ function loadAsyncPageContent(rt: RT, page: PageConfig): void {
       const state = rt.asyncManager.getState(key);
       if (state?.status === "loaded" && state.content) {
         rt.resolvedPageContent.set(page.id, state.content);
+      }
+      // A refresh can complete just after navigating away (in-flight load
+      // resolving after the timer was cleared). Keep the data fresh above,
+      // but never touch focus/form state or repaint for a non-current page.
+      if (rt.router.currentPage !== page.id) return;
+      if (state?.status === "loaded" && state.content) {
         const oldIndex = rt.pageFocusIndex;
         rt.pageFocusItems = collectFocusItems(rt, state.content);
         rt.pageFocusIndex = Math.min(oldIndex, Math.max(0, rt.pageFocusItems.length - 1));

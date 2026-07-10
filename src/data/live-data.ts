@@ -120,6 +120,11 @@ function createSSEConnection(options: SSEOptions): LiveDataConnection {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      // Event state must persist across read() chunks — a single SSE event
+      // routinely spans multiple TCP segments.
+      let eventType = "message";
+      let eventData = "";
+      let lastEventId = "";
 
       while (!_closed) {
         const { done, value } = await reader.read();
@@ -129,11 +134,9 @@ function createSSEConnection(options: SSEOptions): LiveDataConnection {
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
 
-        let eventType = "message";
-        let eventData = "";
-        let lastEventId = "";
-
-        for (const line of lines) {
+        for (const rawLine of lines) {
+          // SSE spec permits CRLF line endings — strip the trailing \r
+          const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
           if (line.startsWith("event:")) {
             eventType = line.slice(6).trim();
           } else if (line.startsWith("data:")) {

@@ -30,6 +30,7 @@ export class SSHServer {
   private sessionCounter = 0;
   private options: Required<Pick<ServeOptions, "port" | "hostKeyPath" | "maxConnections">> & Pick<ServeOptions, "auth">;
   private createRuntime: (terminalIO: TerminalIO) => Promise<any>;
+  private crashGuard: ((err: unknown) => void) | null = null;
 
   constructor(options: ServeOptions, createRuntime: (terminalIO: TerminalIO) => Promise<any>) {
     this.options = {
@@ -44,7 +45,7 @@ export class SSHServer {
   async start(): Promise<void> {
     let SSH2Server: any;
     try {
-      const ssh2 = await import("ssh2");
+      const ssh2 = await import(/* webpackIgnore: true */ "ssh2" as string);
       SSH2Server = ssh2.Server ?? ssh2.default?.Server;
       if (!SSH2Server) throw new Error("Server class not found");
     } catch (e: any) {
@@ -76,6 +77,21 @@ export class SSHServer {
     this.server.on("error", (err: Error) => {
       console.error("[terminaltui serve] Server error:", err.message);
     });
+
+    // Last-resort guard: a throw that escapes per-session isolation would kill
+    // the process with every client stuck in alt-screen. Restore all terminals,
+    // then exit non-zero — never swallow the error. Installed only while
+    // serving (removed in stop()) so library users keep default crash semantics.
+    this.crashGuard = (err: unknown) => {
+      const detail = err instanceof Error ? err.stack ?? err.message : String(err);
+      console.error("[terminaltui serve] Fatal error:", detail);
+      try {
+        this.stop();
+      } catch { /* ignore — exiting anyway */ }
+      process.exit(1);
+    };
+    process.on("uncaughtException", this.crashGuard);
+    process.on("unhandledRejection", this.crashGuard);
   }
 
   stop(): void {
@@ -91,6 +107,12 @@ export class SSHServer {
     if (this.server) {
       this.server.close();
       this.server = null;
+    }
+
+    if (this.crashGuard) {
+      process.removeListener("uncaughtException", this.crashGuard);
+      process.removeListener("unhandledRejection", this.crashGuard);
+      this.crashGuard = null;
     }
   }
 
@@ -132,6 +154,9 @@ export class SSHServer {
 
   private handleClient(client: any, info: any): void {
     const clientIp = info?.ip || "unknown";
+    // Sessions opened by THIS connection. Cleanup must be per-connection, not
+    // per-IP: multiple clients can share an IP (NAT, or two local terminals).
+    const clientSessionIds = new Set<string>();
 
     if (this.sessions.size >= this.options.maxConnections) {
       console.log(`  \x1b[33m\u2717\x1b[0m Rejected ${clientIp} (max connections reached)`);
@@ -163,6 +188,7 @@ export class SSHServer {
 
     client.on("ready", () => {
       const sessionId = `session-${++this.sessionCounter}`;
+      clientSessionIds.add(sessionId);
       console.log(`  \x1b[32m\u2713\x1b[0m Connected: ${clientIp} [${sessionId}] (${this.sessions.size + 1} active)`);
 
       client.on("session", (accept: any) => {
@@ -194,7 +220,10 @@ export class SSHServer {
     });
 
     client.on("end", () => {
-      this.cleanupClientSessions(clientIp);
+      for (const id of clientSessionIds) {
+        this.endSession(id);
+      }
+      clientSessionIds.clear();
     });
 
     client.on("error", (err: Error) => {
@@ -207,6 +236,10 @@ export class SSHServer {
 
   private async startSession(sessionId: string, clientIp: string, channel: any, ptyInfo: { cols: number; rows: number; term: string }): Promise<void> {
     const terminalIO = new SSHTerminalIO(channel, ptyInfo.cols, ptyInfo.rows, ptyInfo.term);
+    terminalIO.inputErrorHandler = (err: any) => {
+      console.error(`  \x1b[31m\u2717\x1b[0m Session ${sessionId} crashed: ${err?.stack ?? err?.message ?? err}`);
+      this.endSession(sessionId, "\r\nApplication error — session closed.\r\n");
+    };
 
     const session: Session = {
       id: sessionId,
@@ -239,7 +272,7 @@ export class SSHServer {
     }
   }
 
-  private endSession(sessionId: string): void {
+  private endSession(sessionId: string, message?: string): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
@@ -249,17 +282,15 @@ export class SSHServer {
     try {
       session.runtime?.cleanup?.();
     } catch { /* ignore */ }
+    if (message) {
+      // After cleanup (alt-screen exited) but before the channel closes.
+      try {
+        session.terminalIO.write(message);
+      } catch { /* ignore */ }
+    }
     try {
       session.terminalIO.dispose();
     } catch { /* ignore */ }
-  }
-
-  private cleanupClientSessions(clientIp: string): void {
-    for (const [id, session] of this.sessions) {
-      if (session.clientIp === clientIp) {
-        this.endSession(id);
-      }
-    }
   }
 }
 
@@ -274,6 +305,8 @@ class SSHTerminalIO implements TerminalIO {
   private dataCallbacks: Array<(data: string) => void> = [];
   private disposed = false;
   readonly termType: string;
+  /** Invoked when a data callback throws synchronously; set by SSHServer. */
+  inputErrorHandler: ((err: unknown) => void) | null = null;
 
   constructor(channel: any, cols: number, rows: number, term: string) {
     this.channel = channel;
@@ -285,7 +318,18 @@ class SSHTerminalIO implements TerminalIO {
     channel.on("data", (data: Buffer) => {
       if (this.disposed) return;
       const str = data.toString("utf-8");
-      for (const cb of this.dataCallbacks) cb(str);
+      try {
+        for (const cb of this.dataCallbacks) cb(str);
+      } catch (err) {
+        // A synchronous throw in user code (keypress handler, render) would
+        // otherwise escape the ssh2 event loop as an uncaughtException and
+        // kill the whole server. Contain it to this session.
+        if (this.inputErrorHandler) {
+          this.inputErrorHandler(err);
+        } else {
+          throw err;
+        }
+      }
     });
   }
 

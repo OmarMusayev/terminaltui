@@ -27,28 +27,8 @@ for (const [fontName] of Object.entries(fonts)) {
     test(`${fontName} "${text}" — columns align`, () => {
       const lines = renderBanner(text, { font: fontName });
       const nonEmpty = lines.filter(l => l.length > 0);
-      if (nonEmpty.length === 0) return; // some texts may fallback
-
-      // Check each character's column position is consistent.
-      // Render each character individually to get its per-row width.
-      const charWidths: number[][] = [];
-      for (const ch of text.toUpperCase()) {
-        const charLines = renderBanner(ch, { font: fontName });
-        charWidths.push(charLines.map(l => l.length));
-      }
-
-      // For each row, the cumulative width should match
-      // We can't check exact positions because of the padding fix,
-      // but we CAN verify the total line width is consistent
-      // by checking that each character contributes the same padded width
-      for (let ci = 0; ci < charWidths.length; ci++) {
-        const cw = charWidths[ci];
-        const maxCharW = Math.max(0, ...cw);
-        for (let row = 0; row < cw.length; row++) {
-          // After the fix, each row of a character should be padded to maxCharW
-          // The rendered banner concatenates padded chars, so the overall width
-          // should be sum of max char widths.
-        }
+      if (nonEmpty.length === 0) {
+        throw new Error(`renderBanner produced no output for ${fontName}/"${text}"`);
       }
 
       // The real alignment test: render "A" alone and "AB" together.
@@ -64,7 +44,9 @@ for (const [fontName] of Object.entries(fonts)) {
         // Use all rows (padded to font height) for comparison, not filtered
         if (first.length > 0 && firstTwo.length > 0) {
           const firstMaxW = Math.max(0, ...first.map(l => l.length));
-          if (firstMaxW === 0) return; // font doesn't have this char
+          if (firstMaxW === 0) {
+            throw new Error(`renderBanner produced blank rows for ${fontName}/"${text[0]}"`);
+          }
           const minLen = Math.min(first.length, firstTwo.length);
           for (let r = 0; r < minLen; r++) {
             const aRow = first[r] + " ".repeat(Math.max(0, firstMaxW - first[r].length));

@@ -8,6 +8,10 @@ import type {
 } from "../config/types.js";
 import type { KeyPress } from "./input.js";
 import { filterSearchItems } from "../components/SearchInput.js";
+import {
+  snapToCodePoint, prevCursorPos, nextCursorPos,
+  codePointLength, isPrintableChar,
+} from "../components/text-cursor.js";
 
 interface RT {
   inputMode: any;
@@ -20,7 +24,7 @@ interface RT {
 export function handleTextInputKey(rt: RT, block: TextInputBlock, key: KeyPress): void {
   const state = rt.getInputState(block.id, block.defaultValue ?? "");
   let value = state.value as string;
-  let cursor = state.cursorPos;
+  let cursor = snapToCodePoint(value, Math.min(state.cursorPos, value.length));
 
   if (key.name === "escape") {
     rt.validateInput(block);
@@ -48,31 +52,33 @@ export function handleTextInputKey(rt: RT, block: TextInputBlock, key: KeyPress)
 
   if (key.name === "backspace") {
     if (cursor > 0) {
-      value = value.substring(0, cursor - 1) + value.substring(cursor);
-      cursor--;
+      const prev = prevCursorPos(value, cursor);
+      value = value.substring(0, prev) + value.substring(cursor);
+      cursor = prev;
     }
   } else if (key.name === "delete") {
     if (cursor < value.length) {
-      value = value.substring(0, cursor) + value.substring(cursor + 1);
+      value = value.substring(0, cursor) + value.substring(nextCursorPos(value, cursor));
     }
   } else if (key.name === "left") {
-    if (cursor > 0) cursor--;
+    cursor = prevCursorPos(value, cursor);
   } else if (key.name === "right") {
-    if (cursor < value.length) cursor++;
+    cursor = nextCursorPos(value, cursor);
   } else if (key.name === "home") {
     cursor = 0;
   } else if (key.name === "end") {
     cursor = value.length;
-  } else if (key.char && key.char.length === 1 && !key.ctrl && key.name !== "tab") {
-    if (!block.maxLength || value.length < block.maxLength) {
+  } else if (key.char && isPrintableChar(key.char) && !key.ctrl && key.name !== "tab") {
+    // key.char may be a full surrogate pair — insert it whole
+    if (!block.maxLength || codePointLength(value) < block.maxLength) {
       value = value.substring(0, cursor) + key.char + value.substring(cursor);
-      cursor++;
+      cursor += key.char.length;
     }
   }
 
   if (block.transform) {
     value = block.transform(value);
-    cursor = Math.min(cursor, value.length);
+    cursor = snapToCodePoint(value, Math.min(cursor, value.length));
   }
 
   const changed = state.value !== value;
@@ -85,7 +91,7 @@ export function handleTextInputKey(rt: RT, block: TextInputBlock, key: KeyPress)
 export function handleTextAreaKey(rt: RT, block: TextAreaBlock, key: KeyPress): void {
   const state = rt.getInputState(block.id, block.defaultValue ?? "");
   let value = state.value as string;
-  let cursor = state.cursorPos;
+  let cursor = snapToCodePoint(value, Math.min(state.cursorPos, value.length));
 
   if (key.name === "escape") {
     rt.validateInput(block);
@@ -94,23 +100,24 @@ export function handleTextAreaKey(rt: RT, block: TextAreaBlock, key: KeyPress): 
   }
 
   if (key.name === "return") {
-    if (!block.maxLength || value.length < block.maxLength) {
+    if (!block.maxLength || codePointLength(value) < block.maxLength) {
       value = value.substring(0, cursor) + "\n" + value.substring(cursor);
       cursor++;
     }
   } else if (key.name === "backspace") {
     if (cursor > 0) {
-      value = value.substring(0, cursor - 1) + value.substring(cursor);
-      cursor--;
+      const prev = prevCursorPos(value, cursor);
+      value = value.substring(0, prev) + value.substring(cursor);
+      cursor = prev;
     }
   } else if (key.name === "delete") {
     if (cursor < value.length) {
-      value = value.substring(0, cursor) + value.substring(cursor + 1);
+      value = value.substring(0, cursor) + value.substring(nextCursorPos(value, cursor));
     }
   } else if (key.name === "left") {
-    if (cursor > 0) cursor--;
+    cursor = prevCursorPos(value, cursor);
   } else if (key.name === "right") {
-    if (cursor < value.length) cursor++;
+    cursor = nextCursorPos(value, cursor);
   } else if (key.name === "up") {
     const lines = value.substring(0, cursor).split("\n");
     if (lines.length > 1) {
@@ -140,16 +147,18 @@ export function handleTextAreaKey(rt: RT, block: TextAreaBlock, key: KeyPress): 
     const after = value.substring(cursor);
     const lineEnd = after.indexOf("\n");
     cursor = lineEnd >= 0 ? cursor + lineEnd : value.length;
-  } else if (key.char && key.char.length === 1 && !key.ctrl && key.name !== "tab") {
-    if (!block.maxLength || value.length < block.maxLength) {
+  } else if (key.char && isPrintableChar(key.char) && !key.ctrl && key.name !== "tab") {
+    // key.char may be a full surrogate pair — insert it whole
+    if (!block.maxLength || codePointLength(value) < block.maxLength) {
       value = value.substring(0, cursor) + key.char + value.substring(cursor);
-      cursor++;
+      cursor += key.char.length;
     }
   }
 
   const changed = state.value !== value;
   state.value = value;
-  state.cursorPos = cursor;
+  // Up/down column math counts code units, so snap in case it landed mid-pair
+  state.cursorPos = snapToCodePoint(value, cursor);
   state.error = null;
   if (changed && block.onChange) block.onChange(value);
 }
@@ -218,7 +227,7 @@ export function handleNumberInputKey(rt: RT, block: NumberInputBlock, key: KeyPr
 export function handleSearchInputKey(rt: RT, block: SearchInputBlock, key: KeyPress): { action?: "search"; selected?: { label: string; value: string } } {
   const state = rt.getInputState(block.id, "");
   let query = state.value as string;
-  let cursor = state.cursorPos;
+  let cursor = snapToCodePoint(query, Math.min(state.cursorPos, query.length));
 
   if (key.name === "escape") { rt.inputMode.exitEdit(); return {}; }
   if (key.name === "return") {
@@ -241,14 +250,19 @@ export function handleSearchInputKey(rt: RT, block: SearchInputBlock, key: KeyPr
   }
 
   if (key.name === "backspace") {
-    if (cursor > 0) { query = query.substring(0, cursor - 1) + query.substring(cursor); cursor--; }
+    if (cursor > 0) {
+      const prev = prevCursorPos(query, cursor);
+      query = query.substring(0, prev) + query.substring(cursor);
+      cursor = prev;
+    }
   } else if (key.name === "left") {
-    if (cursor > 0) cursor--;
+    cursor = prevCursorPos(query, cursor);
   } else if (key.name === "right") {
-    if (cursor < query.length) cursor++;
-  } else if (key.char && key.char.length === 1 && !key.ctrl && key.name !== "tab") {
+    cursor = nextCursorPos(query, cursor);
+  } else if (key.char && isPrintableChar(key.char) && !key.ctrl && key.name !== "tab") {
+    // key.char may be a full surrogate pair — insert it whole
     query = query.substring(0, cursor) + key.char + query.substring(cursor);
-    cursor++;
+    cursor += key.char.length;
   }
 
   state.value = query;

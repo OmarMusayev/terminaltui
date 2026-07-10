@@ -3,6 +3,8 @@
  * Each function returns string[].
  */
 
+import { stringWidth, charWidth } from "../components/base.js";
+
 const BRAILLE_OFFSET = 0x2800;
 
 // Braille dot positions (per character cell = 2 cols x 4 rows):
@@ -46,14 +48,29 @@ function fmtNum(n: number): string {
   return n.toPrecision(4);
 }
 
-/** Right-pad a string to a given width. */
+/** Right-pad a string to a given display width. */
 function rpad(s: string, w: number): string {
-  return s.length >= w ? s : s + " ".repeat(w - s.length);
+  const sw = stringWidth(s);
+  return sw >= w ? s : s + " ".repeat(w - sw);
 }
 
-/** Left-pad a string to a given width. */
+/** Left-pad a string to a given display width. */
 function lpad(s: string, w: number): string {
-  return s.length >= w ? s : " ".repeat(w - s.length) + s;
+  const sw = stringWidth(s);
+  return sw >= w ? s : " ".repeat(w - sw) + s;
+}
+
+/** Clip a string to a maximum display width (code-point safe). */
+function clipTo(s: string, w: number): string {
+  let width = 0;
+  let out = "";
+  for (const ch of s) {
+    const cw = charWidth(ch.codePointAt(0) ?? 0);
+    if (width + cw > w) break;
+    out += ch;
+    width += cw;
+  }
+  return out;
 }
 
 /** Strip trailing whitespace from every line. */
@@ -119,10 +136,10 @@ function horizontalBarChart(
   maxBarWidth?: number,
 ): string[] {
   const maxVal = Math.max(...data.map(d => Math.abs(d.value)), 1);
-  const labelWidth = Math.max(...data.map(d => d.label.length));
+  const labelWidth = Math.max(...data.map(d => stringWidth(d.label)));
   const valueStrs = data.map(d => fmtNum(d.value));
   const valueWidth = showValues
-    ? Math.max(...valueStrs.map(s => s.length)) + 1
+    ? Math.max(...valueStrs.map(s => stringWidth(s))) + 1
     : 0;
 
   // Space available for the bar: total - label - " │ " separator - value suffix
@@ -171,7 +188,7 @@ function verticalBarChart(
   const colWidth = Math.max(
     3,
     Math.min(
-      Math.max(...data.map(d => d.label.length)) + 1,
+      Math.max(...data.map(d => stringWidth(d.label))) + 1,
       Math.floor(totalWidth / data.length),
     ),
   );
@@ -210,7 +227,7 @@ function verticalBarChart(
   // Labels
   let labelLine = "";
   for (const d of data) {
-    labelLine += rpad(d.label.slice(0, colWidth - 1), colWidth);
+    labelLine += rpad(clipTo(d.label, colWidth - 1), colWidth);
   }
   lines.push(labelLine);
 
@@ -218,7 +235,7 @@ function verticalBarChart(
   if (showValues) {
     let valLine = "";
     for (const d of data) {
-      valLine += rpad(fmtNum(d.value).slice(0, colWidth - 1), colWidth);
+      valLine += rpad(clipTo(fmtNum(d.value), colWidth - 1), colWidth);
     }
     lines.push(valLine);
   }
