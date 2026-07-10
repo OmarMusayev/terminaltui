@@ -4,7 +4,7 @@ import {
   col,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Press", icon: "//" };
+export const metadata = { label: "Press", icon: "//", order: 3 };
 
 export default function Press() {
   return [

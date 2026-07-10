@@ -163,10 +163,12 @@ function createChildProcess(
       }
     },
     resize(c: number, r: number) {
-      // child_process doesn't have a real PTY, but we can signal the child
-      // to re-read dimensions. Send SIGWINCH so Node.js fires 'resize'.
-      if (running && proc.pid) {
-        try { process.kill(proc.pid, "SIGWINCH"); } catch {}
+      // child_process doesn't have a real PTY, so SIGWINCH can't carry new
+      // dimensions (the child would re-read the stale COLUMNS/LINES env).
+      // Send an in-band resize report instead (xterm window-op format:
+      // CSI 8 ; rows ; cols t) which the framework's input layer understands.
+      if (running && proc.stdin && !proc.stdin.destroyed) {
+        proc.stdin.write(`\x1b[8;${r};${c}t`);
       }
     },
     kill() {

@@ -7,7 +7,7 @@ import {
   panel,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Logs", icon: ">" };
+export const metadata = { label: "Logs", icon: ">", order: 3 };
 
 export default function Logs() {
   return [

@@ -115,6 +115,8 @@ export function handleNavigationMode(rt: RT, key: KeyPress): void {
         rt.pageFocusItems = [];
         rt.focusRects = [];
         rt.inputMode.reset();
+        // Landing back on home resets the menu selection to the first item
+        if (rt.router.isHome()) rt.focus.focusFirst();
         rt.render();
       }
       break;
@@ -167,17 +169,8 @@ export function handleNavigationMode(rt: RT, key: KeyPress): void {
           const nextLeft = findNextFocus(rt.pageFocusIndex, "left", rt.focusRects);
           if (nextLeft !== null) {
             rt.pageFocusIndex = nextLeft;
-          } else {
-            // Nothing to the left — go back (like pressing Escape)
-            if (rt.router.back()) {
-              rt.scrollOffset = 0;
-              rt.pageFocusIndex = 0;
-              rt.pageScrollOffset = 0;
-              rt.pageFocusItems = [];
-              rt.focusRects = [];
-              rt.inputMode.reset();
-            }
           }
+          // At leftmost: do nothing (matches right arrow — Escape/Backspace go back)
         }
       }
       rt.render();

@@ -44,8 +44,18 @@ function sleep(ms: number): Promise<void> {
 
 async function test(name: string, fn: () => Promise<void> | void): Promise<boolean> {
   const start = Date.now();
+  const bugsBefore = bugs.length;
   try {
     await fn();
+    // Promote bugs filed during this test to a real test failure.
+    if (bugs.length > bugsBefore) {
+      const filed = bugs.slice(bugsBefore);
+      const msg = `detected ${filed.length} bug(s): ${filed.map(b => `${b.id} (${b.severity})`).join(", ")}`;
+      results.push({ name, passed: false, error: msg, duration: Date.now() - start });
+      console.log(`  \x1b[31m✘\x1b[0m ${name}`);
+      console.log(`    \x1b[31m${msg}\x1b[0m`);
+      return false;
+    }
     results.push({ name, passed: true, duration: Date.now() - start });
     console.log(`  \x1b[32m✔\x1b[0m ${name} \x1b[2m(${Date.now() - start}ms)\x1b[0m`);
     return true;
@@ -454,9 +464,12 @@ async function main(): Promise<void> {
     // ═══════════════════════════════════════════════════════
     console.log("\n\x1b[1m  Section 7: Resize\x1b[0m\n");
 
-    // Close current emulator and launch a fresh one for resize tests
-    await emu!.close();
-    await sleep(500);
+    // Close current emulator and launch a fresh one for resize tests.
+    // Wrapped in test() so a crash here fails a test instead of rejecting main().
+    await test("resize: close previous emulator", async () => {
+      await emu!.close();
+      await sleep(500);
+    });
 
     await test("resize: launch fresh emulator for resize tests", async () => {
       emu = await launchEmu();
@@ -617,10 +630,13 @@ async function main(): Promise<void> {
     // ═══════════════════════════════════════════════════════
     console.log("\n\x1b[1m  Section 10: Narrow Terminal (40 cols)\x1b[0m\n");
 
-    // Launch fresh for narrow test
-    await emu!.close();
-    await sleep(300);
-    if (runDir) cleanup(runDir);
+    // Launch fresh for narrow test.
+    // Wrapped in test() so a crash here fails a test instead of rejecting main().
+    await test("narrow: close previous emulator", async () => {
+      await emu!.close();
+      await sleep(300);
+      if (runDir) cleanup(runDir);
+    });
 
     await test("narrow: launch at 40x25", async () => {
       emu = await launchEmu({ cols: 40, rows: 25 });
@@ -754,7 +770,9 @@ async function main(): Promise<void> {
 
   console.log("\n" + JSON.stringify(report, null, 2));
 
-  if (failed > 0) {
+  // Detected bugs are promoted to test failures inside test(); the bugs.length
+  // check is a safety net for bugs filed outside any test block.
+  if (failed > 0 || bugs.length > 0) {
     process.exit(1);
   }
 }

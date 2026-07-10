@@ -13,7 +13,7 @@ import {
   col,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Overview", icon: "~" };
+export const metadata = { label: "Overview", icon: "~", order: 4 };
 
 export default function Overview() {
   return [

@@ -1,6 +1,6 @@
 import { markdown, spacer, table, columns, panel } from "../../../src/index.js";
 
-export const metadata = { label: "Containers", icon: "#" };
+export const metadata = { label: "Containers", icon: "#", order: 1 };
 
 export default function Containers() {
   return [

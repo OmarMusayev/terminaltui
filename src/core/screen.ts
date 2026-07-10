@@ -40,6 +40,14 @@ export class Screen extends EventEmitter {
     });
   }
 
+  /** Explicitly set the screen size (in-band resize from the input stream). */
+  setSize(columns: number, rows: number): void {
+    if (columns > 0 && rows > 0) {
+      this._size = { columns, rows };
+      this.emit("resize", this._size);
+    }
+  }
+
   /** Attach resize listeners using process.stdout (legacy path). Only call once. */
   attachListeners(): void {
     const onResize = () => {
@@ -59,9 +67,12 @@ export class Screen extends EventEmitter {
         rows: this.io.rows || 24,
       };
     }
+    // When stdout isn't a TTY (piped child), fall back to the COLUMNS/LINES
+    // environment variables — the emulator's non-PTY fallback and CI shells
+    // pass the intended size this way.
     return {
-      columns: process.stdout.columns || 80,
-      rows: process.stdout.rows || 24,
+      columns: process.stdout.columns || Number(process.env.COLUMNS) || 80,
+      rows: process.stdout.rows || Number(process.env.LINES) || 24,
     };
   }
 }

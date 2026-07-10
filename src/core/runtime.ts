@@ -207,6 +207,11 @@ export class TUIRuntime {
     this.setupTerminal();
     this._screen.on("resize", () => this.render());
     this._input.on("keypress", (key: KeyPress) => this.handleKey(key));
+    // In-band resize (CSI 8;rows;cols t) — used when the host can't signal
+    // real dimensions via the TTY (e.g. the emulator's non-PTY fallback).
+    this._input.on("resize", ({ columns, rows }: { columns: number; rows: number }) => {
+      this._screen.setSize(columns, rows);
+    });
     this._input.start();
 
     this.notificationTimer = setInterval(() => {

@@ -1,6 +1,6 @@
 import { card, tabs } from "../../../src/index.js";
 
-export const metadata = { label: "Wine", icon: "~" };
+export const metadata = { label: "Wine", icon: "~", order: 2 };
 
 export default function Wine() {
   return [

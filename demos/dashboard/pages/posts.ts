@@ -5,7 +5,7 @@ import type { ContentBlock } from "../../../src/index.js";
 import { state } from "./home.js";
 import type { Post } from "./home.js";
 
-export const metadata = { label: "Posts", icon: "#" };
+export const metadata = { label: "Posts", icon: "#", order: 4 };
 
 export default function Posts() {
   return [

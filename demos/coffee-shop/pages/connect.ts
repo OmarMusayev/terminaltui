@@ -10,7 +10,7 @@ import {
   panel,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Connect", icon: "->" };
+export const metadata = { label: "Connect", icon: "->", order: 4 };
 
 export default function Connect() {
   return [

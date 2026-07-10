@@ -6,7 +6,7 @@ import {
 import { state } from "./home.js";
 import type { Post } from "./home.js";
 
-export const metadata = { label: "New Post", icon: "+" };
+export const metadata = { label: "New Post", icon: "+", order: 2 };
 
 export default function NewPost() {
   return [

@@ -2,7 +2,7 @@ import {
   markdown, spacer, link, container,
 } from "../../../src/index.js";
 
-export const metadata = { label: "About", icon: "i" };
+export const metadata = { label: "About", icon: "i", order: 3 };
 
 export default function About() {
   return [

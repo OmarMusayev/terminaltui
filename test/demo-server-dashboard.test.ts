@@ -146,9 +146,9 @@ async function main(): Promise<void> {
       assertEqual(menu.items.length, 4, "menu item count");
     });
 
-    await test("boot: currentPage is overview", () => {
+    await test("boot: currentPage is home (menu view)", () => {
       const page = emu!.screen.currentPage();
-      assertEqual(page, "overview", "should start on overview");
+      assertEqual(page, "home", "should start on home menu");
     });
 
     // ── Section 2: Navigate to Containers ────────────────
@@ -161,7 +161,7 @@ async function main(): Promise<void> {
       await emu!.press("enter");
       await sleep(800);
       const page = emu!.screen.currentPage();
-      assert(page !== null && page !== "overview", `should be on content page, got "${page}"`);
+      assert(page !== null && page !== "home", `should be on content page, got "${page}"`);
     });
 
     await test("containers: page contains container names", () => {
@@ -192,11 +192,11 @@ async function main(): Promise<void> {
       assert(emu!.isRunning(), "app still running after left arrow back");
     });
 
-    await test("containers: escape returns to overview", async () => {
+    await test("containers: escape returns to home", async () => {
       await emu!.press("escape");
       await sleep(500);
       const page = emu!.screen.currentPage();
-      assertEqual(page, "overview", "should be back on overview");
+      assertEqual(page, "home", "should be back on home");
     });
 
     // ── Section 3: Navigate to Network ───────────────────
@@ -209,7 +209,7 @@ async function main(): Promise<void> {
       await emu!.press("enter");
       await sleep(800);
       const page = emu!.screen.currentPage();
-      assert(page !== null && page !== "overview", `should be on Network page, got "${page}"`);
+      assert(page !== null && page !== "home", `should be on Network page, got "${page}"`);
     });
 
     await test("network: page contains bandwidth or connection data", () => {
@@ -241,11 +241,11 @@ async function main(): Promise<void> {
       assert(emu!.isRunning(), "app still running after left arrow back");
     });
 
-    await test("network: escape returns to overview", async () => {
+    await test("network: escape returns to home", async () => {
       await emu!.press("escape");
       await sleep(500);
       const page = emu!.screen.currentPage();
-      assertEqual(page, "overview", "should be back on overview");
+      assertEqual(page, "home", "should be back on home");
     });
 
     // ── Section 4: Navigate to Logs ──────────────────────
@@ -258,7 +258,7 @@ async function main(): Promise<void> {
       await emu!.press("enter");
       await sleep(800);
       const page = emu!.screen.currentPage();
-      assert(page !== null && page !== "overview", `should be on Logs page, got "${page}"`);
+      assert(page !== null && page !== "home", `should be on Logs page, got "${page}"`);
     });
 
     await test("logs: page contains log source names", () => {
@@ -290,11 +290,11 @@ async function main(): Promise<void> {
       assert(emu!.isRunning(), "app still running after left arrow back");
     });
 
-    await test("logs: escape returns to overview", async () => {
+    await test("logs: escape returns to home", async () => {
       await emu!.press("escape");
       await sleep(500);
       const page = emu!.screen.currentPage();
-      assertEqual(page, "overview", "should be back on overview");
+      assertEqual(page, "home", "should be back on home");
     });
 
     // ── Section 5: Stability ─────────────────────────────

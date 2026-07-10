@@ -132,6 +132,17 @@ export function enterPage(rt: RT): void {
   initializePageContent(rt, content);
 }
 
+/**
+ * Coerce page content to a block array. Page functions plausibly return a
+ * single block instead of an array — normalize instead of crashing on
+ * iteration in collectFocusItems/registerForms.
+ */
+function toBlockArray(content: unknown): ContentBlock[] {
+  if (Array.isArray(content)) return content as ContentBlock[];
+  if (content == null) return [];
+  return [content as ContentBlock];
+}
+
 function loadAsyncPageContent(rt: RT, page: PageConfig): void {
   const key = `page-${page.id}`;
   const loader = page.content as () => Promise<ContentBlock[]>;
@@ -139,8 +150,9 @@ function loadAsyncPageContent(rt: RT, page: PageConfig): void {
   rt.asyncManager.load(key, loader, () => {
     const state = rt.asyncManager.getState(key);
     if (state?.status === "loaded" && state.content) {
-      rt.resolvedPageContent.set(page.id, state.content);
-      initializePageContent(rt, state.content);
+      const content = toBlockArray(state.content);
+      rt.resolvedPageContent.set(page.id, content);
+      initializePageContent(rt, content);
     } else if (state?.status === "error" && page.onError) {
       const fallback = page.onError(state.error!);
       rt.resolvedPageContent.set(page.id, fallback);
@@ -153,18 +165,19 @@ function loadAsyncPageContent(rt: RT, page: PageConfig): void {
     rt.asyncManager.setupRefresh(key, page.refreshInterval, loader, () => {
       const state = rt.asyncManager.getState(key);
       if (state?.status === "loaded" && state.content) {
-        rt.resolvedPageContent.set(page.id, state.content);
+        rt.resolvedPageContent.set(page.id, toBlockArray(state.content));
       }
       // A refresh can complete just after navigating away (in-flight load
       // resolving after the timer was cleared). Keep the data fresh above,
       // but never touch focus/form state or repaint for a non-current page.
       if (rt.router.currentPage !== page.id) return;
       if (state?.status === "loaded" && state.content) {
+        const content = toBlockArray(state.content);
         const oldIndex = rt.pageFocusIndex;
-        rt.pageFocusItems = collectFocusItems(rt, state.content);
+        rt.pageFocusItems = collectFocusItems(rt, content);
         rt.pageFocusIndex = Math.min(oldIndex, Math.max(0, rt.pageFocusItems.length - 1));
-        registerForms(rt, state.content);
-        rebuildFocusPositions(rt, state.content);
+        registerForms(rt, content);
+        rebuildFocusPositions(rt, content);
       }
       rt.render();
     });
@@ -173,9 +186,10 @@ function loadAsyncPageContent(rt: RT, page: PageConfig): void {
 
 /** Initialize page content: collect focus items, register forms, compute positions. */
 export function initializePageContent(rt: RT, content: ContentBlock[]): void {
-  rt.pageFocusItems = collectFocusItems(rt, content);
-  registerForms(rt, content);
-  rebuildFocusPositions(rt, content);
+  const blocks = toBlockArray(content);
+  rt.pageFocusItems = collectFocusItems(rt, blocks);
+  registerForms(rt, blocks);
+  rebuildFocusPositions(rt, blocks);
 }
 
 /** Recompute spatial focus positions from content blocks. */
@@ -227,7 +241,7 @@ export function getPageContent(rt: RT, page: PageConfig): ContentBlock[] | null 
   if (typeof page.content === "function") {
     return rt.resolvedPageContent.get(page.id) ?? null;
   }
-  return page.content;
+  return page.content == null ? null : toBlockArray(page.content);
 }
 
 /** Recursively collect focusable items from content blocks. */

@@ -7,7 +7,7 @@ import {
   container,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Our Beans", icon: "~" };
+export const metadata = { label: "Our Beans", icon: "~", order: 2 };
 
 export default function Beans() {
   return [

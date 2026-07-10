@@ -34,12 +34,15 @@ export class ProcessTerminalIO implements TerminalIO {
   private resizeHandler: (() => void) | null = null;
   private resizeCallbacks: Array<(cols: number, rows: number) => void> = [];
 
+  // When stdout isn't a TTY (piped child), fall back to the COLUMNS/LINES
+  // environment variables — the emulator's non-PTY fallback and CI shells
+  // pass the intended size this way.
   get columns(): number {
-    return process.stdout.columns || 80;
+    return process.stdout.columns || Number(process.env.COLUMNS) || 80;
   }
 
   get rows(): number {
-    return process.stdout.rows || 24;
+    return process.stdout.rows || Number(process.env.LINES) || 24;
   }
 
   write(data: string): void {

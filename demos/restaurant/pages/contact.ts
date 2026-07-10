@@ -11,7 +11,7 @@ import {
   section,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Contact", icon: "->" };
+export const metadata = { label: "Contact", icon: "->", order: 5 };
 
 export default function Contact() {
   return [

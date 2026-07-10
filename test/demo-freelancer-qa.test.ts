@@ -64,10 +64,12 @@ function checkPaddingBugs(screenText: string): string[] {
   const lines = screenText.split("\n");
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // Check for text directly touching a left border character without padding
-    if (/[│|┃][^\s─┬┴┼╋├┤┌┐└┘┏┓┗┛╔╗╚╝┊┆╎┇╏║]/.test(line)) {
+    // Check for text directly touching a left border character without padding.
+    // Only box-drawing verticals — ASCII "|" appears in the ASCII-art banner
+    // (e.g. "|_|") and produced false positives.
+    if (/[│┃][^\s─┬┴┼╋├┤┌┐└┘┏┓┗┛╔╗╚╝┊┆╎┇╏║]/.test(line)) {
       // But allow border-to-border junctions and single chars
-      const match = line.match(/[│|┃]([^\s─┬┴┼╋├┤┌┐└┘┏┓┗┛╔╗╚╝┊┆╎┇╏║])/);
+      const match = line.match(/[│┃]([^\s─┬┴┼╋├┤┌┐└┘┏┓┗┛╔╗╚╝┊┆╎┇╏║])/);
       if (match) {
         bugs.push(`Line ${i + 1}: possible padding bug: "${line.substring(0, 80).trim()}"`);
       }
@@ -284,11 +286,7 @@ async function main(): Promise<void> {
 
     await test("services: padding check", () => {
       const bugs = checkPaddingBugs(servicesScreen);
-      if (bugs.length > 0) {
-        console.log(`    Warning: ${bugs.length} potential padding issues`);
-        bugs.slice(0, 5).forEach(b => console.log(`      ${b}`));
-      }
-      // Non-fatal, just log
+      assert(bugs.length === 0, `padding issues: ${bugs.slice(0, 5).join("; ")}`);
     });
 
     await test("services: arrow right navigates in row", async () => {
@@ -352,10 +350,7 @@ async function main(): Promise<void> {
 
     await test("work: padding check", () => {
       const bugs = checkPaddingBugs(workScreen);
-      if (bugs.length > 0) {
-        console.log(`    Warning: ${bugs.length} potential padding issues`);
-        bugs.slice(0, 5).forEach(b => console.log(`      ${b}`));
-      }
+      assert(bugs.length === 0, `padding issues: ${bugs.slice(0, 5).join("; ")}`);
     });
 
     // Scroll down to see more projects
@@ -418,10 +413,7 @@ async function main(): Promise<void> {
 
     await test("testimonials: padding check", () => {
       const bugs = checkPaddingBugs(testimonialsScreen);
-      if (bugs.length > 0) {
-        console.log(`    Warning: ${bugs.length} potential padding issues`);
-        bugs.slice(0, 5).forEach(b => console.log(`      ${b}`));
-      }
+      assert(bugs.length === 0, `padding issues: ${bugs.slice(0, 5).join("; ")}`);
     });
 
     // Scroll down for more quotes
@@ -493,10 +485,7 @@ async function main(): Promise<void> {
 
     await test("contact: padding check", () => {
       const bugs = checkPaddingBugs(contactScreen);
-      if (bugs.length > 0) {
-        console.log(`    Warning: ${bugs.length} potential padding issues`);
-        bugs.slice(0, 5).forEach(b => console.log(`      ${b}`));
-      }
+      assert(bugs.length === 0, `padding issues: ${bugs.slice(0, 5).join("; ")}`);
     });
 
     // Scroll down through contact page
@@ -849,7 +838,12 @@ async function main(): Promise<void> {
 
   console.log("\n" + JSON.stringify(report, null, 2));
 
-  if (failed > 0) process.exit(1);
+  // Promote visual bugs collected in the final analysis (overflow/padding on
+  // captured screen dumps) to a nonzero exit, not just report entries.
+  const visualBugs = report.bugs_found.filter(
+    b => b.startsWith("[OVERFLOW") || b.startsWith("[PADDING"),
+  );
+  if (failed > 0 || visualBugs.length > 0) process.exit(1);
 }
 
 main().catch((err) => {

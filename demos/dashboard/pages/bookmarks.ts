@@ -5,7 +5,7 @@ import type { ContentBlock } from "../../../src/index.js";
 import { state, bookmarks } from "./home.js";
 import type { Post } from "./home.js";
 
-export const metadata = { label: "Bookmarks", icon: "*" };
+export const metadata = { label: "Bookmarks", icon: "*", order: 1 };
 
 export default function Bookmarks() {
   return [

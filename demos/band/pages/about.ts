@@ -8,7 +8,7 @@ import {
   container,
 } from "../../../src/index.js";
 
-export const metadata = { label: "About", icon: "&" };
+export const metadata = { label: "About", icon: "&", order: 4 };
 
 export default function About() {
   return [

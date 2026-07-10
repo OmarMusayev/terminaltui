@@ -132,6 +132,14 @@ export class InputManager extends EventEmitter {
     }
 
     for (const key of keys) {
+      // In-band resize (xterm window-op format: CSI 8 ; rows ; cols t).
+      // Sent by hosts that can't deliver SIGWINCH with real dimensions —
+      // e.g. the emulator's non-PTY fallback where stdin is a pipe.
+      if (key.name === "resize") {
+        const m = /^\x1b\[8;(\d+);(\d+)t$/.exec(key.sequence);
+        if (m) this.emit("resize", { rows: Number(m[1]), columns: Number(m[2]) });
+        continue;
+      }
       this.emit("keypress", key);
     }
   }
@@ -178,6 +186,11 @@ function matchEscapeSequence(buf: string): SequenceMatch {
     const m = CSI_COMPLETE.exec(buf);
     if (m) {
       const seq = m[0];
+      // In-band resize report (CSI 8 ; rows ; cols t) — surfaced as a
+      // pseudo-key so drainBuffer can emit a "resize" event instead.
+      if (/^\x1b\[8;\d+;\d+t$/.test(seq)) {
+        return { length: seq.length, key: makeKey("resize", "", false, false, false, seq) };
+      }
       const known = SEQUENCE_KEYS[seq];
       return {
         length: seq.length,

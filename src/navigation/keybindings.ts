@@ -21,8 +21,9 @@ export function keyToAction(key: KeyPress, isHome: boolean): Action | null {
   if (key.name === "q" && !key.ctrl) return "quit";
   if (key.name === "c" && key.ctrl) return "quit";
 
-  // Back — Escape and Backspace only (not left arrow anymore)
-  if (key.name === "escape") return isHome ? "quit" : "back";
+  // Back — Escape and Backspace only (not left arrow anymore).
+  // On home, escape is a no-op — quitting is q / ctrl+c.
+  if (key.name === "escape") return isHome ? null : "back";
   if (key.name === "backspace") return isHome ? null : "back";
 
   // Directional navigation — all four directions are spatial

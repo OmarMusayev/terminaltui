@@ -8,7 +8,7 @@ import {
   col,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Hours & Location", icon: "@" };
+export const metadata = { label: "Hours & Location", icon: "@", order: 4 };
 
 export default function Hours() {
   return [

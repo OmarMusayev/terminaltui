@@ -1,6 +1,6 @@
 import { markdown, spacer, quote, container } from "../../../src/index.js";
 
-export const metadata = { label: "Our Story", icon: "&" };
+export const metadata = { label: "Our Story", icon: "&", order: 3 };
 
 export default function Story() {
   return [

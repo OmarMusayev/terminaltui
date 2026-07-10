@@ -9,7 +9,7 @@ import {
   col,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Links", icon: "->" };
+export const metadata = { label: "Links", icon: "->", order: 5 };
 
 export default function Links() {
   return [

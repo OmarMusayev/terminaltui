@@ -6,7 +6,7 @@ import {
   col,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Discography", icon: "~" };
+export const metadata = { label: "Discography", icon: "~", order: 1 };
 
 export default function Discography() {
   return [

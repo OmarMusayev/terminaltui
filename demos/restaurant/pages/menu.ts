@@ -7,7 +7,7 @@ import {
   col,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Menu", icon: "*" };
+export const metadata = { label: "Menu", icon: "*", order: 1 };
 
 export default function Menu() {
   return [

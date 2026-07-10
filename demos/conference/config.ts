@@ -10,9 +10,12 @@ export default defineConfig({
   },
   theme: "nord",
   borders: "single",
+  menu: {
+    order: ["schedule", "speakers", "venue", "sponsors", "home"],
+  },
   animations: {
     boot: true,
-    
+
     exitMessage: "See you at TermConf 2026!",
   },
 });

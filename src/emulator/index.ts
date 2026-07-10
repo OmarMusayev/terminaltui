@@ -44,6 +44,7 @@ export class TUIEmulator {
   private _exitCode: number | null = null;
   private _closed = false;
   private options: LaunchOptions;
+  private killTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
     vterm: VirtualTerminal,
@@ -54,7 +55,7 @@ export class TUIEmulator {
     this.pty = pty;
     this.options = options;
     this._screen = new ScreenReader(vterm);
-    this.inputSender = new InputSender((data) => pty.write(data));
+    this.inputSender = new InputSender((data) => { this.touchTimeout(); pty.write(data); });
     this.waiter = new Waiter(vterm, this._screen);
     this._assert = new Assertions(vterm, this._screen);
     this._recorder = new Recorder(
@@ -72,6 +73,23 @@ export class TUIEmulator {
   }
 
   /**
+   * (Re)arm the inactivity kill timer. The launch `timeout` is a safety net
+   * for abandoned sessions — it resets on driver interaction so long test
+   * suites aren't killed mid-run, while a hung/forgotten app is still reaped
+   * `timeout` ms after the last interaction.
+   */
+  private touchTimeout(): void {
+    if (!this.options.timeout) return;
+    if (this.killTimer) clearTimeout(this.killTimer);
+    this.killTimer = setTimeout(() => {
+      if (this.isRunning()) {
+        this.kill();
+      }
+    }, this.options.timeout);
+    this.killTimer.unref?.();
+  }
+
+  /**
    * Launch a new emulator instance.
    */
   static async launch(options: LaunchOptions): Promise<TUIEmulator> {
@@ -82,14 +100,8 @@ export class TUIEmulator {
     const pty = await spawnPTY(options);
     const emu = new TUIEmulator(vterm, pty, options);
 
-    // Set up timeout if specified
-    if (options.timeout) {
-      setTimeout(() => {
-        if (emu.isRunning()) {
-          emu.kill();
-        }
-      }, options.timeout);
-    }
+    // Arm the inactivity timeout if specified (reset on every interaction)
+    emu.touchTimeout();
 
     return emu;
   }
@@ -286,6 +298,7 @@ export class TUIEmulator {
 
   /** Resize the virtual terminal. */
   async resize(cols: number, rows: number): Promise<void> {
+    this.touchTimeout();
     this.vterm.resize(cols, rows);
     this.pty.resize(cols, rows);
     await sleep(100);
@@ -307,6 +320,7 @@ export class TUIEmulator {
 
   /** Force kill the process. */
   kill(): void {
+    if (this.killTimer) { clearTimeout(this.killTimer); this.killTimer = null; }
     this.pty.kill();
   }
 
@@ -331,6 +345,7 @@ export class TUIEmulator {
   async close(): Promise<void> {
     if (this._closed) return;
     this._closed = true;
+    if (this.killTimer) { clearTimeout(this.killTimer); this.killTimer = null; }
 
     if (this.pty.isRunning) {
       this.pty.kill();

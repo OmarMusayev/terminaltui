@@ -425,11 +425,19 @@ async function main() {
       } catch {}
     }
   } finally {
-    if (emu) await emu.close();
+    // close() can reject if the app already crashed mid-run; never let that
+    // become an unhandled rejection that skips the JSON report below.
+    if (emu) { try { await emu.close(); } catch {} }
     try { rmSync(runDir, { recursive: true, force: true }); } catch {}
   }
 
   // ── Report ─────────────────────────────────────────────────
+  // Promote detected bugs to real test failures so the suite exits nonzero.
+  for (const b of bugs) {
+    failed++;
+    failures.push(`BUG [${b.severity}] ${b.page}: ${b.description} -- ${b.details}`);
+  }
+
   console.log("\n========================================");
   console.log(`RESULTS: ${passed} passed, ${failed} failed`);
   if (failures.length) {
@@ -450,4 +458,10 @@ async function main() {
   process.exit(failed > 0 ? 1 : 0);
 }
 
-main();
+main().catch((err) => {
+  // Last-resort guard: a rejection here would otherwise be unhandled and
+  // skip the JSON report entirely.
+  console.error("FATAL:", err);
+  console.log(`\nRESULTS: ${passed} passed, ${failed + 1} failed`);
+  process.exit(1);
+});

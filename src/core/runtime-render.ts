@@ -329,10 +329,20 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
   const viewportHeight = Math.max(1, rows - headerLines - footerLines);
 
   if (focusedLineStart >= 0) {
-    // Scroll to keep the focused block fully visible
-    if (focusedLineStart < rt.pageScrollOffset) {
+    const focusedHeight = focusedLineEnd - focusedLineStart;
+    if (focusedHeight > viewportHeight) {
+      // Focused block is taller than the viewport — anchor to its start
+      // (so headers like tab labels stay visible) and allow manual
+      // scrolling within the block's extent.
+      rt.pageScrollOffset = Math.max(
+        focusedLineStart,
+        Math.min(rt.pageScrollOffset, focusedLineEnd - viewportHeight),
+      );
+    } else if (focusedLineStart < rt.pageScrollOffset) {
+      // Scroll up to keep the focused block fully visible
       rt.pageScrollOffset = Math.max(0, focusedLineStart);
     } else if (focusedLineEnd > rt.pageScrollOffset + viewportHeight) {
+      // Scroll down to keep the focused block fully visible
       rt.pageScrollOffset = Math.max(0, focusedLineEnd - viewportHeight);
     }
   }

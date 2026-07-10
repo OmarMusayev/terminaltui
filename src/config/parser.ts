@@ -255,14 +255,32 @@ export function asyncContent(config: Omit<AsyncContentBlock, "type">): AsyncCont
 
 // ─── Layout Components ───────────────────────────────────
 
-/** Creates side-by-side panel columns. */
-export function columns(panels: PanelConfig[]): ColumnsBlock {
-  return { type: "columns", panels };
+/**
+ * Normalize panel entries: accepts both plain PanelConfig objects and
+ * panel() blocks (`{ type: "panel", config }`), unwrapping the latter so
+ * consumers always see PanelConfig. Also coerces a single content block
+ * to an array so `content: card({...})` works.
+ */
+function normalizePanelConfigs(panels: (PanelConfig | PanelBlock)[]): PanelConfig[] {
+  return panels.map(p => {
+    const config = (p as PanelBlock).type === "panel" && "config" in p
+      ? (p as PanelBlock).config
+      : (p as PanelConfig);
+    if (config && !Array.isArray(config.content) && config.content) {
+      return { ...config, content: [config.content as ContentBlock] };
+    }
+    return config;
+  });
 }
 
-/** Creates vertically stacked panel rows. */
-export function rows(panels: PanelConfig[]): RowsBlock {
-  return { type: "rows", panels };
+/** Creates side-by-side panel columns. Accepts PanelConfig objects or panel() blocks. */
+export function columns(panels: (PanelConfig | PanelBlock)[]): ColumnsBlock {
+  return { type: "columns", panels: normalizePanelConfigs(panels) };
+}
+
+/** Creates vertically stacked panel rows. Accepts PanelConfig objects or panel() blocks. */
+export function rows(panels: (PanelConfig | PanelBlock)[]): RowsBlock {
+  return { type: "rows", panels: normalizePanelConfigs(panels) };
 }
 
 /** Creates an N×M grid of panels. */

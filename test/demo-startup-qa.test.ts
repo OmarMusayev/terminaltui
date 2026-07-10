@@ -44,8 +44,18 @@ function sleep(ms: number): Promise<void> {
 
 async function test(name: string, fn: () => Promise<void> | void): Promise<boolean> {
   const start = Date.now();
+  const bugsBefore = bugs.length;
   try {
     await fn();
+    // Promote bugs filed during this test to a real test failure.
+    if (bugs.length > bugsBefore) {
+      const filed = bugs.slice(bugsBefore);
+      const msg = `detected ${filed.length} bug(s): ${filed.map(b => `${b.id} (${b.severity})`).join(", ")}`;
+      results.push({ name, passed: false, error: msg, duration: Date.now() - start });
+      console.log(`  X ${name}`);
+      console.log(`    ${msg}`);
+      return false;
+    }
     results.push({ name, passed: true, duration: Date.now() - start });
     console.log(`  + ${name} (${Date.now() - start}ms)`);
     return true;
@@ -465,10 +475,13 @@ async function main(): Promise<void> {
     // ── Section 7: Resize 120 cols (fresh instance) ──────
     console.log("\n  Section 7: Resize to 120 cols\n");
 
-    // Use a fresh emulator to avoid accumulated resize corruption
-    await emu!.close();
-    if (runDir) cleanup(runDir);
-    await sleep(300);
+    // Use a fresh emulator to avoid accumulated resize corruption.
+    // Wrapped in test() so a crash here fails a test instead of rejecting main().
+    await test("resize-120: close previous emulator", async () => {
+      await emu!.close();
+      if (runDir) cleanup(runDir);
+      await sleep(300);
+    });
 
     await test("resize-120: launch fresh emulator", async () => {
       const r = await launchEmu({ cols: 120, rows: 35 });
@@ -723,7 +736,9 @@ async function main(): Promise<void> {
   };
 
   console.log("\n" + JSON.stringify(report, null, 2));
-  if (failed > 0) process.exit(1);
+  // Detected bugs are promoted to test failures inside test(); the bugs.length
+  // check is a safety net for bugs filed outside any test block.
+  if (failed > 0 || bugs.length > 0) process.exit(1);
 }
 
 main().catch((err) => {

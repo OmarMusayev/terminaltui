@@ -45,8 +45,18 @@ function sleep(ms: number): Promise<void> {
 
 async function test(name: string, fn: () => Promise<void> | void): Promise<boolean> {
   const start = Date.now();
+  const bugsBefore = bugs.length;
   try {
     await fn();
+    // Promote bugs filed during this test to a real test failure.
+    if (bugs.length > bugsBefore) {
+      const filed = bugs.slice(bugsBefore);
+      const msg = `detected ${filed.length} bug(s): ${filed.map(b => `${b.id} (${b.severity})`).join(", ")}`;
+      results.push({ name, passed: false, error: msg, duration: Date.now() - start });
+      console.log(`  \x1b[31mX\x1b[0m ${name}`);
+      console.log(`    \x1b[31m${msg}\x1b[0m`);
+      return false;
+    }
     results.push({ name, passed: true, duration: Date.now() - start });
     console.log(`  \x1b[32m+\x1b[0m ${name} \x1b[2m(${Date.now() - start}ms)\x1b[0m`);
     return true;
@@ -308,9 +318,12 @@ async function main(): Promise<void> {
       });
     }
 
-    // Close first emulator
-    await emu!.close();
-    await sleep(300);
+    // Close first emulator.
+    // Wrapped in test() so a crash here fails a test instead of rejecting main().
+    await test("section2: close emulator", async () => {
+      await emu!.close();
+      await sleep(300);
+    });
 
     // =====================================================
     // SECTION 3: Narrow terminal (60x35)
@@ -350,8 +363,11 @@ async function main(): Promise<void> {
       });
     }
 
-    await emu!.close();
-    await sleep(300);
+    // Wrapped in test() so a crash here fails a test instead of rejecting main().
+    await test("narrow: close emulator", async () => {
+      await emu!.close();
+      await sleep(300);
+    });
 
     // =====================================================
     // SECTION 4: Wide terminal (120x35)
@@ -391,8 +407,11 @@ async function main(): Promise<void> {
       });
     }
 
-    await emu!.close();
-    await sleep(300);
+    // Wrapped in test() so a crash here fails a test instead of rejecting main().
+    await test("wide: close emulator", async () => {
+      await emu!.close();
+      await sleep(300);
+    });
 
     // =====================================================
     // SECTION 5: Navigation loop
@@ -583,7 +602,9 @@ async function main(): Promise<void> {
 
   console.log("\n" + JSON.stringify(report, null, 2));
 
-  if (failed > 0) process.exit(1);
+  // Detected bugs are promoted to test failures inside test(); the bugs.length
+  // check is a safety net for bugs filed outside any test block.
+  if (failed > 0 || bugs.length > 0) process.exit(1);
 }
 
 main().catch((err) => {

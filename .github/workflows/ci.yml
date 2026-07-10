@@ -56,11 +56,9 @@ jobs:
   demos:
     name: demos (ubuntu · node 20)
     runs-on: ubuntu-latest
-    # PTY-driven demo/emulator E2E suites. Currently advisory: several demos
-    # have known local failures (e.g. band content assertions, restaurant
-    # crash while scrolling contact). Flip continue-on-error to false once
-    # `npx tsx test/run-all.ts --demos` is green locally.
-    continue-on-error: true
+    # PTY-driven demo/emulator E2E suites. Blocking: the full demo suite
+    # (`npx tsx test/run-all.ts --demos`) is green, and QA suites now promote
+    # detected layout bugs to real failures.
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6

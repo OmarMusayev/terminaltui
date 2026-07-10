@@ -6,7 +6,7 @@ import {
   table,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Shows", icon: ">>" };
+export const metadata = { label: "Shows", icon: ">>", order: 2 };
 
 export default function Shows() {
   return [

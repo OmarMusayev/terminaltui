@@ -10,6 +10,9 @@ export default defineConfig({
   },
   theme: "tokyoNight",
   borders: "heavy",
+  menu: {
+    order: ["features", "pricing", "quickstart", "links", "home"],
+  },
   animations: {
     boot: true,
     exitMessage: "$ warpspeed --stop",

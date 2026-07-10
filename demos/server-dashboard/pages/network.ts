@@ -7,7 +7,7 @@ import {
   col,
 } from "../../../src/index.js";
 
-export const metadata = { label: "Network", icon: "*" };
+export const metadata = { label: "Network", icon: "*", order: 2 };
 
 export default function Network() {
   return [

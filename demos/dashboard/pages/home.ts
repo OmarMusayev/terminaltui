@@ -22,6 +22,17 @@ const postsFetcher = fetcher<Post[]>({
   transform: (d: any) => d.slice(0, 15),
 });
 
+// Kick off the initial fetch at module load (pages are loaded at boot) so
+// Home and Posts render live data without waiting for a manual refresh.
+postsFetcher.refresh().then(() => {
+  if (postsFetcher.data) {
+    state.batch(() => {
+      state.set("posts", postsFetcher.data!);
+      state.set("loaded", true);
+    });
+  }
+}).catch(() => { /* pages keep their loading/empty states */ });
+
 export const metadata = { label: "Dashboard", icon: "~" };
 
 export default function Home() {
