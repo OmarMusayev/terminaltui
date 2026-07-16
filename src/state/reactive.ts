@@ -34,10 +34,6 @@ export function stopTracking(): { stateId: string; keys: Set<string>; deps: Map<
   return result;
 }
 
-export function isTracking(): boolean {
-  return _tracking;
-}
-
 function trackAccess(stateId: string, key: string): void {
   if (!_trackedDeps.has(stateId)) {
     _trackedDeps.set(stateId, new Set());

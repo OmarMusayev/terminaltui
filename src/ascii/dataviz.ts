@@ -4,21 +4,7 @@
  */
 
 import { stringWidth, charWidth } from "../components/base.js";
-
-const BRAILLE_OFFSET = 0x2800;
-
-// Braille dot positions (per character cell = 2 cols x 4 rows):
-//   col0  col1
-//    0     3
-//    1     4
-//    2     5
-//    6     7
-const BRAILLE_DOT_MAP = [
-  [0, 3], // row 0
-  [1, 4], // row 1
-  [2, 5], // row 2
-  [6, 7], // row 3
-];
+import { fmtNum, lpad, trimRight, resampleData } from "./dataviz-charts.js";
 
 // Block elements for fractional horizontal bar fills (1/8 increments)
 const BLOCK_FRAC = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"];
@@ -29,11 +15,9 @@ const SPARK_CHARS = "▁▂▃▄▅▆▇█";
 // Shading characters for heatmap (light to dark)
 const DEFAULT_HEAT_CHARS = " ░▒▓█";
 
-// Pie chart fill characters per slice
-const PIE_FILLS = ["█", "▓", "▒", "░", "▪", "▫", "●", "○", "◆", "◇", "■", "□"];
-
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers (fmtNum, lpad, trimRight, resampleData are shared with
+// dataviz-charts.ts and imported from there)
 // ---------------------------------------------------------------------------
 
 /** Clamp a number to [lo, hi]. */
@@ -41,23 +25,10 @@ function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
-/** Format a number compactly for axis labels. */
-function fmtNum(n: number): string {
-  if (Number.isInteger(n) && Math.abs(n) < 1e6) return String(n);
-  if (Math.abs(n) >= 1e6) return n.toExponential(1);
-  return n.toPrecision(4);
-}
-
 /** Right-pad a string to a given display width. */
 function rpad(s: string, w: number): string {
   const sw = stringWidth(s);
   return sw >= w ? s : s + " ".repeat(w - sw);
-}
-
-/** Left-pad a string to a given display width. */
-function lpad(s: string, w: number): string {
-  const sw = stringWidth(s);
-  return sw >= w ? s : " ".repeat(w - sw) + s;
 }
 
 /** Clip a string to a maximum display width (code-point safe). */
@@ -71,37 +42,6 @@ function clipTo(s: string, w: number): string {
     width += cw;
   }
   return out;
-}
-
-/** Strip trailing whitespace from every line. */
-function trimRight(lines: string[]): string[] {
-  return lines.map(l => l.replace(/\s+$/, ""));
-}
-
-/** Linearly interpolate between a and b. */
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
-/** Downsample or interpolate data to target length. */
-function resampleData(data: number[], targetLen: number): number[] {
-  if (data.length === 0) return [];
-  if (data.length === 1) return Array(targetLen).fill(data[0]);
-  if (targetLen <= 0) return [];
-  if (targetLen === 1) {
-    // Average of all points
-    return [data.reduce((a, b) => a + b, 0) / data.length];
-  }
-
-  const result: number[] = [];
-  for (let i = 0; i < targetLen; i++) {
-    const t = (i / (targetLen - 1)) * (data.length - 1);
-    const lo = Math.floor(t);
-    const hi = Math.min(lo + 1, data.length - 1);
-    const frac = t - lo;
-    result.push(lerp(data[lo], data[hi], frac));
-  }
-  return result;
 }
 
 // ---------------------------------------------------------------------------

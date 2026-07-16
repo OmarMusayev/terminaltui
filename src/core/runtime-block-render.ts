@@ -40,7 +40,7 @@ import { renderSearchInput, filterSearchItems } from "../components/SearchInput.
 import { renderButton } from "../components/Button.js";
 import { renderFormResult } from "../components/Form.js";
 import { renderMenu as renderMenuComponent, type MenuItem } from "../components/Menu.js";
-import type { RenderContext } from "../components/base.js";
+import { stripAnsi, type RenderContext } from "../components/base.js";
 import { renderColumns, mergeRects } from "../components/layout/Columns.js";
 import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "../layout/grid-system.js";
 import { layoutColumns } from "../layout/panel-layout.js";
@@ -381,7 +381,7 @@ function renderRowBlock(rt: RT, block: RowBlock, ctx: RenderContext): string[] {
     // Blank lines are those containing only spaces, ANSI codes, and divider chars.
     while (rowLines.length > 0) {
       const last = rowLines[rowLines.length - 1];
-      const visual = last.replace(/\x1b\[[0-9;]*m/g, "");
+      const visual = stripAnsi(last);
       if (/^[\s\u2502\u2506\u250a\u2503]*$/.test(visual)) {
         rowLines.pop();
       } else {

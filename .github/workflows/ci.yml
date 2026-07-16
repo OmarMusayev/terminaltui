@@ -88,6 +88,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Audit only what users actually install (runtime deps), not dev tooling.
+      # Audit what users install by default (runtime deps), not dev tooling.
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+      # ssh2 is an optional peer dep that `serve` users are told to install,
+      # but it lives in devDependencies here, so --omit=dev skips it. Audit
+      # the full tree too so advisories against ssh2 (and its subtree) still
+      # fail CI.
+      - name: Audit full tree (covers ssh2 serve dependency)
+        run: npm audit --audit-level=high

@@ -111,8 +111,24 @@ export function renderTextArea(
       if (isEditing && lineIdx === cursorWrappedLine) {
         // Never split inside a surrogate pair when splicing in the cursor block
         const col = snapToCodePoint(lineText, cursorWrappedCol);
-        const before = lineText.substring(0, col);
-        const after = lineText.substring(col);
+        let before = lineText.substring(0, col);
+        let after = lineText.substring(col);
+        // The cursor block occupies one extra display cell; keep the rendered
+        // line (content + cursor) within innerWidth by trimming the tail,
+        // then scrolling the head off the left so the cursor stays visible.
+        let excess = stringWidth(before) + 1 + stringWidth(after) - innerWidth;
+        if (excess > 0) {
+          const afterChars = Array.from(after);
+          while (excess > 0 && afterChars.length > 0) {
+            excess -= stringWidth(afterChars.pop()!);
+          }
+          after = afterChars.join("");
+          const beforeChars = Array.from(before);
+          while (excess > 0 && beforeChars.length > 0) {
+            excess -= stringWidth(beforeChars.shift()!);
+          }
+          before = beforeChars.join("");
+        }
         lineText = fgColor(theme.text) + before +
           fgColor(theme.accent) + "\u2588" + reset +
           fgColor(theme.text) + after + reset;

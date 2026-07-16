@@ -4,14 +4,6 @@ import type { ArtPack } from "./types.js";
 import { parseFLF, parseTextArt, parseAnsiArt, parseTilePattern } from "./parser.js";
 
 /**
- * Create an ArtPack from a plain object.
- * Convenience constructor for programmatic pack creation.
- */
-export function createArtPack(pack: ArtPack): ArtPack {
-  return pack;
-}
-
-/**
  * Sanitize a filename into a valid asset name.
  * "My Cool Scene.txt" -> "my-cool-scene"
  */

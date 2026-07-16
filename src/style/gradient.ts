@@ -1,30 +1,6 @@
 import { createGradient, fgColor, reset } from "./colors.js";
 import { stringWidth, charWidth } from "../components/base.js";
 
-export function gradientText(text: string, colors: string[]): string {
-  if (colors.length === 0) return text;
-  if (colors.length === 1) return fgColor(colors[0]) + text + reset;
-
-  const chars = [...text];
-  const nonSpaceCount = chars.filter(c => c !== " ").length;
-  if (nonSpaceCount === 0) return text;
-
-  const gradientColors = createGradient(colors, nonSpaceCount);
-  let colorIdx = 0;
-  let result = "";
-
-  for (const ch of chars) {
-    if (ch === " ") {
-      result += ch;
-    } else {
-      result += fgColor(gradientColors[colorIdx]) + ch;
-      colorIdx++;
-    }
-  }
-
-  return result + reset;
-}
-
 export function gradientLines(lines: string[], colors: string[]): string[] {
   if (colors.length === 0) return lines;
   if (colors.length === 1) {

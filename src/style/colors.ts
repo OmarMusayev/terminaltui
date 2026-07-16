@@ -15,7 +15,10 @@ export function rgbToHex(r: number, g: number, b: number): string {
 }
 
 /**
- * Detect terminal color support.
+ * Detect terminal color support from the environment (NO_COLOR / TERM_PROGRAM /
+ * COLORTERM / TERM). This is the single canonical capability sniffer —
+ * detectTerminal() in helpers/detect-terminal.ts delegates its colorDepth to
+ * this function (adding a non-TTY → "none" gate on top).
  * Priority: NO_COLOR → Apple Terminal cap → COLORTERM → known terminals → TERM → fallback
  */
 export function detectColorSupport(): ColorMode {
@@ -30,10 +33,13 @@ export function detectColorSupport(): ColorMode {
   // Reliable truecolor detection
   if (
     env.COLORTERM === "truecolor" ||
-    env.COLORTERM === "24bit"
+    env.COLORTERM === "24bit" ||
+    env.TERM?.includes("truecolor") ||
+    env.TERM?.includes("24bit")
   ) return "truecolor";
 
-  // Known truecolor terminals
+  // Known truecolor terminals (native truecolor support even when COLORTERM
+  // isn't propagated)
   if (
     env.TERM_PROGRAM === "iTerm.app" ||
     env.TERM_PROGRAM === "WezTerm" ||
@@ -42,7 +48,7 @@ export function detectColorSupport(): ColorMode {
     env.TERM_PROGRAM === "WarpTerminal" ||
     env.WT_SESSION !== undefined // Windows Terminal
   ) {
-    return env.COLORTERM ? "truecolor" : "256";
+    return "truecolor";
   }
 
   // Fallback: check TERM

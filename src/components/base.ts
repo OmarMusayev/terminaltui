@@ -1,6 +1,6 @@
 import type { Theme } from "../style/theme.js";
 import type { ContentBlock } from "../config/types.js";
-import { fgColor, bgColor, reset, bold, dim, inverse } from "../style/colors.js";
+import { fgColor, bgColor, reset, bold, dim } from "../style/colors.js";
 
 export interface RenderContext {
   width: number;
@@ -103,10 +103,6 @@ export function styledDim(text: string, color: string): string {
   return dim + fgColor(color) + text + reset;
 }
 
-export function styledInverse(text: string, color: string): string {
-  return inverse + fgColor(color) + text + reset;
-}
-
 // ─── Layout helpers (width-aware) ─────────────────────────
 
 export function pad(text: string, width: number, align: "left" | "center" | "right" = "left"): string {
@@ -129,22 +125,33 @@ export function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
-export function truncate(text: string, maxWidth: number): string {
-  if (!text) return "";
-  if (stringWidth(text) <= maxWidth) return text;
-  // Need to truncate accounting for ANSI codes and char widths
+/**
+ * ANSI-aware prefix cut: copies escape sequences through untouched and keeps
+ * visible characters while their total display width stays within `budget`
+ * cells. `clipped` reports whether any visible character was dropped.
+ */
+export function cutToWidth(text: string, budget: number): { cut: string; clipped: boolean } {
   let visLen = 0;
   let result = "";
   let inEscape = false;
+  let clipped = false;
   for (const ch of text) {
     if (ch === "\x1b") { inEscape = true; result += ch; continue; }
     if (inEscape) { result += ch; if (ch === "m") inEscape = false; continue; }
     const cw = charWidth(ch.codePointAt(0) ?? 0);
-    if (visLen + cw >= maxWidth) { result += "\u2026"; break; }
+    if (visLen + cw > budget) { clipped = true; break; }
     result += ch;
     visLen += cw;
   }
-  return result + reset;
+  return { cut: result, clipped };
+}
+
+export function truncate(text: string, maxWidth: number): string {
+  if (!text) return "";
+  if (stringWidth(text) <= maxWidth) return text;
+  // Truncate accounting for ANSI codes and char widths, reserving one cell for the ellipsis
+  const { cut, clipped } = cutToWidth(text, maxWidth - 1);
+  return cut + (clipped ? "\u2026" : "") + reset;
 }
 
 export function wrapText(text: string, width: number): string[] {

@@ -18,6 +18,7 @@ import { filterSearchItems } from "../components/SearchInput.js";
 import { getInputDefault } from "../components/Form.js";
 import type { FocusItem } from "./runtime-types.js";
 import type { FocusRect } from "../layout/types.js";
+import { prevCursorPos, codePointLength, isPrintableChar } from "../components/text-cursor.js";
 import {
   handleTextInputKey, handleTextAreaKey, handleSelectKey,
   handleNumberInputKey, handleSearchInputKey, handleRadioGroupKey,
@@ -73,11 +74,15 @@ export function handleCommandMode(rt: RT, key: KeyPress): void {
     return;
   }
   if (key.name === "backspace") {
-    rt.commandBuffer = rt.commandBuffer.slice(0, -1);
+    // Delete one full code point — slice(0, -1) would tear a surrogate pair
+    // when the buffer ends with an astral char (emoji).
+    rt.commandBuffer = rt.commandBuffer.slice(
+      0, prevCursorPos(rt.commandBuffer, rt.commandBuffer.length),
+    );
     rt.render();
     return;
   }
-  if (key.char && key.char.length === 1 && !key.ctrl) {
+  if (key.char && codePointLength(key.char) === 1 && isPrintableChar(key.char) && !key.ctrl) {
     rt.commandBuffer += key.char;
     rt.render();
     return;

@@ -39,7 +39,9 @@ export function renderQuote(text: string, ctx: RenderContext, options?: { attrib
       );
     }
     if (options?.attribution) {
-      const attr = "\u2014 " + options.attribution;
+      let attr = "\u2014 " + options.attribution;
+      // Truncate attribution if it exceeds available width
+      attr = truncate(attr, innerWidth);
       const attrPad = Math.max(0, innerWidth - stringWidth(attr));
       lines.push(
         fgColor(theme.accent) + "  \u2502 " + reset +

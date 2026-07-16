@@ -1,41 +1,55 @@
 /**
  * Advanced data visualization: pieChart and graph (braille line graph).
  * Split from dataviz.ts to keep files under 400 lines.
+ * Also hosts the chart helpers shared with dataviz.ts.
  */
+
+import { stringWidth } from "../components/base.js";
 
 const BRAILLE_OFFSET = 0x2800;
 const BRAILLE_DOT_MAP = [[0, 3], [1, 4], [2, 5], [6, 7]];
 const PIE_FILLS = ["\u2588", "\u2593", "\u2592", "\u2591", "\u25aa", "\u25ab", "\u25cf", "\u25cb", "\u25c6", "\u25c7", "\u25a0", "\u25a1"];
 
-function fmtNum(n: number): string {
+/** Format a number compactly for axis labels. (Shared with dataviz.ts.) */
+export function fmtNum(n: number): string {
   if (Number.isInteger(n) && Math.abs(n) < 1e6) return String(n);
   if (Math.abs(n) >= 1e6) return n.toExponential(1);
   return n.toPrecision(4);
 }
 
-function lpad(s: string, w: number): string {
-  return s.length >= w ? s : " ".repeat(w - s.length) + s;
+/** Left-pad a string to a given display width. (Shared with dataviz.ts.) */
+export function lpad(s: string, w: number): string {
+  const sw = stringWidth(s);
+  return sw >= w ? s : " ".repeat(w - sw) + s;
 }
 
-function trimRight(lines: string[]): string[] {
+/** Strip trailing whitespace from every line. (Shared with dataviz.ts.) */
+export function trimRight(lines: string[]): string[] {
   return lines.map(l => l.replace(/\s+$/, ""));
 }
 
-function lerp(a: number, b: number, t: number): number {
+/** Linearly interpolate between a and b. (Shared with dataviz.ts.) */
+export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function resampleData(data: number[], targetLen: number): number[] {
+/** Downsample or interpolate data to target length. (Shared with dataviz.ts.) */
+export function resampleData(data: number[], targetLen: number): number[] {
   if (data.length === 0) return [];
   if (data.length === 1) return Array(targetLen).fill(data[0]);
   if (targetLen <= 0) return [];
-  if (targetLen === 1) return [data.reduce((a, b) => a + b, 0) / data.length];
+  if (targetLen === 1) {
+    // Average of all points
+    return [data.reduce((a, b) => a + b, 0) / data.length];
+  }
+
   const result: number[] = [];
   for (let i = 0; i < targetLen; i++) {
     const t = (i / (targetLen - 1)) * (data.length - 1);
     const lo = Math.floor(t);
     const hi = Math.min(lo + 1, data.length - 1);
-    result.push(lerp(data[lo], data[hi], t - lo));
+    const frac = t - lo;
+    result.push(lerp(data[lo], data[hi], frac));
   }
   return result;
 }

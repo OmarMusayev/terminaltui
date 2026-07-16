@@ -4,7 +4,7 @@
  */
 import { fgColor, reset } from "../style/colors.js";
 import { renderInput } from "../components/Input.js";
-import { stringWidth, charWidth, type RenderContext } from "../components/base.js";
+import { stringWidth, cutToWidth, type RenderContext } from "../components/base.js";
 
 interface RT {
   theme: any;
@@ -19,18 +19,7 @@ interface RT {
 
 /** ANSI-safe line truncation to prevent terminal wrapping. */
 export function truncateLine(line: string, maxWidth: number): string {
-  let visLen = 0;
-  let result = "";
-  let inEscape = false;
-  for (const ch of line) {
-    if (ch === "\x1b") { inEscape = true; result += ch; continue; }
-    if (inEscape) { result += ch; if (ch === "m") inEscape = false; continue; }
-    const cw = charWidth(ch.codePointAt(0) ?? 0);
-    if (visLen + cw > maxWidth) break;
-    result += ch;
-    visLen += cw;
-  }
-  return result + "\x1b[0m";
+  return cutToWidth(line, maxWidth).cut + "\x1b[0m";
 }
 
 /** Create the render context used by all component renderers. */

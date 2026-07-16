@@ -1,3 +1,5 @@
+import { detectColorSupport } from "../style/colors.js";
+
 export interface TerminalCapabilities {
   colorDepth: "truecolor" | "256" | "16" | "none";
   unicode: boolean;
@@ -17,34 +19,19 @@ export function detectTerminal(): TerminalCapabilities {
   const isAppleTerminal = termProgram === "Apple_Terminal";
   const terminalName = termProgram || env.TERM || "unknown";
 
-  // Color depth detection
-  // NO_COLOR standard: https://no-color.org/
-  // Apple Terminal claims 256color but has broken truecolor rendering
-  let colorDepth: TerminalCapabilities["colorDepth"] = "none";
-  if (env.NO_COLOR !== undefined) {
-    colorDepth = "none";
-  } else if (isTTY) {
-    if (isAppleTerminal) {
-      // Apple Terminal: force 256-color mode — its truecolor is buggy
-      colorDepth = "256";
-    } else if (
-      env.COLORTERM === "truecolor" ||
-      env.COLORTERM === "24bit" ||
-      termProgram === "iTerm.app" ||
-      termProgram === "Hyper" ||
-      termProgram === "WezTerm" ||
-      termProgram === "WarpTerminal" ||
-      env.WT_SESSION !== undefined || // Windows Terminal
-      env.TERM?.includes("24bit") ||
-      env.TERM?.includes("truecolor")
-    ) {
-      colorDepth = "truecolor";
-    } else if (env.TERM?.includes("256color")) {
-      colorDepth = "256";
-    } else if (isTTY) {
-      colorDepth = "16";
-    }
-  }
+  // Color depth: delegate to the canonical env sniffer in style/colors.ts
+  // (single source of truth for NO_COLOR / TERM_PROGRAM / COLORTERM / TERM —
+  // including the Apple Terminal 256-color cap; its truecolor is buggy).
+  // Non-TTY output gets no color regardless of what the env advertises.
+  // TTY floor: an interactive TTY with no env signals at all (TERM unset —
+  // e.g. Windows conhost, or a PTY with a stripped environment) still gets
+  // 16-color output; only an explicit NO_COLOR may force "none" on a TTY.
+  const detected = detectColorSupport();
+  const colorDepth: TerminalCapabilities["colorDepth"] = !isTTY
+    ? "none"
+    : detected === "none" && env.NO_COLOR === undefined
+      ? "16"
+      : detected;
 
   // Unicode support detection
   const unicode =

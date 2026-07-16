@@ -135,10 +135,3 @@ export function layoutGrid(
   }
   return rects;
 }
-
-/** Check if columns should fall back to vertical stacking. */
-export function shouldStack(panelCount: number, availableWidth: number): boolean {
-  const minPanelWidth = 20;
-  const totalMinWidth = panelCount * minPanelWidth + (panelCount - 1);
-  return availableWidth < totalMinWidth;
-}

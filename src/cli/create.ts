@@ -3,6 +3,7 @@ import { join, resolve, dirname } from "node:path";
 import { existsSync, mkdirSync, copyFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildPrompt, mapStyle, type Answers } from "./create-prompt.js";
+import { stripAnsi } from "../components/base.js";
 
 // Re-export everything from the split file
 export { buildPrompt, mapStyle, type Answers } from "./create-prompt.js";
@@ -289,16 +290,14 @@ export async function runCreate() {
     "",
   ];
 
-  const strip = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
-
   const title = " terminaltui create ";
-  const innerWidth = Math.max(48, ...contentLines.map((l) => strip(l).length + 2));
+  const innerWidth = Math.max(48, ...contentLines.map((l) => stripAnsi(l).length + 2));
 
   const topBar = "─".repeat(innerWidth - title.length - 1);
   console.log("");
   console.log(`\x1b[2m  ╭─\x1b[0m\x1b[1m\x1b[35m${title}\x1b[0m\x1b[2m${topBar}╮\x1b[0m`);
   for (const line of contentLines) {
-    const visible = strip(line);
+    const visible = stripAnsi(line);
     const pad = " ".repeat(Math.max(0, innerWidth - visible.length));
     console.log(`\x1b[2m  │\x1b[0m${line}${pad}\x1b[2m│\x1b[0m`);
   }

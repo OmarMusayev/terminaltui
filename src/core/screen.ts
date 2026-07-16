@@ -88,6 +88,3 @@ if ((globalThis as any)[SCREEN_KEY]) {
 }
 
 export const screen = screenInstance;
-export function getScreenSize(): ScreenSize {
-  return screen.size;
-}

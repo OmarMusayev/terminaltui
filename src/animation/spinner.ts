@@ -13,7 +13,3 @@ export function getSpinnerFrame(style: SpinnerStyle, frame: number): string {
   const frames = spinnerFrames[style];
   return frames[frame % frames.length];
 }
-
-export function getSpinnerFrames(style: SpinnerStyle): string[] {
-  return spinnerFrames[style];
-}

@@ -24,6 +24,8 @@ Or try a built-in demo instantly — zero install, zero scaffold:
 npx terminaltui demo restaurant
 ```
 
+**Requirements:** Node.js **>= 18** (relies on the built-in `fetch`). The package is **ESM-only** — load it with `import`, not `require()`.
+
 ---
 
 ## What is this?
@@ -238,9 +240,14 @@ terminaltui art                # manage ASCII art assets
 
 Host any TUI app over SSH -- anyone can connect with `ssh` and see it rendered in their terminal, zero install required. Think `ssh chat.shazow.net` but for any terminaltui project.
 
+The `serve` command needs [`ssh2`](https://www.npmjs.com/package/ssh2), an optional peer dependency — install it in your project first:
+
 ```bash
+npm install ssh2
 terminaltui serve --port 2222
 ```
+
+If terminaltui is installed globally (or run via zero-install `npx`), it also picks up an `ssh2` installed in the project directory you run `serve` from; alternatively, install it globally too with `npm install -g ssh2`.
 
 Then from any machine:
 
@@ -301,7 +308,7 @@ The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the a
 ## Tech Stack
 
 - **TypeScript** -- strict mode, zero `any` in public API
-- **1 required dependency** (esbuild) -- ssh2 is optional for `serve`
+- **1 required dependency** (esbuild) -- ssh2 is an optional peer dependency for `serve`
 - **2,100+ assertions** across unit, integration, emulator, and demo suites
 - **Apple Terminal compatible** -- auto-detects and uses 256-color fallback
 

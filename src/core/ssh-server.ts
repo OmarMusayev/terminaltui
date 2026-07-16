@@ -5,8 +5,33 @@
 import { generateKeyPairSync, createPrivateKey } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import type { TerminalIO } from "./terminal-io.js";
+
+/**
+ * Load the optional ssh2 peer dependency.
+ * First tries normal resolution (works when terminaltui is installed locally
+ * next to ssh2). A globally installed or npx-cached terminaltui cannot see the
+ * invoking project's node_modules from its own module tree, so fall back to
+ * resolving ssh2 from the current working directory — that makes
+ * `npm install ssh2` in the project fix `terminaltui serve` for global/npx
+ * installs too.
+ */
+async function loadSSH2(): Promise<any> {
+  try {
+    return await import(/* webpackIgnore: true */ "ssh2" as string);
+  } catch (primaryErr) {
+    try {
+      const requireFromCwd = createRequire(join(process.cwd(), "noop.js"));
+      const resolved = requireFromCwd.resolve("ssh2");
+      return await import(pathToFileURL(resolved).href);
+    } catch {
+      throw primaryErr;
+    }
+  }
+}
 
 export interface ServeOptions {
   port: number;
@@ -45,12 +70,13 @@ export class SSHServer {
   async start(): Promise<void> {
     let SSH2Server: any;
     try {
-      const ssh2 = await import(/* webpackIgnore: true */ "ssh2" as string);
+      const ssh2 = await loadSSH2();
       SSH2Server = ssh2.Server ?? ssh2.default?.Server;
       if (!SSH2Server) throw new Error("Server class not found");
     } catch (e: any) {
       console.error("\x1b[31mError:\x1b[0m ssh2 is required for the serve command.");
-      console.error("Install it with: npm install ssh2");
+      console.error("Install it in your project with: npm install ssh2");
+      console.error("(if terminaltui is installed globally, run the command from the project directory that has ssh2 installed, or: npm install -g ssh2)");
       if (e.message !== "Server class not found") console.error("  Detail:", e.message);
       process.exit(1);
     }

@@ -4,17 +4,13 @@
  */
 import type { ColumnsBlock, ContentBlock } from "../../config/types.js";
 import type { RenderContext } from "../base.js";
-import { stringWidth, truncate } from "../base.js";
 import { fgColor, reset } from "../../style/colors.js";
-import { layoutColumns, layoutRows, type PanelRect } from "../../layout/panel-layout.js";
+import { layoutColumns, type PanelRect } from "../../layout/panel-layout.js";
 import { shouldCollapseColumns } from "../../layout/responsive.js";
 import { renderPanel } from "./Panel.js";
+import { renderStackedPanels, type StackedRenderOptions } from "./stacked.js";
 
-export interface ColumnsRenderOptions {
-  availableHeight: number;
-  activePanelIndex?: number;
-  renderContent: (blocks: ContentBlock[], ctx: RenderContext) => string[];
-}
+export type ColumnsRenderOptions = StackedRenderOptions;
 
 /** Render a columns layout. Returns string[] of merged lines. */
 export function renderColumns(
@@ -28,40 +24,13 @@ export function renderColumns(
   const { availableHeight, activePanelIndex = -1, renderContent } = opts;
   const width = ctx.width;
 
-  // Responsive: collapse to rows if too narrow
+  // Responsive: collapse to stacked rows if too narrow
   if (shouldCollapseColumns(panels.length, width)) {
-    return renderAsRows(panels, ctx, opts);
+    return renderStackedPanels(panels, ctx, opts);
   }
 
   const rects = layoutColumns(panels, width, availableHeight);
   return mergeRects(rects, ctx, width, availableHeight, activePanelIndex, renderContent);
-}
-
-/** Fallback: render as stacked rows when terminal is too narrow. */
-function renderAsRows(
-  panels: ColumnsBlock["panels"],
-  ctx: RenderContext,
-  opts: ColumnsRenderOptions,
-): string[] {
-  const { availableHeight, activePanelIndex = -1, renderContent } = opts;
-  const rects = layoutRows(panels, ctx.width, availableHeight);
-  const lines: string[] = [];
-
-  for (let i = 0; i < rects.length; i++) {
-    const rect = rects[i];
-    const panelLines = renderPanel(rect.panel, ctx, {
-      width: rect.width,
-      height: rect.height,
-      active: i === activePanelIndex,
-      renderContent,
-    });
-    lines.push(...panelLines);
-    // Add divider between rows
-    if (i < rects.length - 1) {
-      lines.push(fgColor(ctx.theme.border) + "\u2500".repeat(ctx.width) + reset);
-    }
-  }
-  return lines;
 }
 
 /** Merge panel rects into composite lines by placing them side-by-side. */
