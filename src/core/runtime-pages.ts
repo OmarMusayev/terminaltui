@@ -6,44 +6,19 @@
  */
 import type {
   ContentBlock, PageConfig, FormBlock, DynamicBlock,
-  ColumnsBlock, RowsBlock, GridBlock, PanelBlock,
 } from "../config/types.js";
 import type { RouteParams } from "../router/types.js";
 import { runMiddleware } from "../middleware/index.js";
-import { resolveDynamic } from "./runtime-render.js";
-import { themes } from "../style/theme.js";
+import { resolveDynamic } from "./runtime-block-render.js";
 import type { FocusItem } from "./runtime-types.js";
-import type { FocusRect } from "../layout/types.js";
+import type { RuntimeInternal } from "./runtime-internal.js";
 import { computeFocusPositions } from "../layout/flex-engine.js";
-import type { ScreenSize } from "./screen.js";
-
-// Minimal runtime interface for page navigation functions
-interface RT {
-  site: any;
-  theme: any;
-  router: any;
-  focus: any;
-  inputMode: any;
-  scrollOffset: number;
-  pageFocusIndex: number;
-  pageFocusItems: FocusItem[];
-  pageScrollOffset: number;
-  currentParams: RouteParams;
-  asyncManager: any;
-  resolvedPageContent: Map<string, ContentBlock[]>;
-  formRegistry: Map<string, FormBlock>;
-  dynamicCache: Map<string, ContentBlock[]>;
-  feedbackMessage: string;
-  feedbackTimer: ReturnType<typeof setTimeout> | null;
-  focusRects: FocusRect[];
-  screenSize: ScreenSize;
-  isServeMode: boolean;
-  render(): void;
-  setTheme(name: string): boolean;
-}
+import { layoutAvailHeight, blockRenderWidth } from "./layout-constants.js";
+import { walk, findFirst, ALL_EDGES, stampBlockKeys } from "./block-walker.js";
+import { focusSlots } from "./block-taxonomy.js";
 
 /** Navigate to a page or route, with optional params and middleware. */
-export function navigateToPage(rt: RT, pageId: string, params?: RouteParams): void {
+export function navigateToPage(rt: RuntimeInternal, pageId: string, params?: RouteParams): void {
   // Exact match first
   let pageConfig = rt.site.pages.find((p: any) => p.id === pageId);
 
@@ -90,7 +65,7 @@ export function navigateToPage(rt: RT, pageId: string, params?: RouteParams): vo
   }
 }
 
-function doNavigate(rt: RT, pageId: string, params?: RouteParams): void {
+function doNavigate(rt: RuntimeInternal, pageId: string, params?: RouteParams): void {
   const from = rt.router.currentPage;
   rt.router.navigate(pageId);
   rt.currentParams = params ?? {};
@@ -105,13 +80,15 @@ function doNavigate(rt: RT, pageId: string, params?: RouteParams): void {
 }
 
 /** Initialize page focus when entering a page. */
-export function enterPage(rt: RT): void {
+export function enterPage(rt: RuntimeInternal): void {
   rt.pageFocusIndex = 0;
   rt.pageScrollOffset = 0;
   rt.pageFocusItems = [];
   rt.focusRects = [];
   rt.inputMode.reset();
   rt.formRegistry.clear();
+  // Invalidate the renderMain layout cache — the new page must lay out fresh.
+  rt.layoutCache.contentRef = null;
 
   // Stop refresh timers from previously-visited pages — a stale timer would
   // keep fetching in the background and clobber this page's focus state.
@@ -143,20 +120,31 @@ function toBlockArray(content: unknown): ContentBlock[] {
   return [content as ContentBlock];
 }
 
-function loadAsyncPageContent(rt: RT, page: PageConfig): void {
+function loadAsyncPageContent(rt: RuntimeInternal, page: PageConfig): void {
   const key = `page-${page.id}`;
   const loader = page.content as () => Promise<ContentBlock[]>;
 
   rt.asyncManager.load(key, loader, () => {
     const state = rt.asyncManager.getState(key);
+    let content: ContentBlock[] | null = null;
     if (state?.status === "loaded" && state.content) {
-      const content = toBlockArray(state.content);
-      rt.resolvedPageContent.set(page.id, content);
-      initializePageContent(rt, content);
+      content = toBlockArray(state.content);
     } else if (state?.status === "error" && page.onError) {
-      const fallback = page.onError(state.error!);
-      rt.resolvedPageContent.set(page.id, fallback);
-      initializePageContent(rt, fallback);
+      content = toBlockArray(page.onError(state.error!));
+    }
+    if (content) {
+      rt.resolvedPageContent.set(page.id, content);
+      // Stamp under the OWNING page id at the writeback site. The user may
+      // have navigated away before this load resolved; initializePageContent
+      // stamps with rt.router.currentPage, which would then write ANOTHER
+      // page's keys onto these blocks — cross-page component-state sharing
+      // at matching structural positions.
+      stampBlockKeys(rt, page.id, content);
+      // Never touch focus/form/layout state for a non-current page (mirrors
+      // the refresh-callback guard below).
+      if (rt.router.currentPage === page.id) {
+        initializePageContent(rt, content);
+      }
     }
     rt.render();
   });
@@ -164,179 +152,152 @@ function loadAsyncPageContent(rt: RT, page: PageConfig): void {
   if (page.refreshInterval) {
     rt.asyncManager.setupRefresh(key, page.refreshInterval, loader, () => {
       const state = rt.asyncManager.getState(key);
-      if (state?.status === "loaded" && state.content) {
-        rt.resolvedPageContent.set(page.id, toBlockArray(state.content));
+      const content = state?.status === "loaded" && state.content
+        ? toBlockArray(state.content) : null;
+      if (content) {
+        rt.resolvedPageContent.set(page.id, content);
+        // Stamp at the writeback site under the owning page id: when the
+        // refresh resolves after navigating away (guard below), no later
+        // path stamps this array before it can render on re-entry, and
+        // getBlockKey would silently fall back to legacy label keys —
+        // invisible to component state saved under the path keys.
+        stampBlockKeys(rt, page.id, content);
       }
       // A refresh can complete just after navigating away (in-flight load
       // resolving after the timer was cleared). Keep the data fresh above,
       // but never touch focus/form state or repaint for a non-current page.
       if (rt.router.currentPage !== page.id) return;
-      if (state?.status === "loaded" && state.content) {
-        const content = toBlockArray(state.content);
+      if (content) {
         const oldIndex = rt.pageFocusIndex;
-        rt.pageFocusItems = collectFocusItems(rt, content);
+        // Full rebuild: re-stamps block keys (refreshed content arrays are
+        // new objects each interval; deterministic paths yield the same keys,
+        // so component state survives refresh) and resets the layout cache
+        // to the new content array.
+        initializePageContent(rt, content);
         rt.pageFocusIndex = Math.min(oldIndex, Math.max(0, rt.pageFocusItems.length - 1));
-        registerForms(rt, content);
-        rebuildFocusPositions(rt, content);
       }
       rt.render();
     });
   }
 }
 
-/** Initialize page content: collect focus items, register forms, compute positions. */
-export function initializePageContent(rt: RT, content: ContentBlock[]): void {
+/** Initialize page content: stamp state keys, collect focus items, register forms, compute positions. */
+export function initializePageContent(rt: RuntimeInternal, content: ContentBlock[]): void {
   const blocks = toBlockArray(content);
+  // Stamp structural-path state keys BEFORE focus collection: the walk
+  // resolves dynamic blocks, and resolveDynamic keys freshly-generated
+  // children under their (already stamped) parent's path.
+  stampBlockKeys(rt, rt.router.currentPage, blocks);
   rt.pageFocusItems = collectFocusItems(rt, blocks);
   registerForms(rt, blocks);
-  rebuildFocusPositions(rt, blocks);
+  computeFocusLayout(rt, blocks);
+
+  // Prime the renderMain layout cache. Volatile trees (dynamic/asyncContent
+  // anywhere, incl. inside tabs/accordion items) keep the per-frame
+  // recompute path; static trees skip it until content identity or
+  // dimensions change.
+  const { columns, rows } = rt.screenSize;
+  rt.layoutCache.contentRef = blocks;
+  rt.layoutCache.columns = columns;
+  rt.layoutCache.rows = rows;
+  rt.layoutCache.volatile = isVolatileContent(blocks);
 }
 
-/** Recompute spatial focus positions from content blocks. */
-function rebuildFocusPositions(rt: RT, content: ContentBlock[]): void {
-  const { columns } = rt.screenSize;
-  const contentWidth = Math.min(120, columns - 2);
-  const { rows: termRows } = rt.screenSize;
-  const availHeight = Math.max(10, termRows - 8);
+/**
+ * Total focus-slot count for a tree — the cheap fingerprint renderMain's
+ * fast path uses to detect in-place mutation of a static tree (blocks pushed
+ * onto the content array, items pushed onto accordion/timeline) that cannot
+ * change array identity. Equals collectFocusItems(...).length by
+ * construction: both derive counts from focusSlots(). No dynamic resolver is
+ * passed because only non-volatile (dynamic-free) trees are fingerprinted;
+ * counting a tree WITH dynamic() this way would diverge from the focus walk.
+ */
+export function countFocusSlots(blocks: ContentBlock[]): number {
+  let n = 0;
+  for (const e of walk(blocks)) n += focusSlots(e.block);
+  return n;
+}
 
+/** Whether a tree contains blocks whose children materialize per-frame/late. */
+export function isVolatileContent(blocks: ContentBlock[]): boolean {
+  return findFirst(
+    blocks,
+    (e) => e.block.type === "dynamic" || e.block.type === "asyncContent",
+    { descend: ALL_EDGES },
+  ) !== null;
+}
+
+/**
+ * Recompute spatial focus rects for the given content. Single shared layout
+ * pass for renderMain and page initialization/refresh.
+ *
+ * The rect walk uses the same width the blocks actually render at
+ * (contentWidth minus the 1-col focus gutter) so spatial navigation geometry
+ * matches the screen exactly.
+ */
+export function computeFocusLayout(rt: RuntimeInternal, content: ContentBlock[]): void {
+  const { columns, rows } = rt.screenSize;
   rt.focusRects = computeFocusPositions(
     content,
-    contentWidth,
-    availHeight,
-    (block: DynamicBlock) => resolveDynamic(rt as any, block),
+    blockRenderWidth(columns),
+    layoutAvailHeight(rows),
+    (block: DynamicBlock) => resolveDynamic(rt, block),
   );
 }
 
-/** Register form blocks for submission handling. */
-export function registerForms(rt: RT, blocks: ContentBlock[]): void {
-  for (const block of blocks) {
-    if (block.type === "form") {
-      rt.formRegistry.set(block.id, block as FormBlock);
-      registerForms(rt, (block as FormBlock).fields);
-    } else if (block.type === "section") {
-      registerForms(rt, block.content);
-    } else if (block.type === "columns") {
-      for (const p of (block as ColumnsBlock).panels) registerForms(rt, p.content);
-    } else if (block.type === "rows") {
-      for (const p of (block as RowsBlock).panels) registerForms(rt, p.content);
-    } else if (block.type === "grid") {
-      for (const item of (block as GridBlock).config.items) registerForms(rt, item.content);
-    } else if (block.type === "panel") {
-      registerForms(rt, (block as PanelBlock).config.content);
-    } else if (block.type === "row") {
-      for (const c of (block as any).cols) registerForms(rt, c.content);
-    } else if (block.type === "container") {
-      registerForms(rt, (block as any).content);
+/**
+ * Register form blocks for submission handling.
+ * Descends STRUCTURAL_EDGES including `dynamic` — everything the focus walk
+ * reaches must be form-registered, so forms inside dynamic() are submittable.
+ */
+export function registerForms(rt: RuntimeInternal, blocks: ContentBlock[]): void {
+  for (const e of walk(blocks, { resolveDynamic: (b) => resolveDynamic(rt, b) })) {
+    if (e.block.type === "form") {
+      rt.formRegistry.set(e.block.id, e.block as FormBlock);
     }
   }
 }
 
 /** Resolve the page title for the given page, supporting params for dynamic file-based routes. */
-export function resolvePageTitle(rt: RT, page: PageConfig): string {
+export function resolvePageTitle(rt: RuntimeInternal, page: PageConfig): string {
   return page.title as string;
 }
 
 /** Get the effective content for a page (resolved async or static). */
-export function getPageContent(rt: RT, page: PageConfig): ContentBlock[] | null {
+export function getPageContent(rt: RuntimeInternal, page: PageConfig): ContentBlock[] | null {
   if (typeof page.content === "function") {
     return rt.resolvedPageContent.get(page.id) ?? null;
   }
   return page.content == null ? null : toBlockArray(page.content);
 }
 
-/** Recursively collect focusable items from content blocks. */
-export function collectFocusItems(rt: RT, blocks: ContentBlock[]): FocusItem[] {
+/**
+ * Recursively collect focusable items from content blocks (pre-order,
+ * items in declaration order). Slot counts come from focusSlots() — the
+ * same contract that drives the flex-engine rect walk.
+ */
+export function collectFocusItems(rt: RuntimeInternal, blocks: ContentBlock[]): FocusItem[] {
   const result: FocusItem[] = [];
-  for (const block of blocks) {
-    switch (block.type) {
-      case "card":
-      case "link":
-      case "hero":
-        result.push({ kind: "block", block });
-        break;
-      case "textInput":
-      case "textArea":
-      case "select":
-      case "checkbox":
-      case "toggle":
-      case "radioGroup":
-      case "numberInput":
-      case "searchInput":
-      case "button":
-      case "chat":
-        result.push({ kind: "block", block });
-        break;
-      case "accordion":
-        for (let i = 0; i < block.items.length; i++) {
-          result.push({ kind: "accordion-item", accordion: block, itemIndex: i });
-        }
-        break;
-      case "timeline":
-        for (let i = 0; i < block.items.length; i++) {
-          result.push({ kind: "timeline-item", timeline: block, itemIndex: i });
-        }
-        break;
-      case "tabs":
-        result.push({ kind: "block", block });
-        break;
-      case "section":
-        result.push(...collectFocusItems(rt, block.content));
-        break;
-      case "form":
-        result.push(...collectFocusItems(rt, (block as FormBlock).fields));
-        break;
-      case "dynamic": {
-        const dynamicBlocks = resolveDynamic(rt as any, block as DynamicBlock);
-        result.push(...collectFocusItems(rt, dynamicBlocks));
-        break;
+  for (const e of walk(blocks, { resolveDynamic: (b) => resolveDynamic(rt, b) })) {
+    const block = e.block;
+    if (focusSlots(block) === 0) continue;
+    if (block.type === "accordion") {
+      for (let i = 0; i < block.items.length; i++) {
+        result.push({ kind: "accordion-item", accordion: block, itemIndex: i });
       }
-      case "columns": {
-        const cols = block as ColumnsBlock;
-        for (const p of cols.panels) {
-          result.push(...collectFocusItems(rt, p.content));
-        }
-        break;
+    } else if (block.type === "timeline") {
+      for (let i = 0; i < block.items.length; i++) {
+        result.push({ kind: "timeline-item", timeline: block, itemIndex: i });
       }
-      case "rows": {
-        const rowsBlock = block as RowsBlock;
-        for (const p of rowsBlock.panels) {
-          result.push(...collectFocusItems(rt, p.content));
-        }
-        break;
-      }
-      case "grid": {
-        const gridBlock = block as GridBlock;
-        for (const item of gridBlock.config.items) {
-          result.push(...collectFocusItems(rt, item.content));
-        }
-        break;
-      }
-      case "panel": {
-        const panelBlock = block as PanelBlock;
-        result.push(...collectFocusItems(rt, panelBlock.config.content));
-        break;
-      }
-      case "row": {
-        const rowBlock = block as any;
-        for (const c of rowBlock.cols) {
-          result.push(...collectFocusItems(rt, c.content));
-        }
-        break;
-      }
-      case "container": {
-        const containerBlock = block as any;
-        result.push(...collectFocusItems(rt, containerBlock.content));
-        break;
-      }
-      default:
-        break;
+    } else {
+      result.push({ kind: "block", block });
     }
   }
   return result;
 }
 
 /** Move focus to next item sequentially. */
-export function pageFocusNext(rt: RT): void {
+export function pageFocusNext(rt: RuntimeInternal): void {
   if (rt.pageFocusItems.length === 0) {
     rt.pageScrollOffset++;
     return;
@@ -350,7 +311,7 @@ export function pageFocusNext(rt: RT): void {
 }
 
 /** Move focus to previous item sequentially. */
-export function pageFocusPrev(rt: RT): void {
+export function pageFocusPrev(rt: RuntimeInternal): void {
   if (rt.pageFocusItems.length === 0) {
     if (rt.pageScrollOffset > 0) rt.pageScrollOffset--;
     return;
@@ -363,30 +324,15 @@ export function pageFocusPrev(rt: RT): void {
   }
 }
 
-/** Find link blocks in content. */
-export function findLinks(blocks: ContentBlock[]): { label: string; url: string }[] {
-  const links: { label: string; url: string }[] = [];
-  for (const block of blocks) {
-    if (block.type === "link") {
-      links.push({ label: block.label, url: block.url });
-    } else if (block.type === "card" && block.url) {
-      links.push({ label: block.title, url: block.url });
-    } else if (block.type === "section") {
-      links.push(...findLinks(block.content));
-    }
-  }
-  return links;
-}
-
 /** Get the current page config. */
-export function getCurrentPage(rt: RT): PageConfig | undefined {
+export function getCurrentPage(rt: RuntimeInternal): PageConfig | undefined {
   const found = rt.site.pages.find((p: any) => p.id === rt.router.currentPage);
   if (!found) return undefined;
   return found as PageConfig;
 }
 
 /** Show a temporary feedback message. */
-export function showFeedback(rt: RT, msg: string): void {
+export function showFeedback(rt: RuntimeInternal, msg: string): void {
   rt.feedbackMessage = msg;
   if (rt.feedbackTimer) clearTimeout(rt.feedbackTimer);
   rt.feedbackTimer = setTimeout(() => {
@@ -397,7 +343,7 @@ export function showFeedback(rt: RT, msg: string): void {
 }
 
 /** Execute a :command. */
-export function executeCommand(rt: RT, cmd: string): void {
+export function executeCommand(rt: RuntimeInternal, cmd: string): void {
   const trimmed = cmd.trim();
   // The verb is matched case-insensitively (`:theme`, `:THEME`, `:Theme` all
   // work) but the argument keeps its original case — theme names like
@@ -408,7 +354,7 @@ export function executeCommand(rt: RT, cmd: string): void {
   const arg = spaceIdx === -1 ? "" : trimmed.slice(spaceIdx + 1).trim();
 
   if (verb === "q" || verb === "quit") {
-    (rt as any).stop();
+    rt.stop();
     return;
   }
 

@@ -2,17 +2,15 @@
  * Individual block rendering — the big switch statement that maps
  * block types to component renderers.
  */
-import type { ContentBlock, DynamicBlock, FormBlock, ColumnsBlock, RowsBlock, GridBlock, PanelBlock, RowBlock, ContainerBlock, MenuBlock, ChatBlock } from "../config/types.js";
+import type { ContentBlock, DynamicBlock, ColumnsBlock, RowsBlock, GridBlock, PanelBlock, RowBlock, ContainerBlock, MenuBlock, ChatBlock } from "../config/types.js";
 import { renderChat, type ChatState, type ChatMessage } from "../components/Chat.js";
 import { fgColor, reset, bold } from "../style/colors.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
+import { isBlockFocusable, FOCUSABLE_TYPES } from "./block-taxonomy.js";
+import { containsBlock, stampBlockKeys, walk, ALL_EDGES } from "./block-walker.js";
 
-/** Block types that participate in focus / spatial navigation. */
-const FOCUSABLE_TYPES = new Set<string>([
-  "card", "link", "hero", "tabs", "accordion", "gallery",
-  "textInput", "textArea", "select", "checkbox", "toggle",
-  "radioGroup", "numberInput", "searchInput", "button",
-]);
+// Re-exported for back-compat (the taxonomy is the source of truth now).
+export { isBlockFocusable };
 import { renderText } from "../components/Text.js";
 import { renderCard } from "../components/Card.js";
 import { renderTimeline } from "../components/Timeline.js";
@@ -47,22 +45,31 @@ import { layoutColumns } from "../layout/panel-layout.js";
 import { renderRows } from "../components/layout/Rows.js";
 import { renderGrid } from "../components/layout/Grid.js";
 import { renderPanel } from "../components/layout/Panel.js";
-import type { ScreenSize } from "./screen.js";
+import type { RuntimeInternal } from "./runtime-internal.js";
+import { layoutAvailHeight } from "./layout-constants.js";
 
-interface RT {
-  galleryState: Map<string, number>;
-  tabState: Map<string, number>;
-  accordionState: Map<string, number>;
-  formResults: Map<string, { message: string; type: "success" | "error" | "info" }>;
-  buttonLoading: Map<string, boolean>;
-  dynamicCache: Map<string, ContentBlock[]>;
-  currentFocusedBlock?: ContentBlock;
-  screenSize: ScreenSize;
-  getInputState(id: string, defaultValue?: any): any;
+/**
+ * Legacy label-derived signature for components whose UI state is keyed via
+ * getBlockKey (tabState/accordionState/galleryState/buttonLoading). Mirrors
+ * the legacy-key lambdas at the getBlockKey call sites. Returns null for
+ * types that carry no keyed UI state.
+ */
+function dynStateSignature(block: ContentBlock): string | null {
+  switch (block.type) {
+    case "tabs":
+    case "accordion":
+      return block.items.map((i) => i.label).join(",");
+    case "gallery":
+      return JSON.stringify(block.items.map((i) => i.title));
+    case "button":
+      return block.label;
+    default:
+      return null;
+  }
 }
 
 /** Resolve a dynamic block's children using cache for stable object references. */
-export function resolveDynamic(rt: RT, block: DynamicBlock): ContentBlock[] {
+export function resolveDynamic(rt: RuntimeInternal, block: DynamicBlock): ContentBlock[] {
   const id = block._dynamicId ?? "";
   const cached = rt.dynamicCache.get(id);
   if (cached) return cached;
@@ -78,26 +85,59 @@ export function resolveDynamic(rt: RT, block: DynamicBlock): ContentBlock[] {
   // Errors are cached like normal results so a throwing render() re-evaluates
   // on the next state change instead of re-throwing every frame.
   if (id) rt.dynamicCache.set(id, blocks);
+  // Stamp regenerated children under the parent's structural path — paths
+  // are deterministic across regenerations of a shape-stable tree, so
+  // path-keyed state survives per-frame re-rendering. Optional-chained:
+  // partial test stubs and unstamped parents degrade to the legacy label keys.
+  const parentKey = rt.blockKeys?.get(block);
+  if (parentKey) {
+    const sep = parentKey.indexOf("#");
+    stampBlockKeys(rt, parentKey.slice(0, sep), blocks, `${parentKey.slice(sep + 1)}/dyn`);
+    // Structural paths are index-based, but a dynamic() regeneration may
+    // legally change shape (a conditional sibling appearing, a list item
+    // inserted above) — shifting every index below the change and silently
+    // resetting path-keyed component state mid-session. Overwrite the keys
+    // of stateful components with shape-tolerant ones: scoped to this
+    // dynamic block's own key for cross-page uniqueness, label-derived
+    // within the subtree (like the legacy keys) so index shifts don't reset
+    // state. Same-signature duplicates inside one dynamic subtree share
+    // state — the legacy keys shared them globally, so this is still
+    // strictly tighter.
+    for (const e of walk(blocks, { descend: ALL_EDGES })) {
+      const sig = dynStateSignature(e.block);
+      if (sig !== null) {
+        rt.blockKeys.set(e.block, `${parentKey}/dyn:${e.block.type}:${sig}`);
+      }
+    }
+  }
   return blocks;
 }
 
 /** Invalidate dynamic cache so next render re-evaluates. */
-export function invalidateDynamicCache(rt: RT): void {
+export function invalidateDynamicCache(rt: RuntimeInternal): void {
   rt.dynamicCache.clear();
 }
 
-/** Check if a block type is focusable. */
-export function isBlockFocusable(block: ContentBlock): boolean {
-  return FOCUSABLE_TYPES.has(block.type);
+/**
+ * Whether the given block type occupies a single focus slot.
+ * @deprecated Import from block-taxonomy.ts instead.
+ */
+export function isFocusableType(type: string): boolean {
+  return FOCUSABLE_TYPES.has(type as ContentBlock["type"]);
 }
 
-/** Whether the given block type participates in focus navigation. */
-export function isFocusableType(type: string): boolean {
-  return FOCUSABLE_TYPES.has(type);
+/** Render a section header: accent-bold title + rule + blank line. */
+export function renderSectionHeader(title: string, ctx: RenderContext): string[] {
+  const sectionDims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.section);
+  return [
+    fgColor(ctx.theme.accent) + bold + "  " + title + reset,
+    fgColor(ctx.theme.border) + "  " + "─".repeat(Math.max(0, sectionDims.content - 4)) + reset,
+    "",
+  ];
 }
 
 /** Render content blocks as string lines. */
-export function renderContentBlocks(rt: RT, blocks: ContentBlock[], ctx: RenderContext): string[] {
+export function renderContentBlocks(rt: RuntimeInternal, blocks: ContentBlock[], ctx: RenderContext): string[] {
   const lines: string[] = [];
   for (const block of blocks) {
     // Pass focused context to blocks inside layouts when they match the current focus
@@ -116,7 +156,7 @@ export function renderContentBlocks(rt: RT, blocks: ContentBlock[], ctx: RenderC
 }
 
 /** Render a single content block to string lines. */
-export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): string[] {
+export function renderBlock(rt: RuntimeInternal, block: ContentBlock, ctx: RenderContext): string[] {
   switch (block.type) {
     case "text":
       return renderText(block.content, ctx, block.style);
@@ -133,17 +173,17 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     case "hero":
       return renderHero(block, ctx);
     case "gallery": {
-      const galleryKey = JSON.stringify(block.items.map((i: any) => i.title));
+      const galleryKey = rt.getBlockKey(block, () => JSON.stringify(block.items.map((i: any) => i.title)));
       const scrollIdx = rt.galleryState.get(galleryKey) ?? 0;
       return renderGallery(block.items, ctx, { columns: block.columns, scrollIndex: scrollIdx });
     }
     case "tabs": {
-      const tabKey = block.items.map((i: any) => i.label).join(",");
+      const tabKey = rt.getBlockKey(block, () => block.items.map((i: any) => i.label).join(","));
       const activeIdx = rt.tabState.get(tabKey) ?? 0;
       return renderTabs(block.items, activeIdx, ctx, (blocks, c) => renderContentBlocks(rt, blocks, c));
     }
     case "accordion": {
-      const accKey = block.items.map((i: any) => i.label).join(",");
+      const accKey = rt.getBlockKey(block, () => block.items.map((i: any) => i.label).join(","));
       const openIdx = rt.accordionState.get(accKey) ?? -1;
       return renderAccordion(block.items, openIdx, ctx, (blocks, c) => renderContentBlocks(rt, blocks, c));
     }
@@ -160,11 +200,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     case "spacer":
       return renderSpacer(block.lines);
     case "section": {
-      const sectionDims = computeBoxDimensions(ctx.width, COMPONENT_DEFAULTS.section);
-      const sectionLines: string[] = [];
-      sectionLines.push(fgColor(ctx.theme.accent) + bold + "  " + block.title + reset);
-      sectionLines.push(fgColor(ctx.theme.border) + "  " + "\u2500".repeat(Math.max(0, sectionDims.content - 4)) + reset);
-      sectionLines.push("");
+      const sectionLines: string[] = renderSectionHeader(block.title, ctx);
       sectionLines.push(...renderContentBlocks(rt, block.content, ctx));
       return sectionLines;
     }
@@ -205,7 +241,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
       return renderSearchInput(block, { query: state.value as string, cursorPos: state.cursorPos, editing: !!ctx.editing, highlightIndex: state.highlightIndex, filteredItems: filtered }, ctx);
     }
     case "button": {
-      const isLoading = rt.buttonLoading.get(block.label) ?? false;
+      const isLoading = rt.buttonLoading.get(rt.getBlockKey(block, () => block.label)) ?? false;
       return renderButton(block, ctx, isLoading);
     }
     case "form": {
@@ -225,7 +261,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     }
     case "columns": {
       const { rows: termRows } = rt.screenSize;
-      const availHeight = Math.max(10, termRows - 8);
+      const availHeight = layoutAvailHeight(termRows);
       const colsBlock = block as ColumnsBlock;
       const activeIdx = findActivePanelIndex(colsBlock.panels.map(p => p.content), rt.currentFocusedBlock);
       return renderColumns(colsBlock, ctx, {
@@ -236,7 +272,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     }
     case "rows": {
       const { rows: termRows } = rt.screenSize;
-      const availHeight = Math.max(10, termRows - 8);
+      const availHeight = layoutAvailHeight(termRows);
       const rowsBlk = block as RowsBlock;
       const activeIdx = findActivePanelIndex(rowsBlk.panels.map(p => p.content), rt.currentFocusedBlock);
       return renderRows(rowsBlk, ctx, {
@@ -247,7 +283,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     }
     case "grid": {
       const { rows: termRows } = rt.screenSize;
-      const availHeight = Math.max(10, termRows - 8);
+      const availHeight = layoutAvailHeight(termRows);
       const gridBlk = block as GridBlock;
       const activeIdx = findActivePanelIndex(gridBlk.config.items.map(i => i.content), rt.currentFocusedBlock);
       return renderGrid(gridBlk, ctx, {
@@ -258,7 +294,7 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
     }
     case "panel": {
       const { rows: termRows } = rt.screenSize;
-      const availHeight = Math.max(10, termRows - 8);
+      const availHeight = layoutAvailHeight(termRows);
       return renderPanel((block as PanelBlock).config, ctx, {
         width: ctx.width,
         height: availHeight,
@@ -302,51 +338,18 @@ export function renderBlock(rt: RT, block: ContentBlock, ctx: RenderContext): st
 function findActivePanelIndex(contentArrays: ContentBlock[][], focusedBlock?: ContentBlock): number {
   if (!focusedBlock) return -1;
   for (let i = 0; i < contentArrays.length; i++) {
-    if (containsBlockDeep(contentArrays[i], focusedBlock)) return i;
+    if (containsBlock(contentArrays[i], focusedBlock)) return i;
   }
   return -1;
 }
 
-/** Check if a block exists anywhere in a content tree. */
-function containsBlockDeep(blocks: ContentBlock[], target: ContentBlock): boolean {
-  for (const block of blocks) {
-    if (block === target) return true;
-    if (block.type === "columns") {
-      for (const p of (block as ColumnsBlock).panels) {
-        if (containsBlockDeep(p.content, target)) return true;
-      }
-    } else if (block.type === "rows") {
-      for (const p of (block as RowsBlock).panels) {
-        if (containsBlockDeep(p.content, target)) return true;
-      }
-    } else if (block.type === "grid") {
-      for (const item of (block as GridBlock).config.items) {
-        if (containsBlockDeep(item.content, target)) return true;
-      }
-    } else if (block.type === "panel") {
-      if (containsBlockDeep((block as PanelBlock).config.content, target)) return true;
-    } else if (block.type === "section") {
-      if (containsBlockDeep(block.content, target)) return true;
-    } else if (block.type === "form") {
-      if (containsBlockDeep((block as FormBlock).fields, target)) return true;
-    } else if (block.type === "row") {
-      for (const c of (block as RowBlock).cols) {
-        if (containsBlockDeep(c.content, target)) return true;
-      }
-    } else if (block.type === "container") {
-      if (containsBlockDeep((block as ContainerBlock).content, target)) return true;
-    }
-  }
-  return false;
-}
-
 /** Render a 12-column grid row with responsive wrapping. */
-function renderRowBlock(rt: RT, block: RowBlock, ctx: RenderContext): string[] {
+function renderRowBlock(rt: RuntimeInternal, block: RowBlock, ctx: RenderContext): string[] {
   const { cols, gap = 1 } = block;
   if (cols.length === 0) return [];
 
   const { rows: termRows, columns: termCols } = rt.screenSize;
-  const availHeight = Math.max(10, termRows - 8);
+  const availHeight = layoutAvailHeight(termRows);
 
   // Resolve effective spans based on current terminal breakpoint
   const bp = getBreakpoint(termCols);
@@ -396,7 +399,7 @@ function renderRowBlock(rt: RT, block: RowBlock, ctx: RenderContext): string[] {
 }
 
 /** Render a menu block (for file-based routing auto-menu or inline manual menu). */
-function renderMenuBlock(rt: RT, block: any, ctx: RenderContext): string[] {
+function renderMenuBlock(rt: RuntimeInternal, block: any, ctx: RenderContext): string[] {
   let items: MenuItem[] = [];
 
   if (block.items && block.items.length > 0) {
@@ -408,7 +411,7 @@ function renderMenuBlock(rt: RT, block: any, ctx: RenderContext): string[] {
     }));
   } else if (block.source === "auto") {
     // Auto-generated from file router or site pages
-    const fileRouter = (rt as any)._fileRouter;
+    const fileRouter = rt.fileRouter;
     if (fileRouter) {
       const menuItems = fileRouter.getMenuItems();
       items = menuItems.map((m: any) => ({
@@ -418,7 +421,7 @@ function renderMenuBlock(rt: RT, block: any, ctx: RenderContext): string[] {
       }));
     } else {
       // Fallback: use site pages (single-file mode)
-      const site = (rt as any).site;
+      const site = rt.site;
       if (site?.pages) {
         items = site.pages
           .filter((p: any) => typeof p.title === "string")
@@ -432,7 +435,7 @@ function renderMenuBlock(rt: RT, block: any, ctx: RenderContext): string[] {
 }
 
 /** Render a container block (centers content with optional max width). */
-function renderContainerBlock(rt: RT, block: ContainerBlock, ctx: RenderContext): string[] {
+function renderContainerBlock(rt: RuntimeInternal, block: ContainerBlock, ctx: RenderContext): string[] {
   const padding = block.padding ?? 0;
   const maxWidth = block.maxWidth ?? ctx.width;
   const innerWidth = Math.max(1, Math.min(ctx.width, maxWidth) - padding * 2);

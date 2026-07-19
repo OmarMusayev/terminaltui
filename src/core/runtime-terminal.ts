@@ -5,17 +5,8 @@
 import { fgColor, reset } from "../style/colors.js";
 import { renderInput } from "../components/Input.js";
 import { stringWidth, cutToWidth, type RenderContext } from "../components/base.js";
-
-interface RT {
-  theme: any;
-  borderStyle: string;
-  commandMode: boolean;
-  commandBuffer: string;
-  feedbackMessage: string;
-  inputMode: any;
-  notifications: any;
-  writeOutput(data: string): void;
-}
+import type { RuntimeInternal } from "./runtime-internal.js";
+import { contentWidth } from "./layout-constants.js";
 
 /** ANSI-safe line truncation to prevent terminal wrapping. */
 export function truncateLine(line: string, maxWidth: number): string {
@@ -23,16 +14,16 @@ export function truncateLine(line: string, maxWidth: number): string {
 }
 
 /** Create the render context used by all component renderers. */
-export function createRenderContext(rt: RT, width: number): RenderContext {
+export function createRenderContext(rt: RuntimeInternal, width: number): RenderContext {
   return {
-    width: Math.min(width, 100),
+    width: contentWidth(width),
     theme: rt.theme,
     borderStyle: rt.borderStyle,
   };
 }
 
 /** Write rendered lines to the terminal. */
-export function writeToTerminal(rt: RT, lines: string[], columns: number, rows: number): void {
+export function writeToTerminal(rt: RuntimeInternal, lines: string[], columns: number, rows: number): void {
   let output = "\x1b[H";
   for (let i = 0; i < rows; i++) {
     output += "\x1b[0m\x1b[2K";

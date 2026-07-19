@@ -6,40 +6,18 @@ import type {
   ContentBlock, ButtonBlock, FormBlock, SelectBlock,
   RadioGroupBlock, TextInputBlock, TextAreaBlock,
 } from "../config/types.js";
-import type { FocusItem } from "./runtime-types.js";
 import { collectFormFieldIds, getInputDefault } from "../components/Form.js";
 import { openUrl } from "../helpers/open-url.js";
-
-// Minimal runtime interface for form handling functions
-interface RT {
-  site: any;
-  router: any;
-  inputMode: any;
-  pageFocusIndex: number;
-  pageFocusItems: FocusItem[];
-  inputStates: Map<string, any>;
-  formResults: Map<string, { message: string; type: "success" | "error" | "info" }>;
-  buttonLoading: Map<string, boolean>;
-  notifications: any;
-  formRegistry: Map<string, FormBlock>;
-  accordionState: Map<string, number>;
-  tabState: Map<string, number>;
-  isServeMode: boolean;
-  render(): void;
-  getInputState(id: string, defaultValue?: any): any;
-  showFeedback(msg: string): void;
-  navigateToPage(pageId: string, params?: any): void;
-  pageFocusNext(): void;
-}
+import type { RuntimeInternal } from "./runtime-internal.js";
 
 /** Handle enter/select on the currently focused item. */
-export function handlePageSelect(rt: RT): void {
+export function handlePageSelect(rt: RuntimeInternal): void {
   const item = rt.pageFocusItems[rt.pageFocusIndex];
   if (!item) return;
 
   if (item.kind === "accordion-item") {
     const acc = item.accordion;
-    const accKey = acc.items.map((i: any) => i.label).join(",");
+    const accKey = rt.getBlockKey(acc, () => acc.items.map((i: any) => i.label).join(","));
     const current = rt.accordionState.get(accKey) ?? -1;
     rt.accordionState.set(accKey, current === item.itemIndex ? -1 : item.itemIndex);
     return;
@@ -123,7 +101,7 @@ export function handlePageSelect(rt: RT): void {
 
   // Tabs
   if (block.type === "tabs") {
-    const tabKey = block.items.map((i: any) => i.label).join(",");
+    const tabKey = rt.getBlockKey(block, () => block.items.map((i: any) => i.label).join(","));
     const current = rt.tabState.get(tabKey) ?? 0;
     rt.tabState.set(tabKey, (current + 1) % block.items.length);
     return;
@@ -142,7 +120,7 @@ export function handlePageSelect(rt: RT): void {
 }
 
 /** Handle a button press (submit form or run onPress). */
-export function handleButtonPress(rt: RT, button: ButtonBlock): void {
+export function handleButtonPress(rt: RuntimeInternal, button: ButtonBlock): void {
   if (button._formId) {
     submitForm(rt, button._formId);
     return;
@@ -151,7 +129,7 @@ export function handleButtonPress(rt: RT, button: ButtonBlock): void {
   if (button.onPress) {
     const result = button.onPress();
     if (result && typeof (result as any).then === "function") {
-      const btnKey = button.label;
+      const btnKey = rt.getBlockKey(button, () => button.label);
       rt.buttonLoading.set(btnKey, true);
       rt.render();
       (result as Promise<any>).then((actionResult: any) => {
@@ -173,7 +151,7 @@ export function handleButtonPress(rt: RT, button: ButtonBlock): void {
 }
 
 /** Handle a card action (navigate or onPress). */
-export function handleCardAction(rt: RT, card: ContentBlock & { type: "card" }): void {
+export function handleCardAction(rt: RuntimeInternal, card: ContentBlock & { type: "card" }): void {
   if (!card.action) return;
 
   if (card.action.navigate) {
@@ -193,7 +171,7 @@ export function handleCardAction(rt: RT, card: ContentBlock & { type: "card" }):
 }
 
 /** Show a notification from an ActionResult. */
-function showActionResult(rt: RT, result: any): void {
+function showActionResult(rt: RuntimeInternal, result: any): void {
   if (!result || typeof result !== "object") return;
   if ("success" in result) rt.notifications.success(result.success);
   else if ("error" in result) rt.notifications.error(result.error);
@@ -201,7 +179,7 @@ function showActionResult(rt: RT, result: any): void {
 }
 
 /** Validate an input block. Returns true if valid. */
-export function validateInput(rt: RT, block: ContentBlock): boolean {
+export function validateInput(rt: RuntimeInternal, block: ContentBlock): boolean {
   if (block.type === "textInput") {
     const b = block as TextInputBlock;
     if (b.validate) {
@@ -223,7 +201,7 @@ export function validateInput(rt: RT, block: ContentBlock): boolean {
 }
 
 /** Submit a form by ID. */
-export async function submitForm(rt: RT, formId: string): Promise<void> {
+export async function submitForm(rt: RuntimeInternal, formId: string): Promise<void> {
   const formBlock = rt.formRegistry.get(formId);
   if (!formBlock) return;
 
@@ -260,7 +238,7 @@ export async function submitForm(rt: RT, formId: string): Promise<void> {
   }
 
   const btnField = formBlock.fields.find((f: any) => f.type === "button");
-  const btnKey = btnField ? (btnField as ButtonBlock).label : "";
+  const btnKey = btnField ? rt.getBlockKey(btnField, () => (btnField as ButtonBlock).label) : "";
   if (btnKey) rt.buttonLoading.set(btnKey, true);
   rt.render();
 
@@ -297,7 +275,7 @@ export async function submitForm(rt: RT, formId: string): Promise<void> {
 }
 
 /** Reset all fields in a form to their default values. */
-export function resetFormFields(rt: RT, formBlock: FormBlock): void {
+export function resetFormFields(rt: RuntimeInternal, formBlock: FormBlock): void {
   for (const field of formBlock.fields) {
     if ("id" in field && (field as any).type !== "button") {
       const id = (field as any).id;

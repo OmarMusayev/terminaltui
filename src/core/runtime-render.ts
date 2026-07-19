@@ -2,85 +2,88 @@
  * Page-level rendering logic: home page, content page, scroll management,
  * and terminal output.
  */
-import type { ContentBlock, AsyncContentBlock, FormBlock, DynamicBlock } from "../config/types.js";
+import type { ContentBlock, AsyncContentBlock, FormBlock } from "../config/types.js";
 import { fgColor, reset, bold, dim, italic } from "../style/colors.js";
 import { gradientLines } from "../style/gradient.js";
 import { renderBanner, centerBanner } from "../ascii/banner.js";
 import { getSpinnerFrame } from "../animation/spinner.js";
-import type { ScreenSize } from "./screen.js";
 import { renderMenu, type MenuItem } from "../components/Menu.js";
 import { pad, wrapText, stringWidth, truncate, type RenderContext } from "../components/base.js";
 import { renderFormResult } from "../components/Form.js";
 import type { FocusItem } from "./runtime-types.js";
-import type { FocusRect } from "../layout/types.js";
-import { computeFocusPositions } from "../layout/flex-engine.js";
+import type { RuntimeInternal } from "./runtime-internal.js";
 import {
   renderBlock, renderContentBlocks, resolveDynamic,
-  invalidateDynamicCache, isBlockFocusable,
+  invalidateDynamicCache, isBlockFocusable, renderSectionHeader,
 } from "./runtime-block-render.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 import { writeToTerminal, createRenderContext } from "./runtime-terminal.js";
+import { FOOTER_LINES, viewportHeight } from "./layout-constants.js";
+import { computeFocusLayout, isVolatileContent, countFocusSlots } from "./runtime-pages.js";
+import {
+  findFirst, containsBlock, stampBlockKeys, STRUCTURAL_EDGES, type ContainerEdge,
+} from "./block-walker.js";
 
 // Re-export for runtime.ts
 export { renderBlock, renderContentBlocks, resolveDynamic, invalidateDynamicCache, isBlockFocusable };
 export { writeToTerminal, createRenderContext };
 
-interface RT {
-  site: any;
-  theme: any;
-  router: any;
-  focus: any;
-  bootComplete: boolean;
-  bootFrame: number;
-  pageFocusIndex: number;
-  pageFocusItems: FocusItem[];
-  pageScrollOffset: number;
-  inputMode: any;
-  formResults: Map<string, { message: string; type: "success" | "error" | "info" }>;
-  asyncManager: any;
-  accordionState: Map<string, number>;
-  dynamicCache: Map<string, ContentBlock[]>;
-  focusRects: FocusRect[];
-  getInputState(id: string, defaultValue?: any): any;
-  getCurrentPage(): any;
-  getPageContent(page: any): ContentBlock[] | null;
-  initializePageContent(content: ContentBlock[]): void;
-  resolvePageTitle(page: any): string;
-  collectFocusItems(blocks: ContentBlock[]): FocusItem[];
-  registerForms(blocks: ContentBlock[]): void;
-  currentFocusedBlock?: ContentBlock;
-  screenSize: ScreenSize;
-  spinnerTimer: ReturnType<typeof setTimeout> | null;
-  render(): void;
-}
-
 /** Main render entry point. */
-export function renderMain(rt: RT): void {
-  invalidateDynamicCache(rt as any);
-
+export function renderMain(rt: RuntimeInternal): void {
   const currentPage = rt.getCurrentPage();
-  if (currentPage && !rt.router.isHome()) {
-    const content = rt.getPageContent(currentPage);
+  const { columns, rows } = rt.screenSize;
+  const cache = rt.layoutCache;
+  const content = currentPage && !rt.router.isHome()
+    ? rt.getPageContent(currentPage) : null;
+
+  // Fast path (§D.4): a static (non-volatile) tree with unchanged content
+  // identity and dimensions keeps its focus items, form registry, and rects.
+  // Accordion open/close, tab switches, and input editing don't change rect
+  // geometry (flex-engine uses fixed per-item heights), so skipping the
+  // collect/registerForms/computeFocusPositions passes is golden-identical.
+  // The focus-slot fingerprint guards legal in-place mutation of a static
+  // tree (a callback pushing blocks onto the content array, or items onto an
+  // accordion/timeline, then triggering a render): a changed slot count
+  // falls back to the slow path so the new blocks stay reachable.
+  const cacheHit = content !== null && !cache.volatile &&
+    cache.contentRef === content && cache.columns === columns && cache.rows === rows &&
+    countFocusSlots(content) === rt.pageFocusItems.length;
+
+  if (!cacheHit) {
+    invalidateDynamicCache(rt);
     if (content) {
-      const oldIndex = rt.pageFocusIndex;
+      // Rebuild caused by content identity change without enterPage (e.g.
+      // "back" navigation restoring a previous page) or by in-place mutation
+      // of a static tree (fingerprint miss): re-derive volatility and
+      // re-stamp block keys before collecting focus (resolveDynamic reads
+      // the parent's stamp). Stamping is idempotent and deterministic, and
+      // it must re-run here: a block object shared between two pages'
+      // content trees carries the most recently entered page's key, and
+      // freshly pushed blocks carry none. Volatile trees miss the cache
+      // every frame but keep a stable contentRef, so they skip both.
+      if (cache.contentRef !== content || !cache.volatile) {
+        cache.volatile = isVolatileContent(content);
+        stampBlockKeys(rt, rt.router.currentPage, content);
+      }
       rt.pageFocusItems = rt.collectFocusItems(content);
-      rt.pageFocusIndex = Math.min(oldIndex, Math.max(0, rt.pageFocusItems.length - 1));
       rt.registerForms(content);
 
       // Recompute spatial focus positions for navigation
-      const ss = rt.screenSize;
-      const contentW = Math.min(120, ss.columns - 2);
-      const availH = Math.max(10, ss.rows - 8);
-      rt.focusRects = computeFocusPositions(
-        content, contentW, availH,
-        (block: DynamicBlock) => resolveDynamic(rt as any, block),
-      );
+      computeFocusLayout(rt, content);
+
+      cache.contentRef = content;
+      cache.columns = columns;
+      cache.rows = rows;
     }
   }
+  if (content) {
+    // The re-clamp stays per-frame (cheap): a shrinking item list from a
+    // refresh must never leave a dangling focus index.
+    rt.pageFocusIndex = Math.min(rt.pageFocusIndex, Math.max(0, rt.pageFocusItems.length - 1));
+  }
 
-  const { columns, rows } = rt.screenSize;
   const lines: string[] = [];
-  const ctx = createRenderContext(rt as any, columns);
+  const ctx = createRenderContext(rt, columns);
 
   if (rt.router.isHome()) {
     renderHomePage(rt, lines, ctx, columns, rows);
@@ -88,11 +91,11 @@ export function renderMain(rt: RT): void {
     renderContentPage(rt, lines, ctx, columns, rows);
   }
 
-  writeToTerminal(rt as any, lines, columns, rows);
+  writeToTerminal(rt, lines, columns, rows);
 }
 
 /** Render the home/menu page. */
-function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: number, rows: number): void {
+function renderHomePage(rt: RuntimeInternal, lines: string[], ctx: RenderContext, columns: number, rows: number): void {
   const contentWidth = ctx.width;
   const leftPad = Math.max(0, Math.floor((columns - contentWidth) / 2));
   const padStr = " ".repeat(leftPad);
@@ -130,7 +133,9 @@ function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: nu
   // Check if home page content already contains a menu block (avoid duplicates)
   const homePage = rt.site.pages.find((p: any) => p.id === "home");
   const homeContent = homePage ? rt.getPageContent(homePage) : null;
-  const homeHasMenuBlock = homeContent ? containsMenuBlock(homeContent) : false;
+  const homeHasMenuBlock = homeContent
+    ? findFirst(homeContent, (e) => e.block.type === "menu") !== null
+    : false;
 
   if (!homeHasMenuBlock) {
     // Build menu items: explicit menu config > file router > fallback to pages
@@ -139,8 +144,8 @@ function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: nu
       menuItems = rt.site.menu.items.map((item: any) => ({
         label: item.label, icon: item.icon, id: item.page,
       }));
-    } else if ((rt as any)._fileRouter) {
-      const fileMenuItems = (rt as any)._fileRouter.getMenuItems();
+    } else if (rt.fileRouter) {
+      const fileMenuItems = rt.fileRouter.getMenuItems();
       menuItems = fileMenuItems.map((m: any) => ({
         label: m.label, icon: m.icon, id: m.page,
       }));
@@ -163,7 +168,7 @@ function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: nu
     const blockWidth = Math.max(1, contentWidth - 1);
     const blockCtx: RenderContext = { ...ctx, width: blockWidth };
     for (const block of homeContent) {
-      const rendered = renderBlock(rt as any, block, blockCtx);
+      const rendered = renderBlock(rt, block, blockCtx);
       for (const line of rendered) lines.push(padStr + " " + line);
       lines.push("");
     }
@@ -181,44 +186,7 @@ function renderHomePage(rt: RT, lines: string[], ctx: RenderContext, columns: nu
 }
 
 /** Render a content page with scroll management. */
-/** Check if content blocks contain a menu block anywhere in the tree. */
-function containsMenuBlock(blocks: ContentBlock[]): boolean {
-  for (const block of blocks) {
-    if (block.type === "menu") return true;
-    if (block.type === "section" && containsMenuBlock((block as any).content)) return true;
-    if (block.type === "columns") {
-      for (const p of (block as any).panels) if (containsMenuBlock(p.content)) return true;
-    }
-  }
-  return false;
-}
-
-/** Check if a layout block contains a specific target block anywhere in its tree. */
-function containsBlock(layout: ContentBlock, target: ContentBlock): boolean {
-  if (layout === target) return true;
-  if (layout.type === "columns") {
-    for (const p of (layout as any).panels) {
-      for (const b of p.content) if (containsBlock(b, target)) return true;
-    }
-  } else if (layout.type === "rows") {
-    for (const p of (layout as any).panels) {
-      for (const b of p.content) if (containsBlock(b, target)) return true;
-    }
-  } else if (layout.type === "grid") {
-    for (const item of (layout as any).config.items) {
-      for (const b of item.content) if (containsBlock(b, target)) return true;
-    }
-  } else if (layout.type === "row") {
-    for (const c of (layout as any).cols) {
-      for (const b of c.content) if (containsBlock(b, target)) return true;
-    }
-  } else if (layout.type === "container") {
-    for (const b of (layout as any).content) if (containsBlock(b, target)) return true;
-  }
-  return false;
-}
-
-function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns: number, rows: number): void {
+function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderContext, columns: number, rows: number): void {
   const currentPage = rt.getCurrentPage();
   if (!currentPage) return;
 
@@ -254,7 +222,7 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
 
   // Expose the focused block to the layout rendering pipeline so cards inside
   // panels can show the filled ◆ indicator when focused.
-  (rt as any).currentFocusedBlock = currentFocus?.kind === "block" ? currentFocus.block : undefined;
+  rt.currentFocusedBlock = currentFocus?.kind === "block" ? currentFocus.block : undefined;
 
   const isBlockFocusedFn = (block: ContentBlock): boolean =>
     !!currentFocus && currentFocus.kind === "block" && currentFocus.block === block;
@@ -275,10 +243,7 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
   const renderBlocksRecursive = (blocks: ContentBlock[]) => {
     for (const block of blocks) {
       if (block.type === "section") {
-        const sectionDims = computeBoxDimensions(blockWidth, COMPONENT_DEFAULTS.section);
-        allContentLines.push(fgColor(blockCtx.theme.accent) + bold + "  " + block.title + reset);
-        allContentLines.push(fgColor(blockCtx.theme.border) + "  " + "\u2500".repeat(Math.max(0, sectionDims.content - 4)) + reset);
-        allContentLines.push("");
+        allContentLines.push(...renderSectionHeader(block.title, blockCtx));
         renderBlocksRecursive(block.content);
       } else if (block.type === "form") {
         renderBlocksRecursive((block as FormBlock).fields);
@@ -290,7 +255,7 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
           allContentLines.push("");
         }
       } else if (block.type === "dynamic") {
-        renderBlocksRecursive(resolveDynamic(rt as any, block as any));
+        renderBlocksRecursive(resolveDynamic(rt, block));
         continue;
       } else if (block.type === "asyncContent") {
         renderAsyncContentBlock(rt, block as AsyncContentBlock, allContentLines, blockCtx, renderBlocksRecursive);
@@ -300,15 +265,16 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
         renderTimelineInline(rt, block, allContentLines, blockCtx, blockWidth, currentFocus, indicator, focusedLineStart, focusedLineEnd, (s, e) => { focusedLineStart = s; focusedLineEnd = e; });
       } else {
         const focused = isBlockFocusedFn(block);
-        // For layout blocks, check if the focused item is inside them
-        const isLayout = block.type === "columns" || block.type === "rows" || block.type === "grid" || block.type === "row" || block.type === "container";
+        // For layout containers (any structural edge, incl. panel), check if
+        // the focused item is inside them so scroll-follow tracks it.
+        const isLayout = STRUCTURAL_EDGES.has(block.type as ContainerEdge);
         const layoutContainsFocus = isLayout && !focused && !!rt.currentFocusedBlock &&
-          containsBlock(block, rt.currentFocusedBlock);
+          containsBlock([block], rt.currentFocusedBlock);
         if (focused || layoutContainsFocus) focusedLineStart = allContentLines.length;
         const blockIsFocusableVal = isBlockFocusable(block);
         const isEditing = focused && rt.inputMode.isEditing;
         const focusCtx = focused ? { ...blockCtx, focused: true, editing: isEditing } : blockCtx;
-        const rendered = renderBlock(rt as any, block, focusCtx);
+        const rendered = renderBlock(rt, block, focusCtx);
         if (blockIsFocusableVal && focused) {
           for (const line of rendered) allContentLines.push(indicator + line);
         } else {
@@ -324,29 +290,27 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
   if (allContentLines.length > 0 && allContentLines[allContentLines.length - 1] === "") allContentLines.pop();
 
   // Scroll adjustment
-  const headerLines = 4;
-  const footerLines = 3;
-  const viewportHeight = Math.max(1, rows - headerLines - footerLines);
+  const viewport = viewportHeight(rows);
 
   if (focusedLineStart >= 0) {
     const focusedHeight = focusedLineEnd - focusedLineStart;
-    if (focusedHeight > viewportHeight) {
+    if (focusedHeight > viewport) {
       // Focused block is taller than the viewport — anchor to its start
       // (so headers like tab labels stay visible) and allow manual
       // scrolling within the block's extent.
       rt.pageScrollOffset = Math.max(
         focusedLineStart,
-        Math.min(rt.pageScrollOffset, focusedLineEnd - viewportHeight),
+        Math.min(rt.pageScrollOffset, focusedLineEnd - viewport),
       );
     } else if (focusedLineStart < rt.pageScrollOffset) {
       // Scroll up to keep the focused block fully visible
       rt.pageScrollOffset = Math.max(0, focusedLineStart);
-    } else if (focusedLineEnd > rt.pageScrollOffset + viewportHeight) {
+    } else if (focusedLineEnd > rt.pageScrollOffset + viewport) {
       // Scroll down to keep the focused block fully visible
-      rt.pageScrollOffset = Math.max(0, focusedLineEnd - viewportHeight);
+      rt.pageScrollOffset = Math.max(0, focusedLineEnd - viewport);
     }
   }
-  rt.pageScrollOffset = Math.min(rt.pageScrollOffset, Math.max(0, allContentLines.length - viewportHeight));
+  rt.pageScrollOffset = Math.min(rt.pageScrollOffset, Math.max(0, allContentLines.length - viewport));
 
   let itemsAbove = 0, itemsBelow = 0;
   if (rt.pageFocusItems.length > 0) {
@@ -369,13 +333,13 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
     lines.push("");
   }
 
-  for (const cl of allContentLines.slice(rt.pageScrollOffset, rt.pageScrollOffset + viewportHeight)) {
+  for (const cl of allContentLines.slice(rt.pageScrollOffset, rt.pageScrollOffset + viewport)) {
     lines.push(padStr + cl);
   }
-  while (lines.length < rows - footerLines) lines.push("");
+  while (lines.length < rows - FOOTER_LINES) lines.push("");
 
   // Footer
-  const hasBelow = rt.pageScrollOffset + viewportHeight < allContentLines.length;
+  const hasBelow = rt.pageScrollOffset + viewport < allContentLines.length;
   if (itemsBelow > 0) {
     lines.push(padStr + fgColor(rt.theme.subtle) + dim + "  \u2193 " + itemsBelow + " item" + (itemsBelow > 1 ? "s" : "") + " below" + reset);
   } else if (hasBelow) {
@@ -407,13 +371,13 @@ function renderContentPage(rt: RT, lines: string[], ctx: RenderContext, columns:
  * by design.
  */
 function renderAccordionInline(
-  rt: RT, block: ContentBlock, allContentLines: string[], ctx: RenderContext,
+  rt: RuntimeInternal, block: ContentBlock, allContentLines: string[], ctx: RenderContext,
   contentWidth: number, focusedAccordionItemIdx: (b: ContentBlock) => number,
   indicator: string, _fls: number, _fle: number,
   setFocus: (s: number, e: number) => void,
 ): void {
   const accFocusIdx = focusedAccordionItemIdx(block);
-  const accKey = (block as any).items.map((i: any) => i.label).join(",");
+  const accKey = rt.getBlockKey(block, () => (block as any).items.map((i: any) => i.label).join(","));
   const openIdx = rt.accordionState.get(accKey) ?? -1;
 
   for (let ai = 0; ai < (block as any).items.length; ai++) {
@@ -434,7 +398,7 @@ function renderAccordionInline(
     if (isItemOpen) {
       const contentCtx = { ...ctx, width: accDims.content, focused: false };
       for (const cb of item.content) {
-        for (const rl of renderBlock(rt as any, cb, contentCtx)) allContentLines.push("     " + rl);
+        for (const rl of renderBlock(rt, cb, contentCtx)) allContentLines.push("     " + rl);
       }
       allContentLines.push("");
     }
@@ -447,7 +411,7 @@ function renderAccordionInline(
  * See `renderAccordionInline` doc-comment for the design split.
  */
 function renderTimelineInline(
-  rt: RT, block: ContentBlock, allContentLines: string[], ctx: RenderContext,
+  rt: RuntimeInternal, block: ContentBlock, allContentLines: string[], ctx: RenderContext,
   contentWidth: number, currentFocus: FocusItem | undefined, indicator: string,
   _fls: number, _fle: number, setFocus: (s: number, e: number) => void,
 ): void {
@@ -485,7 +449,7 @@ function renderTimelineInline(
 
 /** Render an asyncContent block. */
 function renderAsyncContentBlock(
-  rt: RT, block: AsyncContentBlock, allContentLines: string[],
+  rt: RuntimeInternal, block: AsyncContentBlock, allContentLines: string[],
   ctx: RenderContext, renderRecursive: (blocks: ContentBlock[]) => void,
 ): void {
   const asyncId = block._asyncId ?? "async-anon";
@@ -518,6 +482,18 @@ function renderAsyncContentBlock(
     else { allContentLines.push(" " + fgColor(ctx.theme.error) + "\u26a0 " + (state.error?.message ?? "Failed to load content") + reset); }
     return;
   }
-  if (state.content) renderRecursive(state.content);
+  if (state.content) {
+    // Stamp loaded children once when first seen (idempotent via the WeakMap
+    // has-check on the array's blocks) so path-keyed component state inside
+    // async content is stable. Prefix: the async block's own stamped path.
+    if (state.content.length > 0 && !rt.blockKeys.has(state.content[0])) {
+      const parentKey = rt.blockKeys.get(block);
+      if (parentKey) {
+        const sep = parentKey.indexOf("#");
+        stampBlockKeys(rt, parentKey.slice(0, sep), state.content, `${parentKey.slice(sep + 1)}/async`);
+      }
+    }
+    renderRecursive(state.content);
+  }
 }
 

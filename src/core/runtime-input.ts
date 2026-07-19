@@ -6,60 +6,27 @@
  * focusable item in that direction based on screen position.
  */
 import type {
-  ContentBlock, TextInputBlock, TextAreaBlock, SelectBlock,
+  ContentBlock, DynamicBlock, TextInputBlock, TextAreaBlock, SelectBlock,
   NumberInputBlock, SearchInputBlock, RadioGroupBlock,
-  FormBlock, DynamicBlock,
-  ColumnsBlock, RowsBlock, GridBlock, PanelBlock,
+  ColumnsBlock, RowsBlock, GridBlock,
 } from "../config/types.js";
 import type { KeyPress } from "./input.js";
 import { keyToAction } from "../navigation/keybindings.js";
 import { findNextFocus } from "../navigation/spatial.js";
 import { filterSearchItems } from "../components/SearchInput.js";
 import { getInputDefault } from "../components/Form.js";
-import type { FocusItem } from "./runtime-types.js";
-import type { FocusRect } from "../layout/types.js";
+import type { RuntimeInternal } from "./runtime-internal.js";
 import { prevCursorPos, codePointLength, isPrintableChar } from "../components/text-cursor.js";
 import {
   handleTextInputKey, handleTextAreaKey, handleSelectKey,
   handleNumberInputKey, handleSearchInputKey, handleRadioGroupKey,
 } from "./runtime-edit-handlers.js";
-
-interface RT {
-  site: any;
-  router: any;
-  focus: any;
-  inputMode: any;
-  commandMode: boolean;
-  commandBuffer: string;
-  pageFocusIndex: number;
-  pageFocusItems: FocusItem[];
-  pageScrollOffset: number;
-  scrollOffset: number;
-  accordionState: Map<string, number>;
-  tabState: Map<string, number>;
-  resolvedPageContent: Map<string, ContentBlock[]>;
-  focusRects: FocusRect[];
-  render(): void;
-  stop(): Promise<void>;
-  navigateToPage(pageId: string, params?: any): void;
-  pageFocusNext(): void;
-  pageFocusPrev(): void;
-  handleEditMode(key: KeyPress): void;
-  showFeedback(msg: string): void;
-  getInputState(id: string, defaultValue?: any): any;
-  validateInput(block: ContentBlock): boolean;
-  handlePageSelect(): void;
-  enterPage(): void;
-  executeCommand(cmd: string): void;
-  getFocusedInputBlock(): ContentBlock | null;
-  isTextEntryType(type: string): boolean;
-  isAutoEditKey(key: KeyPress): boolean;
-  getCurrentPage(): any;
-  getPageContent(page: any): ContentBlock[] | null;
-}
+import { walk, ALL_EDGES, type ContainerEdge } from "./block-walker.js";
+import { focusSlots } from "./block-taxonomy.js";
+import { resolveDynamic } from "./runtime-block-render.js";
 
 /** Handle keystrokes in command mode (:command). */
-export function handleCommandMode(rt: RT, key: KeyPress): void {
+export function handleCommandMode(rt: RuntimeInternal, key: KeyPress): void {
   if (key.name === "escape") {
     rt.commandMode = false;
     rt.commandBuffer = "";
@@ -90,7 +57,7 @@ export function handleCommandMode(rt: RT, key: KeyPress): void {
 }
 
 /** Handle keystrokes in navigation mode — spatial navigation for all directions. */
-export function handleNavigationMode(rt: RT, key: KeyPress): void {
+export function handleNavigationMode(rt: RuntimeInternal, key: KeyPress): void {
   const isHome = rt.router.isHome();
 
   // Auto-enter edit mode for text inputs when typing
@@ -166,7 +133,7 @@ export function handleNavigationMode(rt: RT, key: KeyPress): void {
         const leftFocus = rt.pageFocusItems[rt.pageFocusIndex];
         if (leftFocus?.kind === "block" && leftFocus.block.type === "tabs") {
           const tb = leftFocus.block;
-          const tabKey = tb.items.map((i: any) => i.label).join(",");
+          const tabKey = rt.getBlockKey(tb, () => tb.items.map((i: any) => i.label).join(","));
           const cur = rt.tabState.get(tabKey) ?? 0;
           rt.tabState.set(tabKey, cur > 0 ? cur - 1 : tb.items.length - 1);
         } else {
@@ -191,7 +158,7 @@ export function handleNavigationMode(rt: RT, key: KeyPress): void {
         const rightFocus = rt.pageFocusItems[rt.pageFocusIndex];
         if (rightFocus?.kind === "block" && rightFocus.block.type === "tabs") {
           const tb = rightFocus.block;
-          const tabKey = tb.items.map((i: any) => i.label).join(",");
+          const tabKey = rt.getBlockKey(tb, () => tb.items.map((i: any) => i.label).join(","));
           const cur = rt.tabState.get(tabKey) ?? 0;
           rt.tabState.set(tabKey, (cur + 1) % tb.items.length);
         } else {
@@ -250,8 +217,12 @@ export function handleNavigationMode(rt: RT, key: KeyPress): void {
   }
 }
 
-/** Handle keystrokes in edit mode — dispatch to type-specific handler. */
-export function handleEditMode(rt: RT, key: KeyPress): void {
+/**
+ * Handle keystrokes in edit mode — dispatch to type-specific handler.
+ * The case set here is INPUT_TYPES ∩ editable (see block-taxonomy.ts);
+ * kept as a switch because it dispatches functions, not membership.
+ */
+export function handleEditMode(rt: RuntimeInternal, key: KeyPress): void {
   const focused = rt.getFocusedInputBlock();
   if (!focused) { rt.inputMode.exitEdit(); rt.render(); return; }
 
@@ -294,7 +265,7 @@ function norm(s: string): string {
 
 /** Execute the appropriate action when a search result is selected. */
 function executeSearchAction(
-  rt: RT, block: SearchInputBlock,
+  rt: RuntimeInternal, block: SearchInputBlock,
   selected: { label: string; value: string },
 ): void {
   const action = block.action ?? (block.onSelect ? "callback" : "navigate");
@@ -358,7 +329,7 @@ function fuzzyMatch(text: string | undefined, valueLower: string, valueNorm: str
 }
 
 /** Scroll focus to a block matching value/label on the current page. */
-export function scrollToBlock(rt: RT, value: string, label: string): boolean {
+export function scrollToBlock(rt: RuntimeInternal, value: string, label: string): boolean {
   const valueLower = value.toLowerCase();
   const valueNorm = norm(value);
   const labelLower = label.toLowerCase();
@@ -394,7 +365,7 @@ export function scrollToBlock(rt: RT, value: string, label: string): boolean {
       if (accLabel.toLowerCase().includes(valueLower) || accNorm.includes(vNorm) || vNorm.includes(accNorm) ||
           accLabel.toLowerCase().startsWith(labelLower.split(" — ")[0]?.trim().toLowerCase() ?? "\0")) {
         rt.pageFocusIndex = i;
-        const accKey = item.accordion.items.map(it => it.label).join(",");
+        const accKey = rt.getBlockKey(item.accordion, () => item.accordion.items.map(it => it.label).join(","));
         rt.accordionState.set(accKey, item.itemIndex);
         return true;
       }
@@ -424,101 +395,81 @@ export function scrollToBlock(rt: RT, value: string, label: string): boolean {
 
 /** Search tabs blocks in content for an item matching value/label, switch to that tab. */
 function switchToTabContaining(
-  rt: RT, blocks: ContentBlock[], value: string, label: string,
+  rt: RuntimeInternal, blocks: ContentBlock[], value: string, label: string,
 ): boolean {
-  const valueLower = value.toLowerCase();
-  const valueNorm = norm(value);
-
-  for (const block of blocks) {
-    if (block.type === "tabs") {
-      const tabs = block as any;
-      for (let ti = 0; ti < tabs.items.length; ti++) {
-        const tabContent: ContentBlock[] = tabs.items[ti].content;
-        if (blockExistsInContent(value, label, tabContent)) {
-          const tabKey = tabs.items.map((i: any) => i.label).join(",");
-          rt.tabState.set(tabKey, ti);
-          return true;
-        }
-      }
-    }
-    // Recurse into layout containers
-    if (block.type === "section" && (block as any).content) {
-      if (switchToTabContaining(rt, (block as any).content, value, label)) return true;
-    }
-    if (block.type === "columns") {
-      for (const p of (block as ColumnsBlock).panels) {
-        if (switchToTabContaining(rt, p.content, value, label)) return true;
+  // Structural walk: finds tabs nested in any layout container.
+  for (const { block } of walk(blocks)) {
+    if (block.type !== "tabs") continue;
+    for (let ti = 0; ti < block.items.length; ti++) {
+      if (blockExistsInContent(value, label, block.items[ti].content)) {
+        const tabKey = rt.getBlockKey(block, () => block.items.map((i) => i.label).join(","));
+        rt.tabState.set(tabKey, ti);
+        return true;
       }
     }
   }
   return false;
 }
 
-/** Search layout blocks for a panel whose title matches, return its first focus index. */
+/**
+ * Search layout blocks for a panel whose title matches, return the focus
+ * index of the first focusable item inside that panel.
+ *
+ * Path-based: the matched panel's walk path prefixes exactly the paths of
+ * the blocks inside it, and focus indices are focusSlots() sums in walk
+ * order — the same ordering contract collectFocusItems uses.
+ */
 function findFocusIndexByPanelTitle(
-  blocks: ContentBlock[], value: string, label: string, rt: RT,
+  blocks: ContentBlock[], value: string, label: string, rt: RuntimeInternal,
 ): number {
   const valueLower = value.toLowerCase();
   const valueNorm = norm(value);
   const labelNorm = norm(label);
-  let focusOffset = 0;
+  const walkOpts = { resolveDynamic: (b: DynamicBlock) => resolveDynamic(rt, b) };
 
-  for (const block of blocks) {
-    if (block.type === "grid") {
-      const gridBlock = block as GridBlock;
-      for (const item of gridBlock.config.items) {
-        const itemFocusCount = collectFocusItemsStatic(item.content);
-        if (item.title && (fuzzyMatch(item.title, valueLower, valueNorm) || fuzzyMatch(item.title, labelNorm, labelNorm))) {
-          return focusOffset;
-        }
-        focusOffset += itemFocusCount;
+  const titleMatches = (t: string | undefined): boolean =>
+    !!t && (fuzzyMatch(t, valueLower, valueNorm) || fuzzyMatch(t, labelNorm, labelNorm));
+
+  // Locate the matched panel's structural path prefix.
+  let panelPrefix: string | null = null;
+  outer:
+  for (const e of walk(blocks, walkOpts)) {
+    const b = e.block;
+    if (b.type === "columns" || b.type === "rows") {
+      const panels = (b as ColumnsBlock | RowsBlock).panels;
+      for (let i = 0; i < panels.length; i++) {
+        if (titleMatches(panels[i].title)) { panelPrefix = `${e.path}/panels.${i}`; break outer; }
       }
-    } else if (block.type === "columns") {
-      for (const p of (block as ColumnsBlock).panels) {
-        const pCount = collectFocusItemsStatic(p.content);
-        if (p.title && (fuzzyMatch(p.title, valueLower, valueNorm) || fuzzyMatch(p.title, labelNorm, labelNorm))) {
-          return focusOffset;
-        }
-        focusOffset += pCount;
+    } else if (b.type === "grid") {
+      const items = (b as GridBlock).config.items;
+      for (let i = 0; i < items.length; i++) {
+        if (titleMatches(items[i].title)) { panelPrefix = `${e.path}/items.${i}`; break outer; }
       }
-    } else if (block.type === "rows") {
-      for (const p of (block as RowsBlock).panels) {
-        focusOffset += collectFocusItemsStatic(p.content);
-      }
-    } else {
-      focusOffset += collectFocusItemsStatic([block]);
     }
+  }
+  if (panelPrefix === null) return -1;
+
+  // Focus index of the first focus slot inside that panel.
+  let focusIdx = 0;
+  for (const e of walk(blocks, walkOpts)) {
+    const slots = focusSlots(e.block);
+    if (slots === 0) continue;
+    if (e.path.startsWith(panelPrefix + "/")) return focusIdx;
+    focusIdx += slots;
   }
   return -1;
 }
 
-/** Count focusable items in content (static, no dynamic resolution). */
-function collectFocusItemsStatic(blocks: ContentBlock[]): number {
-  let count = 0;
-  for (const b of blocks) {
-    if (["card", "link", "hero", "textInput", "textArea", "select", "checkbox",
-         "toggle", "radioGroup", "numberInput", "searchInput", "button"].includes(b.type)) {
-      count++;
-    } else if (b.type === "accordion") count += (b as any).items.length;
-    else if (b.type === "timeline") count += (b as any).items.length;
-    else if (b.type === "tabs") count++;
-    else if (b.type === "section") count += collectFocusItemsStatic((b as any).content);
-    else if (b.type === "form") count += collectFocusItemsStatic((b as any).fields);
-    else if (b.type === "columns") { for (const p of (b as any).panels) count += collectFocusItemsStatic(p.content); }
-    else if (b.type === "rows") { for (const p of (b as any).panels) count += collectFocusItemsStatic(p.content); }
-    else if (b.type === "grid") { for (const item of (b as any).config.items) count += collectFocusItemsStatic(item.content); }
-    else if (b.type === "panel") count += collectFocusItemsStatic((b as any).config.content);
-    else if (b.type === "row") { for (const c of (b as any).cols) count += collectFocusItemsStatic(c.content); }
-    else if (b.type === "container") count += collectFocusItemsStatic((b as any).content);
-  }
-  return count;
-}
+/** Container edges searched by fuzzy matching: everything except dynamic/async. */
+const SEARCH_EDGES: ReadonlySet<ContainerEdge> = new Set<ContainerEdge>(
+  [...ALL_EDGES].filter(e => e !== "dynamic" && e !== "asyncContent"),
+);
 
 /** Check if a block matching value/label exists in a content array. */
 export function blockExistsInContent(value: string, label: string, blocks: ContentBlock[]): boolean {
   const valueLower = value.toLowerCase();
   const valueNorm = norm(value);
-  for (const b of blocks) {
+  for (const { block: b } of walk(blocks, { descend: SEARCH_EDGES })) {
     if ("id" in b && (b as any).id === value) return true;
     if (b.type === "card") {
       if (fuzzyMatch(b.title, valueLower, valueNorm) || fuzzyMatch(b.subtitle, valueLower, valueNorm)) return true;
@@ -536,14 +487,6 @@ export function blockExistsInContent(value: string, label: string, blocks: Conte
     if (b.type === "timeline") {
       for (const item of b.items) { if (item.title.toLowerCase().includes(valueLower)) return true; }
     }
-    if (b.type === "section") { if (blockExistsInContent(value, label, b.content)) return true; }
-    if (b.type === "form") { if (blockExistsInContent(value, label, (b as FormBlock).fields)) return true; }
-    if (b.type === "columns") { for (const p of (b as ColumnsBlock).panels) if (blockExistsInContent(value, label, p.content)) return true; }
-    if (b.type === "rows") { for (const p of (b as RowsBlock).panels) if (blockExistsInContent(value, label, p.content)) return true; }
-    if (b.type === "grid") { for (const item of (b as GridBlock).config.items) if (blockExistsInContent(value, label, item.content)) return true; }
-    if (b.type === "panel") { if (blockExistsInContent(value, label, (b as PanelBlock).config.content)) return true; }
-    if (b.type === "row") { for (const c of (b as any).cols) if (blockExistsInContent(value, label, c.content)) return true; }
-    if (b.type === "container") { if (blockExistsInContent(value, label, (b as any).content)) return true; }
   }
   return false;
 }

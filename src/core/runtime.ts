@@ -38,21 +38,29 @@ import type { RenderContext } from "../components/base.js";
 import type { FocusItem, FormResult } from "./runtime-types.js";
 import type { TerminalIO } from "./terminal-io.js";
 import { ProcessTerminalIO } from "./terminal-io.js";
+import type { RuntimeInternal, PageLayoutCache } from "./runtime-internal.js";
+import type { FileRouter } from "../router/resolver.js";
 
 import { runtimeContext, type RuntimeRef } from "./runtime-context.js";
 
 // Delegated modules
 import { handleCommandMode, handleNavigationMode, handleEditMode } from "./runtime-input.js";
-import { renderMain, renderBlock as _renderBlock, renderContentBlocks as _renderContentBlocks, resolveDynamic, isBlockFocusable as _isBlockFocusable } from "./runtime-render.js";
+import { renderMain, renderBlock as _renderBlock, renderContentBlocks as _renderContentBlocks, resolveDynamic } from "./runtime-render.js";
+import { isBlockFocusable as _isBlockFocusable, INPUT_TYPES, TEXT_ENTRY_TYPES } from "./block-taxonomy.js";
+import { contentWidth } from "./layout-constants.js";
 import { navigateToPage as _navigateToPage, enterPage as _enterPage, getCurrentPage as _getCurrentPage, getPageContent as _getPageContent, resolvePageTitle as _resolvePageTitle, collectFocusItems as _collectFocusItems, pageFocusNext as _pageFocusNext, pageFocusPrev as _pageFocusPrev, initializePageContent as _initializePageContent, registerForms as _registerForms, showFeedback as _showFeedback, executeCommand as _executeCommand } from "./runtime-pages.js";
 import { handlePageSelect as _handlePageSelect, validateInput as _validateInput, resetFormFields as _resetFormFields } from "./runtime-forms.js";
 
-export class TUIRuntime {
+export class TUIRuntime implements RuntimeInternal {
   /** @internal */ site: SiteConfig;
   /** @internal */ theme: Theme;
   /** @internal */ router: Router;
   /** @internal */ focus: FocusManager;
   /** @internal */ borderStyle: BorderStyle;
+  /** @internal File router when running file-based projects. */
+  fileRouter: FileRouter | null = null;
+  /** @internal Focused block exposed to nested layout renderers. */
+  currentFocusedBlock: ContentBlock | undefined = undefined;
   /** @internal */ scrollOffset = 0;
   /** @internal */ commandMode = false;
   /** @internal */ commandBuffer = "";
@@ -79,6 +87,10 @@ export class TUIRuntime {
   /** @internal */ formRegistry: Map<string, FormBlock> = new Map();
   /** @internal */ currentParams: RouteParams = {};
   /** @internal */ dynamicCache: Map<string, ContentBlock[]> = new Map();
+  /** @internal Structural-path state keys (see block-walker stampBlockKeys). */
+  blockKeys: WeakMap<ContentBlock, string> = new WeakMap();
+  /** @internal renderMain layout cache — static pages skip per-frame recompute. */
+  layoutCache: PageLayoutCache = { contentRef: null, columns: 0, rows: 0, volatile: false };
   /** @internal */ apiServer: ApiServer | null = null;
   /** @internal */ apiBaseUrl: string | null = null;
   /** @internal */ focusRects: FocusRect[] = [];
@@ -316,9 +328,9 @@ export class TUIRuntime {
 
   private handleKey(key: KeyPress): void {
     try {
-      if (this.commandMode) { handleCommandMode(this as any, key); return; }
+      if (this.commandMode) { handleCommandMode(this, key); return; }
       if (this.inputMode.isEditing) { this.handleEditMode(key); return; }
-      handleNavigationMode(this as any, key);
+      handleNavigationMode(this, key);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       if (!this.site.onError) throw error;
@@ -345,7 +357,7 @@ export class TUIRuntime {
       if (Array.isArray(fallback)) {
         const { columns } = this.screenSize;
         const ctx: RenderContext = {
-          width: Math.max(20, Math.min(120, columns - 2)),
+          width: Math.max(20, contentWidth(columns)),
           theme: this.theme,
           borderStyle: this.borderStyle,
         };
@@ -366,12 +378,12 @@ export class TUIRuntime {
     }
   }
 
-  /** @internal */ handleEditMode(key: KeyPress): void { handleEditMode(this as any, key); }
+  /** @internal */ handleEditMode(key: KeyPress): void { handleEditMode(this, key); }
   /** @internal */ render(): void {
     const prev = getColorMode();
     setColorMode(this._colorMode);
     try {
-      renderMain(this as any);
+      renderMain(this);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       if (!this.site.onError || this.handlingError) throw error;
@@ -382,7 +394,7 @@ export class TUIRuntime {
   }
   /** @internal */ navigateToPage(pageId: string, params?: RouteParams): void {
     try {
-      _navigateToPage(this as any, pageId, params);
+      _navigateToPage(this, pageId, params);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       if (!this.site.onError) throw error;
@@ -401,38 +413,47 @@ export class TUIRuntime {
     this.render();
     return true;
   }
-  /** @internal */ enterPage(): void { _enterPage(this as any); }
-  /** @internal */ getCurrentPage(): PageConfig | undefined { return _getCurrentPage(this as any); }
-  /** @internal */ getPageContent(page: PageConfig): ContentBlock[] | null { return _getPageContent(this as any, page); }
-  /** @internal */ resolvePageTitle(page: PageConfig): string { return _resolvePageTitle(this as any, page); }
-  /** @internal */ collectFocusItems(blocks: ContentBlock[]): FocusItem[] { return _collectFocusItems(this as any, blocks); }
-  /** @internal */ initializePageContent(content: ContentBlock[]): void { _initializePageContent(this as any, content); }
-  /** @internal */ registerForms(blocks: ContentBlock[]): void { _registerForms(this as any, blocks); }
-  /** @internal */ pageFocusNext(): void { _pageFocusNext(this as any); }
-  /** @internal */ pageFocusPrev(): void { _pageFocusPrev(this as any); }
-  /** @internal */ handlePageSelect(): void { _handlePageSelect(this as any); }
-  /** @internal */ showFeedback(msg: string): void { _showFeedback(this as any, msg); }
-  /** @internal */ executeCommand(cmd: string): void { _executeCommand(this as any, cmd); }
-  /** @internal */ validateInput(block: ContentBlock): boolean { return _validateInput(this as any, block); }
-  /** @internal */ renderBlock(block: ContentBlock, ctx: RenderContext): string[] { return _renderBlock(this as any, block, ctx); }
+  /** @internal */ enterPage(): void { _enterPage(this); }
+  /** @internal */ getCurrentPage(): PageConfig | undefined { return _getCurrentPage(this); }
+  /** @internal */ getPageContent(page: PageConfig): ContentBlock[] | null { return _getPageContent(this, page); }
+  /** @internal */ resolvePageTitle(page: PageConfig): string { return _resolvePageTitle(this, page); }
+  /** @internal */ collectFocusItems(blocks: ContentBlock[]): FocusItem[] { return _collectFocusItems(this, blocks); }
+  /** @internal */ initializePageContent(content: ContentBlock[]): void { _initializePageContent(this, content); }
+  /** @internal */ registerForms(blocks: ContentBlock[]): void { _registerForms(this, blocks); }
+  /** @internal */ pageFocusNext(): void { _pageFocusNext(this); }
+  /** @internal */ pageFocusPrev(): void { _pageFocusPrev(this); }
+  /** @internal */ handlePageSelect(): void { _handlePageSelect(this); }
+  /** @internal */ showFeedback(msg: string): void { _showFeedback(this, msg); }
+  /** @internal */ executeCommand(cmd: string): void { _executeCommand(this, cmd); }
+  /** @internal */ validateInput(block: ContentBlock): boolean { return _validateInput(this, block); }
+  /** @internal */ renderBlock(block: ContentBlock, ctx: RenderContext): string[] { return _renderBlock(this, block, ctx); }
   /** @internal */ isBlockFocusable(block: ContentBlock): boolean { return _isBlockFocusable(block); }
 
   renderContentBlocks(blocks: ContentBlock[], ctx: RenderContext): string[] {
-    return _renderContentBlocks(this as any, blocks, ctx);
+    return _renderContentBlocks(this, blocks, ctx);
   }
 
-  /** @internal */ getInputState(id: string, defaultValue?: any): InputFieldState {
+  /** @internal */ getInputState(id: string, defaultValue?: unknown): InputFieldState {
     let state = this.inputStates.get(id);
     if (!state) { state = createInputState(defaultValue); this.inputStates.set(id, state); }
     return state;
+  }
+
+  /**
+   * Component-state key for a block: the stamped structural-path key if
+   * present, else the caller's legacy label-derived key (defensive fallback
+   * so an unstamped block degrades to the pre-Stage-3 behavior).
+   * @internal
+   */
+  getBlockKey(block: ContentBlock, legacyKey: () => string): string {
+    return this.blockKeys.get(block) ?? legacyKey();
   }
 
   /** @internal */ getFocusedInputBlock(): ContentBlock | null {
     const item = this.pageFocusItems[this.pageFocusIndex];
     if (!item || item.kind !== "block") return null;
     const block = item.block;
-    const inputTypes = ["textInput", "textArea", "select", "checkbox", "toggle", "radioGroup", "numberInput", "searchInput", "button"];
-    if (inputTypes.includes(block.type)) return block;
+    if (INPUT_TYPES.has(block.type)) return block;
     return null;
   }
 
@@ -443,7 +464,7 @@ export class TUIRuntime {
   }
 
   /** @internal */ isTextEntryType(type: string): boolean {
-    return type === "textInput" || type === "textArea" || type === "searchInput" || type === "numberInput";
+    return TEXT_ENTRY_TYPES.has(type);
   }
 
   /** @internal */ isAutoEditKey(key: KeyPress): boolean {
@@ -458,7 +479,7 @@ export class TUIRuntime {
 
   resetForm(formId: string): void {
     const formBlock = this.formRegistry.get(formId);
-    if (formBlock) { _resetFormFields(this as any, formBlock); this.render(); }
+    if (formBlock) { _resetFormFields(this, formBlock); this.render(); }
   }
 
   clearField(fieldId: string): void {
@@ -529,7 +550,7 @@ export async function runFileBasedSite(opts: {
   const runtime = new TUIRuntime(site, opts.terminalIO);
 
   // Attach file router for menu({ source: "auto" }) resolution
-  (runtime as any)._fileRouter = router;
+  runtime.fileRouter = router;
 
   await runtime.start();
 }

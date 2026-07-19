@@ -107,7 +107,7 @@ async function startFileBasedSession(projectDir: string, terminalIO: TerminalIO)
   };
 
   const runtime = new TUIRuntime({ config: siteConfig }, terminalIO);
-  (runtime as any)._fileRouter = router;
+  runtime.fileRouter = router;
   await runtime.start();
   return runtime;
 }

@@ -15,7 +15,7 @@ import type {
 import { layoutColumns, layoutRows, layoutGrid } from "./panel-layout.js";
 import { shouldCollapseColumns, effectiveGridCols } from "./responsive.js";
 import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "./grid-system.js";
-import { isFocusableType } from "../core/runtime-block-render.js";
+import { focusSlots } from "../core/block-taxonomy.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "./box-model.js";
 
 /**
@@ -227,7 +227,8 @@ function walkBlocks(
       }
 
       case "accordion": {
-        for (let i = 0; i < block.items.length; i++) {
+        const slots = focusSlots(block); // one per item
+        for (let i = 0; i < slots; i++) {
           const itemH = 2; // header line + spacing
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: itemH });
           counter.value++;
@@ -238,7 +239,8 @@ function walkBlocks(
       }
 
       case "timeline": {
-        for (let i = 0; i < block.items.length; i++) {
+        const slots = focusSlots(block); // one per item
+        for (let i = 0; i < slots; i++) {
           const itemH = 3; // title + period + connector
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: itemH });
           counter.value++;
@@ -249,14 +251,16 @@ function walkBlocks(
       }
 
       case "tabs": {
-        rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: 3 });
-        counter.value++;
+        if (focusSlots(block) > 0) {
+          rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: 3 });
+          counter.value++;
+        }
         cursorY += 4;
         break;
       }
 
       default: {
-        const focusable = isFocusableType(block.type);
+        const focusable = focusSlots(block) > 0;
         const h = estimateBlockHeight(block, availWidth);
         if (focusable) {
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: h });
@@ -310,7 +314,9 @@ function estimateBlockHeight(block: ContentBlock, width: number): number {
     case "badge": return 1;
     case "image": return 10;
     case "progressBar": return 2;
+    // gallery is not focusable (no rect) but still occupies rendered rows.
     case "gallery": return 8;
+    case "chat": return 10;
     default: return 3;
   }
 }

@@ -12,16 +12,9 @@ import {
   snapToCodePoint, prevCursorPos, nextCursorPos,
   codePointLength, isPrintableChar,
 } from "../components/text-cursor.js";
+import type { RuntimeInternal } from "./runtime-internal.js";
 
-interface RT {
-  inputMode: any;
-  getInputState(id: string, defaultValue?: any): any;
-  validateInput(block: any): boolean;
-  pageFocusNext(): void;
-  pageFocusPrev(): void;
-}
-
-export function handleTextInputKey(rt: RT, block: TextInputBlock, key: KeyPress): void {
+export function handleTextInputKey(rt: RuntimeInternal, block: TextInputBlock, key: KeyPress): void {
   const state = rt.getInputState(block.id, block.defaultValue ?? "");
   let value = state.value as string;
   let cursor = snapToCodePoint(value, Math.min(state.cursorPos, value.length));
@@ -88,7 +81,7 @@ export function handleTextInputKey(rt: RT, block: TextInputBlock, key: KeyPress)
   if (changed && block.onChange) block.onChange(value);
 }
 
-export function handleTextAreaKey(rt: RT, block: TextAreaBlock, key: KeyPress): void {
+export function handleTextAreaKey(rt: RuntimeInternal, block: TextAreaBlock, key: KeyPress): void {
   const state = rt.getInputState(block.id, block.defaultValue ?? "");
   let value = state.value as string;
   let cursor = snapToCodePoint(value, Math.min(state.cursorPos, value.length));
@@ -163,7 +156,7 @@ export function handleTextAreaKey(rt: RT, block: TextAreaBlock, key: KeyPress): 
   if (changed && block.onChange) block.onChange(value);
 }
 
-export function handleSelectKey(rt: RT, block: SelectBlock, key: KeyPress): void {
+export function handleSelectKey(rt: RuntimeInternal, block: SelectBlock, key: KeyPress): void {
   const state = rt.getInputState(block.id, block.defaultValue ?? "");
 
   if (key.name === "escape") {
@@ -196,7 +189,7 @@ export function handleSelectKey(rt: RT, block: SelectBlock, key: KeyPress): void
   }
 }
 
-export function handleNumberInputKey(rt: RT, block: NumberInputBlock, key: KeyPress): void {
+export function handleNumberInputKey(rt: RuntimeInternal, block: NumberInputBlock, key: KeyPress): void {
   const state = rt.getInputState(block.id, block.defaultValue ?? 0);
   const step = block.step ?? 1;
   const min = block.min ?? -Infinity;
@@ -224,7 +217,7 @@ export function handleNumberInputKey(rt: RT, block: NumberInputBlock, key: KeyPr
   }
 }
 
-export function handleSearchInputKey(rt: RT, block: SearchInputBlock, key: KeyPress): { action?: "search"; selected?: { label: string; value: string } } {
+export function handleSearchInputKey(rt: RuntimeInternal, block: SearchInputBlock, key: KeyPress): { action?: "search"; selected?: { label: string; value: string } } {
   const state = rt.getInputState(block.id, "");
   let query = state.value as string;
   let cursor = snapToCodePoint(query, Math.min(state.cursorPos, query.length));
@@ -271,7 +264,7 @@ export function handleSearchInputKey(rt: RT, block: SearchInputBlock, key: KeyPr
   return {};
 }
 
-export function handleRadioGroupKey(rt: RT, block: RadioGroupBlock, key: KeyPress): void {
+export function handleRadioGroupKey(rt: RuntimeInternal, block: RadioGroupBlock, key: KeyPress): void {
   const state = rt.getInputState(block.id, block.defaultValue ?? "");
 
   if (key.name === "escape") { rt.inputMode.exitEdit(); return; }
