@@ -38,7 +38,7 @@ import type { RenderContext } from "../components/base.js";
 import type { FocusItem, FormResult } from "./runtime-types.js";
 import type { TerminalIO } from "./terminal-io.js";
 import { ProcessTerminalIO } from "./terminal-io.js";
-import type { RuntimeInternal, PageLayoutCache } from "./runtime-internal.js";
+import type { RuntimeInternal, PageLayoutCache, FrameState } from "./runtime-internal.js";
 import type { FileRouter } from "../router/resolver.js";
 
 import { runtimeContext, type RuntimeRef } from "./runtime-context.js";
@@ -91,6 +91,8 @@ export class TUIRuntime implements RuntimeInternal {
   blockKeys: WeakMap<ContentBlock, string> = new WeakMap();
   /** @internal renderMain layout cache — static pages skip per-frame recompute. */
   layoutCache: PageLayoutCache = { contentRef: null, columns: 0, rows: 0, volatile: false };
+  /** @internal Line-diff renderer's previous-frame buffer — one per terminal stream (SSH sessions isolated). */
+  frameState: FrameState = { rows: [], columns: 0, rowCount: 0, cursorShown: false, valid: false };
   /** @internal */ apiServer: ApiServer | null = null;
   /** @internal */ apiBaseUrl: string | null = null;
   /** @internal */ focusRects: FocusRect[] = [];
@@ -137,6 +139,17 @@ export class TUIRuntime implements RuntimeInternal {
   /** Write output to this runtime's terminal. */
   writeOutput(data: string): void {
     this.terminalIO.write(data);
+  }
+
+  /**
+   * Mark the previous-frame buffer stale so the next frame is a full
+   * redraw. Every code path that writes to the terminal without going
+   * through writeToTerminal (onError fallbacks, exit message, restore)
+   * must call this.
+   * @internal
+   */
+  invalidateFrame(): void {
+    this.frameState.valid = false;
   }
 
   private detectRemoteColorMode(): import("../style/colors.js").ColorMode {
@@ -217,7 +230,12 @@ export class TUIRuntime implements RuntimeInternal {
     }
 
     this.setupTerminal();
-    this._screen.on("resize", () => this.render());
+    // Treat every resize event as out-of-band damage, not just dimension
+    // changes: SIGWINCH is coalesced, so a shrink+restore to the original
+    // size delivers ONE event whose final dims equal the stored frame — the
+    // dims check in writeToTerminal would diff to zero bytes while the real
+    // terminal already clipped/blanked cells during the transient shrink.
+    this._screen.on("resize", () => { this.invalidateFrame(); this.render(); });
     this._input.on("keypress", (key: KeyPress) => this.handleKey(key));
     // In-band resize (CSI 8;rows;cols t) — used when the host can't signal
     // real dimensions via the TTY (e.g. the emulator's non-PTY fallback).
@@ -278,6 +296,7 @@ export class TUIRuntime implements RuntimeInternal {
       if (this.apiServer) setApiBaseUrl(null);
       delete (globalThis as any).__terminaltui_render_callback__;
     }
+    this.invalidateFrame(); // restore writes bypass writeToTerminal
     this.terminalIO.write("\x1b[?25h");
     this.terminalIO.write("\x1b[?1049l");
     this.terminalIO.write("\x1b[0m");
@@ -292,6 +311,7 @@ export class TUIRuntime implements RuntimeInternal {
     setNavigateHandler(null);
     if (this.site.animations?.exitMessage) {
       const { columns, rows } = this.screenSize;
+      this.invalidateFrame(); // exit message bypasses writeToTerminal
       this.terminalIO.write("\x1b[2J\x1b[H");
       const msg = this.site.animations.exitMessage;
       const y = Math.floor(rows / 2);
@@ -349,6 +369,7 @@ export class TUIRuntime implements RuntimeInternal {
     if (!hook) throw error;
     if (this.handlingError) {
       console.error("[terminaltui] error while handling error:", error);
+      this.invalidateFrame(); // stderr shares the TTY in local mode; console.error bypassed writeToTerminal
       return;
     }
     this.handlingError = true;
@@ -362,10 +383,12 @@ export class TUIRuntime implements RuntimeInternal {
           borderStyle: this.borderStyle,
         };
         const lines = this.renderContentBlocks(fallback, ctx);
+        this.invalidateFrame(); // fallback paint bypasses writeToTerminal
         this.terminalIO.write("\x1b[2J\x1b[H");
         this.terminalIO.write(lines.join("\r\n"));
       } else if (context.phase === "render") {
         // Can't re-render through the failing pipeline; show a plain message.
+        this.invalidateFrame(); // plain-text paint bypasses writeToTerminal
         this.terminalIO.write("\x1b[2J\x1b[H");
         this.terminalIO.write(`Error: ${error.message}`);
       } else {
@@ -373,6 +396,7 @@ export class TUIRuntime implements RuntimeInternal {
       }
     } catch (hookErr) {
       console.error("[terminaltui] onError hook failed:", hookErr, "\noriginal error:", error);
+      this.invalidateFrame(); // stderr shares the TTY in local mode; console.error bypassed writeToTerminal
     } finally {
       this.handlingError = false;
     }

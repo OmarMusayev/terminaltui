@@ -38,6 +38,25 @@ export interface PageLayoutCache {
   volatile: boolean;
 }
 
+/**
+ * Previous-frame buffer for the line-diff renderer (writeToTerminal in
+ * runtime-terminal.ts). Lives on the runtime instance — exactly one per
+ * terminal stream — so concurrent SSH sessions (each owning its own
+ * TUIRuntime) can never diff against another session's frame. Never hoist
+ * this to module scope.
+ */
+export interface FrameState {
+  /** Final styled content of each terminal row as composed last frame (untruncated). */
+  rows: string[];
+  /** Dimensions the buffer was rendered at (mismatch ⇒ full redraw). */
+  columns: number;
+  rowCount: number;
+  /** Last emitted DECTCEM state (true = cursor visible). */
+  cursorShown: boolean;
+  /** False ⇒ the next frame must be a full redraw. */
+  valid: boolean;
+}
+
 export interface RuntimeInternal {
   // ── Configuration & collaborators ─────────────────────────
   site: SiteConfig;
@@ -87,6 +106,8 @@ export interface RuntimeInternal {
   blockKeys: WeakMap<ContentBlock, string>;
   /** Layout cache for renderMain's static-page fast path (§D.4). */
   layoutCache: PageLayoutCache;
+  /** Line-diff renderer's previous-frame buffer (one per terminal stream). */
+  frameState: FrameState;
 
   // ── Services ─────────────────────────────────────────────
   notifications: NotificationManager;
@@ -96,6 +117,14 @@ export interface RuntimeInternal {
   readonly screenSize: ScreenSize;
   readonly isServeMode: boolean;
   writeOutput(data: string): void;
+  /**
+   * Mark the previous-frame buffer stale so the next frame is a full
+   * redraw. MUST be called by any code path that writes to the terminal
+   * without going through writeToTerminal (error fallbacks, exit
+   * messages, terminal restore) — otherwise the next diff is taken
+   * against a buffer the screen no longer shows.
+   */
+  invalidateFrame(): void;
 
   // ── Methods (implemented on TUIRuntime, many delegating back) ──
   render(): void;

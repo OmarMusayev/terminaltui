@@ -35,6 +35,10 @@ export function navigateToPage(rt: RuntimeInternal, pageId: string, params?: Rou
     // Bug #8: warn on navigation failure instead of silent no-op
     if (typeof process !== "undefined" && process.stderr) {
       process.stderr.write(`[terminaltui] navigate: page '${pageId}' not found. Available: ${rt.site.pages.map((p: any) => p.id).join(", ")}\n`);
+      // In local dev stderr is the same TTY: the write lands out-of-band on
+      // the alt screen and scrolls it, so the diff buffer no longer matches
+      // the screen. Invalidate so the next render is a healing full redraw.
+      rt.invalidateFrame();
     }
     return;
   }

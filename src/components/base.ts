@@ -76,17 +76,69 @@ export function charWidth(code: number): number {
   return 1;
 }
 
-/**
- * Calculate the display width of a string in terminal cells.
- * Strips ANSI codes, then sums character widths.
- */
-export function stringWidth(text: string): number {
+/** Uncached width computation: strip ANSI codes, then sum character widths. */
+function computeWidth(text: string): number {
   const stripped = stripAnsi(text);
   let width = 0;
   for (const ch of stripped) {
     width += charWidth(ch.codePointAt(0) ?? 0);
   }
   return width;
+}
+
+// Width memoization (Wave 5, Stage B). Keyed by the string itself — strings
+// are immutable and width is a pure function of the string, so a cached
+// entry is correct forever (across pages, themes, and SSH sessions; sharing
+// process-wide is safe, unlike the per-runtime frame buffer).
+//
+// Eviction is FIFO via Map insertion order (hits do NOT refresh position):
+// frame strings recur every frame and per-frame distinct-string churn is
+// ~2 orders of magnitude below the cap, so FIFO keeps hot entries resident.
+// Worst-case memory ≈ 8k entries × ~200 chars ≈ 3 MB. Do not raise the cap
+// without a bench.
+const WIDTH_CACHE_CAP = 8192;
+// Below this length a Map probe (hash + compare) rivals the scan itself, so
+// short strings skip the cache entirely. Bench-tunable (plausible range 4–16).
+const WIDTH_CACHE_MIN_LEN = 8;
+const widthCache = new Map<string, number>();
+
+/**
+ * Calculate the display width of a string in terminal cells.
+ * Strips ANSI codes, then sums character widths.
+ *
+ * Results for strings of length >= 8 are memoized in a bounded (8192-entry,
+ * FIFO-evicted) module-level cache; return values are identical to the
+ * uncached computation for every input.
+ */
+export function stringWidth(text: string): number {
+  if (text.length < WIDTH_CACHE_MIN_LEN) return computeWidth(text); // uncached fast path
+  const hit = widthCache.get(text);
+  if (hit !== undefined) return hit;
+  const w = computeWidth(text);
+  if (widthCache.size >= WIDTH_CACHE_CAP) {
+    widthCache.delete(widthCache.keys().next().value!); // evict oldest (insertion order)
+  }
+  widthCache.set(text, w);
+  return w;
+}
+
+/**
+ * @internal Test-only introspection for the width cache (size, cap, gate,
+ * membership). Not re-exported from the public index — do not use outside
+ * tests.
+ */
+export function __widthCacheInspect(): {
+  size: number;
+  cap: number;
+  minLen: number;
+  has: (text: string) => boolean;
+} {
+  return {
+    size: widthCache.size,
+    cap: WIDTH_CACHE_CAP,
+    minLen: WIDTH_CACHE_MIN_LEN,
+    has: (text: string) => widthCache.has(text),
+  };
 }
 
 // ─── Styling helpers ──────────────────────────────────────
@@ -122,6 +174,9 @@ export function pad(text: string, width: number, align: "left" | "center" | "rig
 }
 
 export function stripAnsi(text: string): string {
+  // Fast path: zero-alloc identity return for plain strings (most wrapText
+  // words, raw table-cell text) — skips the regex entirely.
+  if (text.indexOf("\x1b") === -1) return text;
   return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 

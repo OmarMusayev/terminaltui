@@ -43,6 +43,7 @@ export class TUIEmulator {
   private _recorder: Recorder;
   private _exitCode: number | null = null;
   private _closed = false;
+  private _bytesReceived = 0;
   private options: LaunchOptions;
   private killTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -67,8 +68,11 @@ export class TUIEmulator {
     // Enable ONLCR if PTY provides it (translates \n to \r\n)
     vterm.onlcr = pty.hasOnlcr;
 
-    // Wire PTY output to vterm
-    pty.onData((data) => vterm.write(data));
+    // Wire PTY output to vterm (counting bytes for the perf hook)
+    pty.onData((data) => {
+      this._bytesReceived += Buffer.byteLength(data, "utf8");
+      vterm.write(data);
+    });
     pty.onExit((code) => { this._exitCode = code; });
   }
 
@@ -130,6 +134,20 @@ export class TUIEmulator {
   /** Take a screenshot (ANSI string). */
   screenshot(): string {
     return this._screen.ansi();
+  }
+
+  /**
+   * Total UTF-8 bytes received from the child process since launch (or the
+   * last resetBytesReceived call). Perf-observation hook: byte totals are
+   * only comparable within the same PTY backend on the same machine.
+   */
+  get bytesReceived(): number {
+    return this._bytesReceived;
+  }
+
+  /** Reset the received-byte counter (e.g. after boot settles). */
+  resetBytesReceived(): void {
+    this._bytesReceived = 0;
   }
 
   /** Take a snapshot (text + ansi + timestamp). */
