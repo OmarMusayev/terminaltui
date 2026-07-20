@@ -1,14 +1,14 @@
 # terminaltui
 
-[![CI](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/terminaltui)](https://www.npmjs.com/package/terminaltui) [![license](https://img.shields.io/github/license/OmarMusayev/terminaltui)](LICENSE) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-2142-brightgreen) [![website](https://img.shields.io/badge/website-terminaltui.dev-ff7edb)](https://terminaltui.dev)
+[![CI](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/terminaltui)](https://www.npmjs.com/package/terminaltui) [![license](https://img.shields.io/github/license/OmarMusayev/terminaltui)](LICENSE) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-3323-brightgreen) [![website](https://img.shields.io/badge/website-terminaltui.dev-ff7edb)](https://terminaltui.dev)
 
-> **Next.js for the terminal.** Write a `pages/` directory of TypeScript files. Get an interactive TUI with file-based routing, components, themes, and SSH hosting. Distribute it with `npx`.
+> **Next.js for the terminal.** Write a `pages/` directory of TypeScript files. Get an interactive TUI with file-based routing, components, and themes. Distribute it with `npx` — or host it and let people `ssh` in.
 
 **🌐 [terminaltui.dev](https://terminaltui.dev)** &nbsp;·&nbsp; **📦 [npm](https://www.npmjs.com/package/terminaltui)** &nbsp;·&nbsp; **🚀 [Try it: `npx terminaltui try`](#quick-start)**
 
 ![terminaltui — 5-page tour rendered in a Synthwave-themed terminal: ANSI Shadow banner, navigable menu, components showcase, live theme switching, animated sparklines](assets/recordings/launch-hero-bg.gif)
 
-*Try it yourself: `npx terminaltui try`*
+*Try it yourself: `npx terminaltui try` — this GIF predates the v2 renderer; the frames are provably identical, so it never needed re-recording.*
 
 ## Quick Start
 
@@ -41,10 +41,18 @@ If you've used Next.js, you already know the shape: `pages/about.ts` becomes `/a
 | Lang | TypeScript | TypeScript (React) | TypeScript (Ink-based) | Go |
 | Shape | **Framework** (pages, routing, layouts) | Component library | CLI command router | TUI framework (Elm-style) |
 | File-based routing for **screens** | Yes | No | No (routes CLI subcommands) | No |
-| SSH hosting built in | `terminaltui serve` | No | No | Via `charmbracelet/wish` |
+| SSH hosting | `terminaltui serve` (`ssh2` peer dep) | No | No | Via `charmbracelet/wish` |
 | `npx` distribution | First-class | First-class | First-class | No (Go binary) |
 | Components included | 30+ | Bring your own | Inherits from Ink | Via `bubbles` |
 | AI codegen-native | `claude/SKILL.md` ships in package | No | No | No |
+
+---
+
+## What's new in 2.0
+
+> v2 gives terminaltui a production-grade engine: components now remember their state by where they live, not what they're labeled — so state survives navigation and two same-named accordions stop sharing a brain — and a new line-diffed renderer writes 67.7% fewer bytes to your terminal (269,355 → 87,027 across a 41-keypress scripted nav at 120x40), and exactly zero when nothing changed, which your users feel most over SSH. We didn't take the overhaul on faith: a dual-terminal oracle proved every final frame byte-identical to v1, and 3,323 tests across 52 suites — including a full demo sweep through a real PTY emulator — block every merge. Same pixels, a third of the bytes.
+
+**Migration note (breaking):** component state (accordions, tabs, galleries, button loading) is now keyed by page + tree position instead of display label. Two same-labeled components no longer share state, and state persists across navigation — correct behavior, but observably different if your app relied on the old label sharing. Details in the [CHANGELOG](CHANGELOG.md).
 
 ---
 
@@ -180,6 +188,10 @@ dynamic(() => [text(`Visitors: ${count.get("visitors")}`)]);
 
 `createState`, `computed`, `dynamic`, `createPersistentState`, `fetcher`, `request`, `liveData`.
 
+Component state (accordions, tabs, galleries, button loading) is keyed by page + tree position — it survives navigation and refresh, stays isolated per page, and two same-labeled components never share state.
+
+Rendering is line-diffed: only rows that changed are repainted, and a frame with no changes writes zero bytes.
+
 ---
 
 ## Demos
@@ -223,15 +235,18 @@ npx terminaltui demo mac-monitor   # macOS only — live system stats
 ## CLI
 
 ```bash
-terminaltui init [template]    # scaffold a new project
-terminaltui dev [path]         # compile and run (auto-detects project type)
+terminaltui try                # run a 5-page guided tour — zero install, zero config
+terminaltui init [tpl|name]    # scaffold a new project — arg is a template (minimal, portfolio, landing, restaurant, blog, creative) or your site name
+terminaltui create             # interactive prompt builder — describe what you want, AI builds it
+terminaltui convert            # drop terminaltui docs into your project for AI-assisted conversion
+terminaltui validate           # check a file-based routing project for common issues
+terminaltui dev [path]         # start development preview (auto-starts API server if routes defined)
 terminaltui serve [path]       # host your TUI over SSH
-terminaltui build              # bundle for npm publish
 terminaltui demo [name]        # run a built-in demo
-terminaltui create             # interactive prompt builder
-terminaltui convert            # AI-assisted website conversion
-terminaltui test               # headless emulator tests
-terminaltui art                # manage ASCII art assets
+terminaltui build              # bundle for npm publish (includes API routes)
+terminaltui test               # run automated tests on the site in the current directory
+terminaltui art                # manage art assets (list, preview, create, validate)
+terminaltui help               # show help
 ```
 
 ---
@@ -239,6 +254,8 @@ terminaltui art                # manage ASCII art assets
 ## SSH Hosting
 
 Host any TUI app over SSH -- anyone can connect with `ssh` and see it rendered in their terminal, zero install required. Think `ssh chat.shazow.net` but for any terminaltui project.
+
+v2 writes 67.7% fewer bytes per session, and idle frames cost zero bandwidth — over ssh, that's latency you can feel.
 
 The `serve` command needs [`ssh2`](https://www.npmjs.com/package/ssh2), an optional peer dependency — install it in your project first:
 
@@ -275,11 +292,60 @@ A real portfolio built with terminaltui.
 
 ---
 
+## Testing
+
+terminaltui ships a headless emulator (`terminaltui/emulator`) — think Playwright, but the browser is a terminal. It spawns your app in a PTY, scripts keypresses, and lets you assert on the rendered grid:
+
+```ts
+import { TUIEmulator } from "terminaltui/emulator";
+
+const emu = await TUIEmulator.launch({
+  command: "npx terminaltui dev",
+  cwd: "./my-site",
+  cols: 120,
+  rows: 40,
+});
+
+await emu.waitForBoot();
+emu.assert.textVisible("MY SITE");
+
+await emu.press("down");
+await emu.press("enter");
+await emu.waitForText("About Me");
+emu.assert.currentPage("about");
+
+// New in 2.0: assert your app's render cost in CI
+emu.resetBytesReceived();
+await emu.press("escape");
+await emu.waitForIdle();
+console.log(`repaint cost: ${emu.bytesReceived} bytes`);
+
+await emu.close();
+```
+
+Beyond the basics: `screen.text()` / `screen.cells()` for raw grid access, `screen.menu()` / `screen.cards()` / `screen.links()` for structural queries, `navigateTo()` for menu-aware navigation, `resize()` for breakpoint tests, and a recorder for replayable scripts. It's the same emulator the framework's own test suite and the v2 render benchmark run through. See [docs/testing.md](docs/testing.md).
+
+---
+
+## Performance
+
+Method: measured with the built-in emulator driving a 41-keypress scripted navigation at 120x40; medians of 3 runs. The metric is **bytes written to the terminal** — not a speed claim.
+
+| Scenario | Change in bytes written (v1 → v2) |
+|----------|-----------------------------------|
+| demos/startup | −69.0% |
+| demos/developer-portfolio | −66.2% |
+| **Combined total** | **269,355 → 87,027 (−67.7%)** |
+
+- Frames with no changes write **0 bytes**.
+- Equivalence, not vibes: a dual-VirtualTerminal oracle ran old and new renderers side by side and proved the final grids **byte-identical**.
+- Measure your own app the same way with [`TUIEmulator.bytesReceived`](#testing) (byte totals are comparable within the same PTY backend on the same machine).
+
+---
+
 ## For AI Agents
 
 terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed for AI code generation. The `terminaltui create` and `terminaltui convert` commands generate tailored prompts for Claude Code.
-
-The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the app in a PTY, read the screen, send keystrokes, assert content.
 
 ---
 
@@ -309,7 +375,7 @@ The TUI emulator (`terminaltui/emulator`) provides headless testing: spawn the a
 
 - **TypeScript** -- strict mode, zero `any` in public API
 - **1 required dependency** (esbuild) -- ssh2 is an optional peer dependency for `serve`
-- **2,100+ assertions** across unit, integration, emulator, and demo suites
+- **3,323 tests across 52 suites**, all blocking in CI -- the default subset (2,440 tests, 33 suites) runs in ~20s; the full sweep drives every demo through a real PTY emulator
 - **Apple Terminal compatible** -- auto-detects and uses 256-color fallback
 
 ## Contributing

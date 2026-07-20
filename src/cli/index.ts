@@ -43,6 +43,18 @@ function printCliError(prefix: string, err: any): void {
 }
 
 async function main() {
+  // `<cmd> --help` / `<cmd> -h` must never be forwarded as a config path or
+  // (worse) boot a live SSH listener — route it to help before dispatch.
+  // `demo` shows its own listing; `art` prints its own usage in its dispatcher.
+  if (command && command !== "art" && args.slice(1).some(a => a === "--help" || a === "-h")) {
+    if (command === "demo") {
+      await runDemo(undefined);
+    } else {
+      printHelp();
+    }
+    return;
+  }
+
   switch (command) {
     case "dev":
       await runDev();
@@ -394,7 +406,7 @@ function printHelp() {
 
   Commands:
     try          Run a 5-page guided tour of the framework — zero install, zero config
-    init [tpl]   Scaffold a new project (templates: minimal, portfolio, landing, restaurant, blog, creative)
+    init [arg]   Scaffold a new project (arg: a template — minimal, portfolio, landing, restaurant, blog, creative — or your site name)
     create       Interactive prompt builder — describe what you want, AI builds it
     convert      Drop terminaltui docs into your project for AI-assisted conversion
     validate     Check file-based routing project for common issues

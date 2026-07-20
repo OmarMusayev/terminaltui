@@ -1,6 +1,6 @@
 {
   "name": "terminaltui",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "main": "dist/index.js",
   "scripts": {
     "test": "npx tsx test/run-all.ts",
@@ -17,20 +17,19 @@
   "keywords": [
     "tui",
     "terminal",
-    "cli",
-    "ascii",
     "terminal-ui",
-    "npx",
-    "terminal-website",
-    "ascii-art",
     "tui-framework",
     "terminal-app",
-    "grid",
-    "spatial-navigation",
+    "terminal-website",
+    "cli",
+    "ssh",
+    "npx",
     "file-based-routing",
-    "interactive",
+    "spatial-navigation",
+    "ascii-art",
     "dashboard",
-    "typescript"
+    "typescript",
+    "interactive"
   ],
   "author": "Omar Musayev",
   "license": "MIT",
@@ -42,7 +41,7 @@
   "bugs": {
     "url": "https://github.com/omarmusayev/terminaltui/issues"
   },
-  "description": "Framework for building interactive terminal websites and apps — 30+ components, grid system, spatial navigation, themes, ASCII art, file-based routing",
+  "description": "Next.js for the terminal — file-based routing, 30+ components, spatial navigation, 10 themes, ASCII art, and SSH hosting for interactive TUI apps. Ship with npx.",
   "type": "module",
   "types": "dist/index.d.ts",
   "sideEffects": false,

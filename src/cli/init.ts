@@ -36,6 +36,21 @@ export async function scaffoldProject(templateArg?: string): Promise<void> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q: string): Promise<string> => new Promise(res => rl.question(q, res));
 
+  // A positional that isn't a template name is the site name
+  // (`terminaltui init my-site`), matching the create-next-app mental model.
+  const isTemplateArg = !!templateArg && (TEMPLATES as readonly string[]).includes(templateArg);
+  const nameArg = templateArg && !isTemplateArg ? templateArg : undefined;
+
+  // Piped/CI stdin can end before the questionnaire finishes — without this
+  // guard init would exit 0 having created nothing.
+  let questionnaireDone = false;
+  rl.on("close", () => {
+    if (!questionnaireDone) {
+      console.error("\n  Error: input ended before setup finished — no project was created.");
+      process.exit(1);
+    }
+  });
+
   console.log("\n  \x1b[1m\x1b[36mterminaltui\x1b[0m — create a new TUI website\n");
 
   let name: string;
@@ -44,12 +59,17 @@ export async function scaffoldProject(templateArg?: string): Promise<void> {
   let theme: string;
 
   try {
-    name = (await ask("  Site name: ")).trim();
-    if (!name) name = "My TUI Site";
+    if (nameArg) {
+      name = nameArg;
+      console.log(`  Site name: ${name}`);
+    } else {
+      name = (await ask("  Site name: ")).trim();
+      if (!name) name = "My TUI Site";
+    }
 
     tagline = await ask("  Tagline: ");
 
-    if (templateArg && (TEMPLATES as readonly string[]).includes(templateArg)) {
+    if (isTemplateArg) {
       template = templateArg as Template;
       console.log(`  Template: ${template}`);
     } else {
@@ -76,6 +96,7 @@ export async function scaffoldProject(templateArg?: string): Promise<void> {
       theme = "dracula";
     }
   } finally {
+    questionnaireDone = true;
     rl.close();
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(false);

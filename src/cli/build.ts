@@ -43,6 +43,13 @@ export async function buildProject(configPath: string): Promise<void> {
       target: "node18",
       banner: { js: "#!/usr/bin/env node" },
       minify: true,
+      // Never bundle the optional native peers. terminaltui's serve path
+      // dynamically imports ssh2 (which pulls cpu-features; the emulator can
+      // pull node-pty) — all ship .node addons esbuild has no loader for, so
+      // a project that installed ssh2 for `terminaltui serve` would otherwise
+      // fail to build. Mirrors the `--external ssh2` used to build
+      // terminaltui itself.
+      external: ["ssh2", "cpu-features", "node-pty", "*.node"],
     });
 
     const { chmodSync } = await import("node:fs");
@@ -61,7 +68,7 @@ export async function buildProject(configPath: string): Promise<void> {
   } catch (err: any) {
     try {
       execSync(
-        `npx tsup "${entryFile}" --format esm --outDir "${distDir}" --no-dts --minify`,
+        `npx tsup "${entryFile}" --format esm --outDir "${distDir}" --no-dts --minify --external ssh2 --external cpu-features --external node-pty`,
         { cwd: projectDir, stdio: "inherit" }
       );
       console.log("\n  Built successfully with tsup!");

@@ -6,8 +6,25 @@
  */
 
 import { resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { TUIEmulator } from "../emulator/index.js";
 import { Reporter } from "../emulator/reporter.js";
+
+/**
+ * Resolve the CLI entry to spawn for the child site process. Prefer the
+ * script running right now (process.argv[1]) — it exists in every layout:
+ * global installs, hoisted/workspace node_modules, and zero-install
+ * `npx terminaltui test`. Fall back to the project-local .bin shim only if
+ * argv[1] is unusable (e.g. a .ts source file under a test runner).
+ */
+function resolveCliEntry(cwd: string): string {
+  const self = process.argv[1];
+  if (self && !self.endsWith(".ts") && existsSync(self)) return resolve(self);
+  return resolve(cwd, "node_modules/.bin/terminaltui");
+}
+
+/** Matches a Node crash screen: module-resolution failures or stack frames. */
+const NODE_CRASH_RE = /Cannot find module|MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND|^\s+at .+:\d+:\d+\)?$/m;
 
 interface TestOptions {
   cols?: number;
@@ -64,7 +81,7 @@ async function testAtSize(
     // Launch
     emu = await TUIEmulator.launch({
       command: "node",
-      args: [resolve(cwd, "node_modules/.bin/terminaltui"), "dev"],
+      args: [resolveCliEntry(cwd), "dev"],
       cwd,
       cols,
       rows,
@@ -79,6 +96,12 @@ async function testAtSize(
     // Wait for boot
     await reporter.runStep("Boot animation completes", async () => {
       await emu!.waitForBoot({ timeout: 15000 });
+      // A crashed child paints a Node stack trace, which must not pass as
+      // a booted site.
+      const text = emu!.screen.text();
+      if (NODE_CRASH_RE.test(text)) {
+        throw new Error("Site process crashed during boot (Node stack trace on screen)");
+      }
     });
 
     if (options.verbose) {

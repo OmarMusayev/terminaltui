@@ -56,20 +56,17 @@ function askMultiline(rl: ReturnType<typeof createInterface>, prompt: string): P
   return new Promise((resolve) => {
     console.log(prompt);
     const lines: string[] = [];
-    let lastWasEmpty = false;
 
+    // Finish on the first empty line — after typing content that is exactly
+    // the advertised "Press Enter twice": once to end the line, once on the
+    // empty line.
     const onLine = (line: string) => {
-      if (line === "" && (lastWasEmpty || lines.length === 0)) {
+      if (line === "") {
         rl.removeListener("line", onLine);
         resolve(lines.join("\n").trim());
         return;
       }
-      lastWasEmpty = line === "";
-      if (!lastWasEmpty) {
-        lines.push(line);
-      } else {
-        lines.push(""); // preserve blank lines within content
-      }
+      lines.push(line);
     };
 
     rl.on("line", onLine);
@@ -80,6 +77,16 @@ async function runQuestionnaire(): Promise<Answers> {
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
+  });
+
+  // Piped/CI stdin can end before the questionnaire finishes — without this
+  // guard create would exit 0 having produced nothing.
+  let questionnaireDone = false;
+  rl.on("close", () => {
+    if (!questionnaireDone) {
+      console.error("\n  Error: input ended before the questionnaire finished — nothing was created.");
+      process.exit(1);
+    }
   });
 
   console.log("");
@@ -220,6 +227,7 @@ async function runQuestionnaire(): Promise<Answers> {
   );
   const extraClean = extra.toLowerCase() === "done" ? null : extra || null;
 
+  questionnaireDone = true;
   rl.close();
 
   return {

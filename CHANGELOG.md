@@ -1,5 +1,103 @@
 # Changelog
 
+## [2.0.0] - 2026-07-19
+
+The v2 overhaul. Five waves of work land in one major release: two audit-driven bug-fix passes, a full demo/QA repair, a dead-code and packaging cleanup, a typed core-runtime rewrite with correct component-state keying, and a line-diffed render pipeline that writes 67.7% fewer bytes to the terminal. Same pixels. A third of the bytes. The two behavior changes worth reading before you upgrade are **component state is now keyed by page + tree path instead of display label** and **`ssh2` is now an optional peer dependency** — see Breaking and the migration guide below.
+
+> **Note on 1.9.0:** `package.json` was bumped to 1.9.0 during this work, but 1.9.0 was **never published to npm** — the last release on npm is 1.8.2. There is no intermediate version for anyone to have upgraded through, so 2.0.0 rolls up everything since 1.8.2 (commits `0928dd7`, `0449b00`, `0c54ded`, `eb76224`, `c75aaa5`), including the packaging changes that had been tagged internally as "1.9.0".
+
+### Breaking
+
+- **Component state is keyed by page + tree path, not display label.** Accordion open/closed, active tab, gallery index, and button loading state used to be stored under the component's display label in a shared map. They are now stamped with the page id plus the block's position in the content tree (a walker-assigned path, via a `WeakMap`). Two consequences:
+  - **Two components with the same label no longer share state.** Previously an accordion titled `"Details"` on `/faq` and another titled `"Details"` on `/help` toggled together. They are now fully independent.
+  - **State survives navigation and refresh.** Previously leaving a page and returning reset that page's accordions/tabs/gallery to their defaults. State now persists across navigation and page refresh. Dynamic (regenerated) subtrees get shape-tolerant keys, so a re-render of the same structure keeps its state instead of resetting.
+
+  Before / after, two same-labeled accordions on different pages:
+
+  ```
+  // 1.x — state keyed by label "Details"
+  //   expand "Details" on /faq        -> "Details" on /help also shows expanded
+  //   navigate /faq -> /home -> /faq   -> "Details" is collapsed again (state lost)
+
+  // 2.0 — state keyed by page + tree path
+  //   expand "Details" on /faq        -> "Details" on /help is unaffected (independent)
+  //   navigate /faq -> /home -> /faq   -> "Details" is still expanded (state kept)
+  ```
+
+- **`ssh2` moved from `optionalDependencies` to an optional `peerDependency`** (install-semantics change). `terminaltui serve` still needs `ssh2`, but it is no longer pulled in transitively — install it in your own project: `npm i ssh2`. `terminaltui dev` and everything else work without it. `serve` resolves `ssh2` via a cwd-aware import fallback so global/`npx` installs find a project-local copy. `node-pty` remains an optional peer as well.
+
+Public exports of `terminaltui` and `terminaltui/emulator` are otherwise unchanged.
+
+### Performance
+
+Wave 5 rewrote the frame writer as a line diff and memoized the two hottest string operations.
+
+- **Terminal bytes written: 269,355 → 87,027 = −67.7%** across a scripted navigation run (per-demo: startup −69.0%, developer-portfolio −66.2%). **Zero-change frames now write 0 bytes** — an unchanged re-render emits nothing.
+- **Method:** measured through the emulator against the same PTY backend at 120×40, a 41-keypress scripted navigation, reported as 3-run medians. Correctness was proven by a dual-`VirtualTerminal` oracle that replays both `text()` and `ansi()` output of the old and new writers and asserts the **final on-screen grids are byte-identical** across styled rewrites, overlays, shrink, and resize.
+- **How:** `writeToTerminal` is now two-phase — compose the final styled per-row strings (bottom-row overlay precedence preserved), then diff against a previous-frame buffer and emit only changed rows as `CUP` + `EL` + payload. Per-frame `frameState` lives on the runtime instance (one per terminal stream), so concurrent SSH sessions cannot cross-contaminate. Full redraws still happen on the first frame, on any resize, and from every out-of-band writer (error, stop, cleanup, stderr warnings), preserving the legacy self-heal behavior.
+- **Width/ANSI memoization:** `stringWidth` is memoized at its single choke point (bounded `Map`, cap 8192 entries, FIFO eviction; strings shorter than 8 chars skip the cache), so every hot caller (`Panel` pad/clip, `truncate`/`wrapText`, the terminal truncation guard) benefits with no call-site edits; `stripAnsi` gained a zero-alloc fast path for strings with no ESC. Output was proven byte-identical before and after memoization (0.0% delta).
+- **`PageLayoutCache` (wave 4):** non-volatile pages now skip focus collection, form registration, and rect computation on every frame. Volatile pages (dynamic/async) keep the exact per-frame path; the cache invalidates on page enter, resize, refresh, content-identity change, and a focus-slot fingerprint so in-place mutations still rebuild.
+
+### Fixed
+
+Input, Unicode width, SSH, and data (wave 1 — 36 fixes from a multi-agent audit):
+
+- **Escape-sequence parser is now stateful** — sequences split across stdin chunks parse correctly, surrogate pairs are never split mid-codepoint, and a lone `ESC` is recognized via a 50 ms hold.
+- **`SIGINT`/`SIGTERM` now actually exit** (codes 130/143); `cleanup()` no longer tears down process-globals under SSH; the exit cursor position is 1-based. The site `onError` lifecycle hook is now wired into the render, action, and navigation error paths.
+- **SSH per-connection session tracking** — one client disconnecting no longer kills other sessions from the same IP; a serve-mode crash guard restores every client's terminal before exit.
+- **Text-editing cursor/scroll/wrap math is done in code points and display cells** (new shared `text-cursor` helper), so emoji and CJK are no longer torn or misaligned. `Quote`, `Menu`, gradient lines, scenes, and bar charts compute width via `stringWidth` instead of UTF-16 code units.
+- **Data fetching** — the `fetcher` custom-fetch instance leak is fixed (opt-in key option); the SSE parser buffers partial events across chunks and handles CRLF.
+- **Emulator vterm gained wide-character support** — 2-column CJK/emoji render with continuation cells.
+- **`runtime-pages`** — page refresh timers are cleared on navigation, a background refresh no longer clobbers the current page's focus, and dynamic render errors surface as an error block instead of vanishing.
+
+Demo/QA repair (wave 2 — root-cause framework bugs, not demo typos):
+
+- **`columns()`/`rows()` rejected the documented `panel()` block form** — consumers read `p.content` off the wrong shape and crashed with `blocks is not iterable`. Both shapes now normalize, with a `toBlockArray()` guard at page-content boundaries.
+- **Auto-scroll anchored viewport-tall focused blocks to their end**, clipping tab headers off the top; it now anchors to the start.
+- **`screen`/`terminal-io` now honor `COLUMNS`/`LINES`** when stdout reports no size, so the emulator's non-PTY fallback renders at the requested size instead of 80×24 (this had been hiding below-the-fold content in every demo).
+- **Emulator `resize()` works in the non-PTY fallback** via an in-band `CSI 8;rows;cols t` channel; the launch timeout is inactivity-based instead of an absolute deadline that killed long-running QA suites mid-run.
+- The dashboard demo prefetches its data at boot (its loading state was previously unescapable).
+
+Cleanup-pass fixes (wave 3):
+
+- **Command-buffer backspace deletes whole code points** (no surrogate tearing after an emoji), and the printable-char guard accepts astral characters (`codePointLength`, not `.length`).
+- **`TextArea`** — the cursor cell at the end of a full line no longer overflows the right border by one column.
+- **`Quote`** — fancy-style attribution is width-aware truncated to fit.
+- **`detect-terminal`** — a TTY with no `TERM` keeps a 16-color floor; only `NO_COLOR` forces monochrome on a TTY.
+
+Review repairs from the typed-runtime and render-diff work (waves 4–5):
+
+- Late async page loads no longer stamp component state under the wrong page id; non-current-page refresh writebacks no longer store unstamped arrays.
+- `findFocusIndexByPanelTitle` is path-based — empty panels return no-jump instead of drifting focus to the next block; panels inside `rows` became title-matchable.
+- Overlay controls are sanitized at compose time and C0-except-`ESC` is stripped from every payload, so a stray `\n` in a notification can no longer scroll the screen and desync the frame buffer; out-of-band writers force a heal.
+
+### Changed
+
+- **Input behavior (observable):** `Escape` on the home page is now a no-op instead of quitting (`q`/`Ctrl+C` quit); left-arrow at the leftmost focusable no longer acts as "back" (matches the keybindings design note); returning home resets the menu selection to the first item.
+- **Typed core-runtime internals (wave 4):** a new `RuntimeInternal` interface replaces 23 `this as any` casts and 7 per-module ad-hoc runtime interfaces; `serve.ts` writes `runtime.fileRouter` typed.
+- **One block walker, one taxonomy (wave 4):** a single pre-order `block-walker` replaces 11 drifting ad-hoc tree walks; `block-taxonomy` centralizes `FOCUSABLE_TYPES` (chat is now focusable, gallery is not — resolving a flex/legacy engine disagreement) and drives the flex engine from the same set. `layout-constants` replaces numerically identical scattered literals.
+- **Dead code removed (wave 3):** files `cli/art-commands.ts`, `art-registry/art-helpers.ts`, `components/ScrollView.ts`, `ascii/box-drawing.ts`, `helpers/clipboard.ts`, plus unreferenced exports (`drawBox`/`drawBoxWithTitle`, `gradientText`, `createArtPack`, `getScreenSize`, `getSpinnerFrames`, `shouldStack`, `isTracking`, `styledInverse`, and unused layout types). Each was independently re-verified unreferenced, including dynamic/registry lookups.
+- **Duplication consolidated (wave 3, public names/signatures preserved):** `detectTerminal()` delegates color depth to `detectColorSupport()`; the chart helpers are defined once in `dataviz-charts.ts`; `Columns`/`Rows` stacked-panel rendering shares `layout/stacked.ts`; `truncate()`/`truncateLine()` share one width-aware core.
+- **Demos** got curated menu order via `metadata.order`/`menu.order`.
+- **CI:** the `--demos` E2E job is now a blocking gate (previously advisory/`continue-on-error`); a full-tree `npm audit` step restores `ssh2` advisory coverage.
+- **Packaging:** `exports` gained default conditions and `./package.json`; `sideEffects: false`; a prepack build and tarball dupe-guards; `engines.node >= 18` is now declared and documented (ESM-only). `demos/mac-monitor` ships its sources like every other demo.
+
+### Added
+
+- **`TUIEmulator.bytesReceived` and `TUIEmulator.resetBytesReceived()`** — a new public emulator capability (on the `terminaltui/emulator` export) to measure exactly how many bytes a run writes to the terminal. This is how the render benchmark above is taken; you can assert on it in your own tests.
+- **New test suites:** `render-diff` (83 tests, incl. the grid-identity oracle and a 0-byte no-op E2E), `width-cache` (90 tests, incl. an 18-entry Unicode corpus checked against an uncached reference after 8k-entry churn), `focus-contract` (a 21-slot fixture covering every container kind, asserting rect count equals focus count against golden paths), and 4 CLI unit suites (+112 tests: create-prompt mapping, command dispatch, project guards, art helpers).
+- **Test suite grew from 2,142 to 3,323 tests across 52 suites.** The default subset is 2,440 tests across 33 suites (~20s); the full `--demos` sweep runs the demo/QA E2E suites through a real PTY emulator (~17 min) and is now a blocking CI gate.
+
+### Migration from 1.x
+
+1. **Component state (accordion / tabs / gallery / button loading).** State is now keyed by page + tree path, so:
+   - If you relied on **two same-labeled components sharing state**, they no longer do — that was incidental behavior of label-based keying. There is no code change needed unless you were depending on the shared toggle.
+   - If you relied on a page's components **resetting when you navigate away and back**, they no longer reset — state persists across navigation and refresh. If you need a component to start fresh, reset it explicitly in your own state rather than expecting navigation to clear it.
+2. **SSH hosting (`terminaltui serve`).** `ssh2` is now an optional peer dependency. Add it to your project: `npm i ssh2`. Nothing else changes; `terminaltui dev` does not need it.
+3. **Keybindings.** `Escape` no longer quits from the home page — use `q` or `Ctrl+C`. Left-arrow at the leftmost item no longer navigates back.
+
+---
+
 ## [1.8.2] - 2026-06-01
 
 Infrastructure and correctness release. Adds a CI pipeline and a publish guard, removes a self-referential dependency that bloated every install, and fixes a color bug where text attributes ignored runtime color-mode changes. CI caught that color bug on its first run — it passed locally but failed on bare-environment runners.

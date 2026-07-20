@@ -45,6 +45,7 @@ my-site/
 
 ## CLI
 
+- `terminaltui try` — run a 5-page guided tour, zero install
 - `terminaltui init [template]` — scaffold a new project
 - `terminaltui dev [path]` — compile and run
 - `terminaltui serve [path]` — host the TUI over SSH
@@ -52,6 +53,7 @@ my-site/
 - `terminaltui demo [name]` — run a built-in demo
 - `terminaltui create` — interactive prompt builder
 - `terminaltui convert` — AI-assisted website conversion
+- `terminaltui validate` — check a file-based routing project for common issues
 - `terminaltui test` — headless emulator tests
 - `terminaltui art` — manage ASCII art assets
 
@@ -92,6 +94,6 @@ A long-form API reference designed for code generation lives at [`claude/SKILL.m
 ## Tech and license
 
 - TypeScript, strict mode. One required dependency (esbuild). `ssh2` is optional for `serve`.
-- 1,500+ test assertions across unit, integration, emulator, and demo suites.
+- 3,323 tests across 52 suites — unit, integration, emulator, and demo.
 - Apple Terminal compatible (auto-detects and falls back to 256-color).
 - Author: Omar Musayev. License: MIT. Repo: https://github.com/OmarMusayev/terminaltui. Package: https://www.npmjs.com/package/terminaltui.
