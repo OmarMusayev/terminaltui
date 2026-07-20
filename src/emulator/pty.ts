@@ -5,7 +5,27 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
+import { delimiter, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { LaunchOptions } from "./types.js";
+
+/**
+ * node_modules/.bin dirs of the host project (emulator caller's cwd and this
+ * package's own tree). Prepended to the child's PATH so commands like
+ * `npx tsx app.ts` resolve local binaries instantly even when cwd is a bare
+ * temp dir — otherwise npx hits the registry on a cold cache (CI runners)
+ * and its download output pollutes the boot screen.
+ */
+function localBinPaths(): string[] {
+  const here = dirname(fileURLToPath(import.meta.url)); // src/emulator or dist/emulator
+  const candidates = [
+    resolve(process.cwd(), "node_modules", ".bin"),
+    resolve(here, "..", "..", "node_modules", ".bin"),
+    resolve(here, "..", "..", "..", ".bin"),
+  ];
+  return candidates.filter((dir, i) => existsSync(dir) && candidates.indexOf(dir) === i);
+}
 
 export interface PTYProcess {
   write(data: string): void;
@@ -38,6 +58,10 @@ export async function spawnPTY(options: LaunchOptions): Promise<PTYProcess> {
     FORCE_COLOR: "1",
     ...(options.env ?? {}),
   };
+  const bins = localBinPaths();
+  if (bins.length > 0) {
+    env.PATH = [...bins, env.PATH ?? ""].join(delimiter);
+  }
 
   // Try node-pty first
   try {
@@ -127,6 +151,10 @@ function createChildProcess(
     env: { ...env, COLUMNS: String(cols), LINES: String(rows) },
     stdio: ["pipe", "pipe", "pipe"],
     shell: true,
+    // Own process group (POSIX), so kill() can signal the whole tree:
+    // `npx tsx app.ts` is shell -> npx -> tsx -> node, and signalling only
+    // the direct child orphans the app alive with our pipes held open.
+    detached: process.platform !== "win32",
   });
 
   let running = true;
@@ -174,10 +202,27 @@ function createChildProcess(
     kill() {
       if (running) {
         running = false;
-        proc.kill("SIGTERM");
-        setTimeout(() => {
-          try { proc.kill("SIGKILL"); } catch {}
+        const signalTree = (sig: NodeJS.Signals) => {
+          if (process.platform !== "win32" && proc.pid) {
+            // Negative pid = whole process group (see detached in spawn).
+            try { process.kill(-proc.pid, sig); return; } catch { /* group gone; fall through */ }
+          }
+          try { proc.kill(sig); } catch { /* already dead */ }
+        };
+        if (process.platform === "win32" && proc.pid) {
+          // /T kills the tree; plain kill() would orphan the app under the shell.
+          spawn("taskkill", ["/pid", String(proc.pid), "/T", "/F"], { stdio: "ignore" });
+        } else {
+          signalTree("SIGTERM");
+        }
+        const killTimer = setTimeout(() => {
+          signalTree("SIGKILL");
+          // Orphans hold our pipe ends open and pin the parent's event loop.
+          proc.stdout?.destroy();
+          proc.stderr?.destroy();
+          proc.stdin?.destroy();
         }, 1000);
+        killTimer.unref();
       }
     },
     onData(handler: (data: string) => void) {

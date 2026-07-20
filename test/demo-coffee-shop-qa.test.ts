@@ -199,7 +199,7 @@ function cleanup(dir: string): void {
 
 async function launchSite(dir: string, cols = 100, rows = 35): Promise<TUIEmulator> {
   return TUIEmulator.launch({
-    command: `npx tsx run.ts`,
+    command: `tsx run.ts`,
     cwd: dir,
     cols,
     rows,

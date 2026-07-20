@@ -198,7 +198,7 @@ async function launchDemo(opts?: {
 }): Promise<TUIEmulator> {
   runDir = createRunDir();
   return TUIEmulator.launch({
-    command: `npx tsx run.ts`,
+    command: `tsx run.ts`,
     cwd: runDir,
     cols: opts?.cols ?? 100,
     rows: opts?.rows ?? 35,

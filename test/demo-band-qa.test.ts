@@ -200,7 +200,7 @@ async function main(): Promise<void> {
 
     await test("boot: launch emulator at 100x35", async () => {
       emu = await TUIEmulator.launch({
-        command: "npx tsx run.ts",
+        command: "tsx run.ts",
         cwd: runDir!,
         cols: 100,
         rows: 35,
@@ -837,7 +837,7 @@ async function main(): Promise<void> {
           "Pressing escape 3 times while on home screen kills the process", "");
         // Relaunch for remaining tests
         const newDir = createRunDir();
-        emu = await TUIEmulator.launch({ command: "npx tsx run.ts", cwd: newDir, cols: 100, rows: 35, timeout: 30000 });
+        emu = await TUIEmulator.launch({ command: "tsx run.ts", cwd: newDir, cols: 100, rows: 35, timeout: 30000 });
         await emu!.waitForBoot({ timeout: 15000 });
       }
     });
@@ -854,7 +854,7 @@ async function main(): Promise<void> {
         fileBug("P0", "App crashes on left/right arrow on home menu", "home",
           "Pressing left then right arrow on home menu kills the process", "");
         const newDir = createRunDir();
-        emu = await TUIEmulator.launch({ command: "npx tsx run.ts", cwd: newDir, cols: 100, rows: 35, timeout: 30000 });
+        emu = await TUIEmulator.launch({ command: "tsx run.ts", cwd: newDir, cols: 100, rows: 35, timeout: 30000 });
         await emu!.waitForBoot({ timeout: 15000 });
       }
     });

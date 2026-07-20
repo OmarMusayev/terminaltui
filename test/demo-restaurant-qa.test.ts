@@ -169,7 +169,7 @@ async function main(): Promise<void> {
 
     runDir = createRunDir();
     emu = await TUIEmulator.launch({
-      command: "npx tsx run.ts",
+      command: "tsx run.ts",
       cwd: runDir,
       cols: 100,
       rows: 35,

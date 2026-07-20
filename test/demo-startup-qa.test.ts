@@ -131,7 +131,7 @@ function cleanup(dir: string): void {
 async function launchEmu(opts?: { cols?: number; rows?: number }): Promise<{ emu: TUIEmulator; dir: string }> {
   const dir = createRunDir();
   const emu = await TUIEmulator.launch({
-    command: "npx tsx run.ts",
+    command: "tsx run.ts",
     cwd: dir,
     cols: opts?.cols ?? 100,
     rows: opts?.rows ?? 35,

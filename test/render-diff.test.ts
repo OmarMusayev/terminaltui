@@ -419,8 +419,12 @@ runFileBasedSite({
 
   let emu: TUIEmulator | null = null;
   try {
+    // Invoke the repo's tsx entry directly: `npx tsx` from the tmpdir would
+    // hit the registry on a cold cache (CI), and its download output fools
+    // waitForBoot into sampling a still-booting screen.
+    const tsxCli = join(PROJECT_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
     emu = await TUIEmulator.launch({
-      command: "npx tsx run.ts",
+      command: `node "${tsxCli}" run.ts`,
       cwd: runDir,
       cols: 120,
       rows: 40,
@@ -429,7 +433,12 @@ runFileBasedSite({
     await emu.waitForBoot({ timeout: 20000 });
     await emu.waitForIdle(600, { timeout: 10000 });
 
-    const menuBefore = emu.screen.menu();
+    // Slow runners can still be mid-boot here: poll until the menu exists.
+    let menuBefore = emu.screen.menu();
+    for (let i = 0; i < 40 && menuBefore.items.length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      menuBefore = emu.screen.menu();
+    }
     assert(menuBefore.items.length > 0, "home menu visible after boot");
 
     // No-op keypress: left on home renders an identical frame → ~0 bytes.

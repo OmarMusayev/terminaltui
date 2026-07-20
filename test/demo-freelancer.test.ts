@@ -98,7 +98,7 @@ async function main(): Promise<void> {
 
     await test("launch: TUIEmulator.launch() resolves", async () => {
       emu = await TUIEmulator.launch({
-        command: "npx tsx run.ts",
+        command: "tsx run.ts",
         cwd: siteDir,
         cols: 120,
         rows: 40,

@@ -32,7 +32,7 @@ async function main() {
 
   try {
     emu = await TUIEmulator.launch({
-      command: "npx tsx run.ts",
+      command: "tsx run.ts",
       cwd: runDir,
       cols: 120,
       rows: 40,

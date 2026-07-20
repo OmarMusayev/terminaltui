@@ -164,7 +164,7 @@ async function main() {
     // ── Test A: Boot ──────────────────────────────────────────
     console.log("--- Test A: Boot ---");
     emu = await TUIEmulator.launch({
-      command: "npx tsx run.ts",
+      command: "tsx run.ts",
       cwd: runDir,
       cols: 100,
       rows: 35,
