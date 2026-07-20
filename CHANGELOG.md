@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.1] - 2026-07-20
+
+Fixes for the emulator and the test suites, found by running the v2.0.0 CI matrix on Linux, macOS, and Node 18. No changes to the framework runtime — apps behave exactly as on 2.0.0.
+
+### Fixed
+
+- **Emulator: `close()` now kills the whole process tree.** `TUIEmulator.launch({ command })` runs the command through a shell, so a launch like `npx tsx app.ts` is a tree (shell → npx → tsx → node). The child-process fallback signalled only the direct child, which on Linux left the app itself alive holding the emulator's pipe ends open — the calling process would never exit. The fallback now spawns into its own process group and signals the group (`taskkill /T /F` on Windows), then destroys the pipes after escalating to `SIGKILL`.
+- **Emulator: launched commands can find locally installed binaries.** `spawnPTY` prepends the host project's `node_modules/.bin` to the child's `PATH`, so a command run from a scratch directory resolves project-local tools instead of falling back to a registry download. The prepend is case-correct on Windows (`Path`), where writing a second `PATH` key broke command resolution entirely.
+
+### Changed
+
+- Test suites launch apps as `tsx run.ts` rather than `npx tsx run.ts`. On a cold npx cache — every fresh CI runner — npx would install `tsx` mid-test and print progress into the emulated terminal, so boot assertions sampled a half-rendered screen.
+- Test suites use `dirname(fileURLToPath(import.meta.url))` instead of `import.meta.dirname`, which is undefined on Node 18 (added in 20.11) and crashed suites at module load there. The package's supported range has always been `>= 18`; only the tests were affected.
+
 ## [2.0.0] - 2026-07-19
 
 The v2 overhaul. Five waves of work land in one major release: two audit-driven bug-fix passes, a full demo/QA repair, a dead-code and packaging cleanup, a typed core-runtime rewrite with correct component-state keying, and a line-diffed render pipeline that writes 67.7% fewer bytes to the terminal. Same pixels. A third of the bytes. The two behavior changes worth reading before you upgrade are **component state is now keyed by page + tree path instead of display label** and **`ssh2` is now an optional peer dependency** — see Breaking and the migration guide below.
