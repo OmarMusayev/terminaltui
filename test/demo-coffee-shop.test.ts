@@ -6,15 +6,16 @@
  * tests spatial arrow-key navigation, and confirms clean shutdown.
  */
 
+import { fileURLToPath } from "node:url";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { TUIEmulator } from "../src/emulator/index.js";
 
 // ── Config ──────────────────────────────────────────────────
 
-const PROJECT_ROOT = join(import.meta.dirname, "..");
+const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // ── Test Harness ────────────────────────────────────────────
 

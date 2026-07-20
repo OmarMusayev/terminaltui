@@ -60,7 +60,10 @@ export async function spawnPTY(options: LaunchOptions): Promise<PTYProcess> {
   };
   const bins = localBinPaths();
   if (bins.length > 0) {
-    env.PATH = [...bins, env.PATH ?? ""].join(delimiter);
+    // Windows spells it "Path" — writing a second "PATH" key breaks child
+    // command resolution there, so extend whichever key already exists.
+    const pathKey = Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+    env[pathKey] = [...bins, env[pathKey] ?? ""].join(delimiter);
   }
 
   // Try node-pty first

@@ -3,12 +3,13 @@
  * Unified demo test — tests all 9 demos with the same reliable pattern.
  * For each demo: boot, verify menu, visit every page, test nav, verify no crash.
  */
-import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { TUIEmulator } from "../src/emulator/index.js";
 
-const PROJECT_ROOT = join(import.meta.dirname, "..");
+const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const DEMOS = [
   "developer-portfolio",

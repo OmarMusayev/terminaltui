@@ -7,12 +7,13 @@
  * navigation loops, edge cases.
  */
 
-import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { TUIEmulator } from "../src/emulator/index.js";
 
-const PROJECT_ROOT = join(import.meta.dirname, "..");
+const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DEMO_DIR = join(PROJECT_ROOT, "demos", "startup");
 
 // ── Test Harness ────────────────────────────────────────────

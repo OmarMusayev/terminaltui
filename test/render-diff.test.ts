@@ -26,7 +26,8 @@
  *  10. a menu move transmits a small fraction of a full frame and the
  *      grid updates correctly; page enter/exit still renders correctly.
  */
-import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { writeToTerminal, truncateLine, createRenderContext } from "../src/core/runtime-terminal.js";
@@ -400,7 +401,7 @@ function testOutOfBandDesyncHeals(): void {
 
 // ─── E2E: startup demo byte counts + grid correctness ────────
 
-const PROJECT_ROOT = join(import.meta.dirname, "..");
+const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DEMO_DIR = join(PROJECT_ROOT, "demos", "startup");
 
 async function testE2EByteBehavior(): Promise<void> {
