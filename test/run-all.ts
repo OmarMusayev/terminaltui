@@ -95,6 +95,16 @@ const suites = allFiles.filter(shouldRun).map(file => ({
  * formats used across suites; `glyphFallback` additionally counts per-test
  * ✔/PASS/✓ marks (success path only — noisy on crash output).
  */
+/**
+ * Echo a failing suite's individual failure lines so CI logs name the exact
+ * assertions — without this, a matrix-only failure (e.g. Windows) reports
+ * counts with no way to see what broke.
+ */
+function printFailureLines(output: string, cap = 20): void {
+  const lines = output.split("\n").filter(l => /✘|FAIL/.test(l)).slice(0, cap);
+  for (const line of lines) console.log(`    ${line.trim()}`);
+}
+
 function parseCounts(output: string, glyphFallback: boolean): { passed: number; failed: number } {
   const totalMatch = output.match(/Total:\s*(\d+)\s*Passed:\s*(\d+)\s*Failed:\s*(\d+)/i);
   if (totalMatch) return { passed: parseInt(totalMatch[2]), failed: parseInt(totalMatch[3]) };
@@ -155,6 +165,7 @@ for (const suite of suites) {
 
     if (failed > 0) {
       console.log(` \x1b[31m${passed} passed, ${failed} failed\x1b[0m (${duration}ms)`);
+      printFailureLines(output);
     } else {
       console.log(` \x1b[32m${passed} passed\x1b[0m (${duration}ms)`);
     }
@@ -182,6 +193,7 @@ for (const suite of suites) {
       totalFailed += failed || 1;
       results.push({ name: suite.name, passed, failed, duration });
       console.log(` \x1b[31m${passed} passed, ${failed} failed\x1b[0m (${duration}ms)`);
+      printFailureLines(output);
     }
   }
 }
