@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.2] - 2026-07-20
+
+Dynamic routes actually receive their params now. This bug predates the v2 overhaul — any page opened with navigation params (`[id].ts` routes, or a card action with `params`) got `undefined` instead of a context, and function-typed `metadata.label`s were painted into the header as raw source. The dashboard demo's post-detail page showed both symptoms.
+
+### Fixed
+
+- **Content loaders receive navigation params.** The runtime now passes the current route params to a page's content loader on every navigation, and the file-router builds the documented `{ params }` context from them for dynamic routes and any param-carrying navigation. Previously the loader was always called with `undefined` — a `[id].ts` page (or a static page opened via `action: { navigate, params }`) crashed on its params and hung on the loading spinner.
+- **Function-typed `metadata.label` resolves at render time.** `label: (p) => \`Post #${p.id}\`` now renders the resolved string in the page header instead of the function's source code. `metadata.loading` gains the same function form and is actually passed through to the page (it was silently dropped before).
+- **Params changes invalidate cached page content.** Revisiting a parameterized page with different params shows its loading state instead of the previous params' content, and a slow in-flight load that was superseded by a newer navigation discards its result instead of clobbering it (per-key load generation in the async manager).
+- **Param-less search navigation clears stale params.** Jumping to a page via fuzzy search no longer leaves the previous dynamic page's params live on the runtime.
+- **Back-navigation restores the params a page was opened with.** History entries now carry their params. Previously, going back to a parameterized page after any forward navigation re-resolved its function label against cleared params — the header read "Post #undefined" over the correct content. Back also re-enters the page lifecycle now, so `refreshInterval` timers restart on back instead of staying dead (cached content for matching params still shows instantly).
+- **`terminaltui build` output threads params.** The AOT build's generated entry point called every page function with no arguments — its own parallel loader path, untouched by the dev-router fix — so param pages crashed in built bundles even after the fix above. The generated loaders now build the same `{ params }` context as the dev router, and `metadata.loading` is included in the bundle.
+- **Windows CI: the CLI dispatch suite runs.** The suite spawned the extensionless `node_modules/.bin/tsx` shim, which Windows `spawnSync` can't execute without a shell (ENOENT, 0/24). It now invokes tsx's JS entry with the current node binary on all platforms.
+
+### Added
+
+- Regression coverage: a router params suite (23 assertions on context threading, metadata passthrough, history param restore, and build codegen) and a post-detail section in the dashboard QA suite — the first E2E tests that actually open a param-driven route, including the jump-away-and-back round trip.
+- `docs/routing.md` documents param-carrying navigation to static pages and the function forms of `metadata.label` / `metadata.loading`.
+
 ## [2.0.1] - 2026-07-20
 
 Fixes for the emulator and the test suites, found by running the v2.0.0 CI matrix on Linux, macOS, and Node 18. No changes to the framework runtime — apps behave exactly as on 2.0.0.
