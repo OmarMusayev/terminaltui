@@ -196,7 +196,7 @@ function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderCont
   const padStr = " ".repeat(leftPad);
 
   if (content === null) {
-    const loadingMsg = currentPage.loading ?? "Loading...";
+    const loadingMsg = rt.resolvePageLoading(currentPage);
     lines.push("");
     const backHint = fgColor(rt.theme.subtle) + dim + "\u2190 back" + reset;
     const pageTitle = fgColor(rt.theme.accent) + bold +

@@ -64,6 +64,28 @@ export default function Project({ params }: { params: { slug: string } }) {
 
 Navigate to it with `navigate("projects/[slug]", { slug: "my-app" })` or via a card action.
 
+Static pages can receive params the same way — any navigation that carries `params` (a card action, `navigate()`, or a redirect) passes them to the target page's default export as `{ params }`. Navigations without params call the page with no context.
+
+### Parameterized titles and loading messages
+
+`metadata.label` and `metadata.loading` accept functions for param-driven pages. They receive the params object directly and resolve at render time:
+
+```ts
+// pages/post.ts — opened via navigate("post", { id: "42" })
+export const metadata = {
+  hidden: true,
+  label: (p: { id: string }) => `Post #${p.id}`,           // header title
+  loading: (p: { id: string }) => `Loading post #${p.id}...`,
+};
+
+export default async function Post({ params }: { params: { id: string } }) {
+  const post = await fetchPost(params.id);
+  return [card({ title: post.title, body: post.body })];
+}
+```
+
+Function labels don't appear in the auto-generated menu (there are no params to resolve them with there) — parameterized pages are usually `hidden: true` and reached by navigation.
+
 ## Layout files — `layout.ts`
 
 A `layout.ts` wraps every sibling and descendant page. Layouts compose from outside in (root layout → section layout → page).

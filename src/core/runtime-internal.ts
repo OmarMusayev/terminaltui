@@ -96,6 +96,10 @@ export interface RuntimeInternal {
   buttonLoading: Map<string, boolean>;
   formRegistry: Map<string, FormBlock>;
   resolvedPageContent: Map<string, ContentBlock[]>;
+  /** Serialized params that produced each resolvedPageContent entry — a
+   *  params change invalidates the cached content instead of showing the
+   *  previous params' page. */
+  resolvedPageParams: Map<string, string>;
   dynamicCache: Map<string, ContentBlock[]>;
   /**
    * Structural-path state keys stamped onto blocks by stampBlockKeys()
@@ -135,6 +139,7 @@ export interface RuntimeInternal {
   getCurrentPage(): PageConfig | undefined;
   getPageContent(page: PageConfig): ContentBlock[] | null;
   resolvePageTitle(page: PageConfig): string;
+  resolvePageLoading(page: PageConfig): string;
   collectFocusItems(blocks: ContentBlock[]): FocusItem[];
   initializePageContent(content: ContentBlock[]): void;
   registerForms(blocks: ContentBlock[]): void;

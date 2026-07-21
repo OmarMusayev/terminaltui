@@ -81,6 +81,11 @@ export function handleNavigationMode(rt: RuntimeInternal, key: KeyPress): void {
 
     case "back":
       if (rt.router.back()) {
+        // Restore the params of the history entry we landed on — title,
+        // loading message, and loader must resolve against the params the
+        // page was originally opened with, not whatever the last forward
+        // navigation set.
+        rt.currentParams = rt.router.currentParams;
         rt.scrollOffset = 0;
         rt.pageFocusIndex = 0;
         rt.pageScrollOffset = 0;
@@ -88,7 +93,14 @@ export function handleNavigationMode(rt: RuntimeInternal, key: KeyPress): void {
         rt.focusRects = [];
         rt.inputMode.reset();
         // Landing back on home resets the menu selection to the first item
-        if (rt.router.isHome()) rt.focus.focusFirst();
+        if (rt.router.isHome()) {
+          rt.focus.focusFirst();
+        } else {
+          // Re-run the page lifecycle: restarts refresh timers and reloads
+          // async content (cached content for matching params still shows
+          // instantly; a params mismatch invalidates it).
+          rt.enterPage();
+        }
         rt.render();
       }
       break;
@@ -279,8 +291,11 @@ function executeSearchAction(
   const pageMatch = rt.site.pages.find((p: any) => p.id === value);
   if (pageMatch) {
     rt.router.navigate(value);
+    // Param-less navigation: clear params from a previously visited dynamic
+    // page so its loader/title don't resolve against stale values.
+    rt.currentParams = {};
     rt.enterPage();
-    rt.showFeedback(`\u2192 ${pageMatch.title}`);
+    rt.showFeedback(`\u2192 ${rt.resolvePageTitle(pageMatch)}`);
     rt.render();
     return;
   }
@@ -309,9 +324,10 @@ function executeSearchAction(
     if (!content) continue;
     if (blockExistsInContent(value, selected.label, content)) {
       rt.router.navigate(p.id);
+      rt.currentParams = {};
       rt.enterPage();
       scrollToBlock(rt, value, selected.label);
-      rt.showFeedback(`\u2192 ${p.title} \u203a ${selected.label}`);
+      rt.showFeedback(`\u2192 ${rt.resolvePageTitle(p)} \u203a ${selected.label}`);
       rt.render();
       return;
     }

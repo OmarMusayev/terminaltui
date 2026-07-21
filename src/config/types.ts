@@ -64,10 +64,12 @@ export interface Site {
 
 export interface PageConfig {
   id: string;
-  title: string;
+  /** Function titles resolve at render time with the current route params. */
+  title: string | ((params: Record<string, string>) => string);
   icon?: string;
-  content: ContentBlock[] | (() => Promise<ContentBlock[]>);
-  loading?: string;
+  /** Content loaders receive the current route params on each navigation. */
+  content: ContentBlock[] | ((params?: Record<string, string>) => Promise<ContentBlock[]>);
+  loading?: string | ((params: Record<string, string>) => string);
   refreshInterval?: number;
   onError?: (err: Error) => ContentBlock[];
   middleware?: MiddlewareFn[];

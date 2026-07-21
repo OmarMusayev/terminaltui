@@ -21,13 +21,16 @@ function assertIncludes(haystack: string, needle: string, name: string) {
 }
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const TSX = join(REPO_ROOT, "node_modules", ".bin", "tsx");
+// Invoke tsx through its JS entry with the current node binary — the
+// node_modules/.bin/tsx shim is an extensionless shell script that Windows
+// spawnSync can't execute without a shell (ENOENT).
+const TSX_CLI = join(REPO_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
 const CLI = join(REPO_ROOT, "src", "cli", "index.ts");
 
 interface CliResult { status: number | null; stdout: string; stderr: string; }
 
 function cli(args: string[], cwd: string = REPO_ROOT): CliResult {
-  const r = spawnSync(TSX, [CLI, ...args], {
+  const r = spawnSync(process.execPath, [TSX_CLI, CLI, ...args], {
     cwd,
     encoding: "utf-8",
     timeout: 30000,

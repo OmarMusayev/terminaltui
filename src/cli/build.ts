@@ -84,8 +84,9 @@ export async function buildProject(configPath: string): Promise<void> {
  * Generate a self-contained entry point that bundles config.ts + every page +
  * every api/ handler into one file. The output instantiates TUIRuntime
  * directly so no extra helpers are needed.
+ * Exported for the build-entry codegen tests.
  */
-async function createFileBasedEntryPoint(
+export async function createFileBasedEntryPoint(
   projectDir: string,
   configPath: string,
   outDir: string,
@@ -155,16 +156,23 @@ async function createFileBasedEntryPoint(
 
   lines.push(``);
 
-  // Build pages array as plain PageConfig objects (no page() helper)
+  // Build pages array as plain PageConfig objects (no page() helper).
+  // _ctx mirrors the dev router's createPageContentLoader: dynamic routes and
+  // param-carrying navigations get a { params } PageContext, plain static
+  // pages keep being called with no argument.
+  lines.push(`const _ctx = (isDynamic, params) =>`);
+  lines.push(`  isDynamic || (params && Object.keys(params).length > 0) ? { params: params ?? {} } : undefined;`);
   lines.push(`const pages = [`);
   for (const p of pageImports) {
     const metaRef = `(${p.varName}_meta || {})`;
+    const isDynamic = p.routeName.includes("[");
     lines.push(`  {`);
     lines.push(`    id: "${p.routeName}",`);
     lines.push(`    title: ${metaRef}.label || ${JSON.stringify(titleCase(p.routeName))},`);
     lines.push(`    icon: ${metaRef}.icon,`);
+    lines.push(`    loading: ${metaRef}.loading,`);
     lines.push(`    _hidden: ${p.isHidden},`);
-    lines.push(`    content: async () => ${p.varName}(),`);
+    lines.push(`    content: async (params) => ${p.varName}(_ctx(${isDynamic}, params)),`);
     lines.push(`  },`);
   }
   lines.push(`];`);

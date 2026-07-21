@@ -64,10 +64,16 @@ export interface LayoutContext {
 
 /** Metadata exported from a page file. */
 export interface PageMetadata {
-  label?: string;
+  /** Menu/page label. Function labels resolve at render time with the current
+   *  route params (`label: (p) => \`Post #${p.id}\``) — parameterized pages
+   *  fall back to the titlecased filename in the menu. */
+  label?: string | ((params: RouteParams) => string);
   order?: number;
   icon?: string;
   hidden?: boolean;
+  /** Loading message shown while the page's async content resolves.
+   *  Function form receives the current route params. */
+  loading?: string | ((params: RouteParams) => string);
   transition?: "fade" | "slide" | "wipe" | "instant";
   middleware?: string[];
 }

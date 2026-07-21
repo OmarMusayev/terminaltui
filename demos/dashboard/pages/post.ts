@@ -14,21 +14,21 @@ export const metadata = {
   hidden: true,
 };
 
-export default async function PostDetail(p: { id: string }) {
+export default async function PostDetail({ params }: { params: { id: string } }) {
   const postRes = await request.get<Post>(
-    `https://jsonplaceholder.typicode.com/posts/${p.id}`,
+    `https://jsonplaceholder.typicode.com/posts/${params.id}`,
   );
   if (!postRes.ok || !postRes.data) {
-    return [markdown(`**Error:** Could not load post #${p.id}`)];
+    return [markdown(`**Error:** Could not load post #${params.id}`)];
   }
   const post = postRes.data;
 
   const commentsRes = await request.get<Comment[]>(
-    `https://jsonplaceholder.typicode.com/posts/${p.id}/comments`,
+    `https://jsonplaceholder.typicode.com/posts/${params.id}/comments`,
   );
   const comments = commentsRes.data ?? [];
 
-  const isBookmarked = bookmarks.get("saved").includes(Number(p.id));
+  const isBookmarked = bookmarks.get("saved").includes(Number(params.id));
 
   const commentCards: ContentBlock[] = comments.slice(0, 5).map((c: Comment) =>
     card({
@@ -56,7 +56,7 @@ export default async function PostDetail(p: { id: string }) {
           label: isBookmarked ? "Remove Bookmark" : "Bookmark This Post",
           style: isBookmarked ? "secondary" : "primary",
           onPress: () => {
-            const postId = Number(p.id);
+            const postId = Number(params.id);
             if (isBookmarked) {
               bookmarks.update("saved", (prev: number[]) =>
                 prev.filter((n: number) => n !== postId),

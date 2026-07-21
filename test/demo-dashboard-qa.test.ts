@@ -3,7 +3,7 @@
  * Dashboard Demo — QA Emulator Test
  *
  * Thorough QA: boot, every menu-accessible page (screen dump + padding/overflow check),
- * resize behavior, navigation loop, edge cases. Skips route-based pages (post detail).
+ * the param-driven post detail route, resize behavior, navigation loop, edge cases.
  */
 
 import { fileURLToPath } from "node:url";
@@ -314,6 +314,67 @@ async function main(): Promise<void> {
       await emu!.goBack();
       await emu!.waitForIdle(500);
       assert(emu!.screen.currentPage() === "home", "should be home");
+    });
+
+    // ═══════════════════════════════════════════════════════
+    // Section 3b: Post Detail (route params)
+    // ═══════════════════════════════════════════════════════
+    // Regression: content loaders must receive navigation params and
+    // function-typed metadata labels must resolve — previously this page
+    // painted its label's raw source into the header and hung on Loading.
+    console.log("\n\x1b[1m  Section 3b: Post Detail (route params)\x1b[0m\n");
+
+    await test("post-detail: open first post from Posts list", async () => {
+      await emu!.navigateTo("Posts");
+      await emu!.waitForIdle(1000);
+      // First focusable is the search input — step down onto the first card.
+      await emu!.press("down");
+      await sleep(300);
+      await emu!.press("enter");
+      await emu!.waitForIdle(800);
+      assert(emu!.isRunning(), "crash opening post detail");
+    });
+
+    await test("post-detail: header resolves the function label with params", async () => {
+      const text = emu!.screen.text();
+      assert(!text.includes("=>"), `function label painted as raw source:\n${text.split("\n").slice(0, 4).join("\n")}`);
+      assert(/post #\d/i.test(text), "header should show the resolved 'Post #<id>' label");
+    });
+
+    await test("post-detail: loader receives params and renders content", async () => {
+      // Success shows the post card ("by User N"); network failure shows the
+      // page's own error markdown — either proves the loader got params.
+      // Stuck on "Loading..." means default() crashed on missing context.
+      const deadline = Date.now() + 20000;
+      let text = emu!.screen.text();
+      while (!/by user \d|could not load post/i.test(text) && Date.now() < deadline) {
+        await sleep(500);
+        text = emu!.screen.text();
+      }
+      assert(
+        /by user \d|could not load post/i.test(text),
+        `post content never rendered — loader likely never got params:\n${text.split("\n").filter(l => l.trim()).slice(0, 8).join("\n")}`
+      );
+      checkPaddingAndOverflow(text, "post-detail", 100);
+    });
+
+    await test("post-detail: params survive digit-jump away and back", async () => {
+      // Regression: back-navigation must restore the params the post was
+      // opened with — previously the header re-resolved the function label
+      // against cleared params and read "Post #undefined".
+      await emu!.press("1");
+      await emu!.waitForIdle(800);
+      await emu!.goBack();
+      await emu!.waitForIdle(800);
+      const text = emu!.screen.text();
+      assert(!/#\s*undefined/i.test(text), "back restored empty params: header shows 'Post #undefined'");
+      assert(/post #\d/i.test(text), "back should land on the post with its resolved title");
+    });
+
+    await test("post-detail: goHome", async () => {
+      await emu!.goHome();
+      await emu!.waitForIdle(500);
+      assert(emu!.screen.currentPage() === "home", "should be on home/menu");
     });
 
     // ═══════════════════════════════════════════════════════

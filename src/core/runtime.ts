@@ -48,7 +48,7 @@ import { handleCommandMode, handleNavigationMode, handleEditMode } from "./runti
 import { renderMain, renderBlock as _renderBlock, renderContentBlocks as _renderContentBlocks, resolveDynamic } from "./runtime-render.js";
 import { isBlockFocusable as _isBlockFocusable, INPUT_TYPES, TEXT_ENTRY_TYPES } from "./block-taxonomy.js";
 import { contentWidth } from "./layout-constants.js";
-import { navigateToPage as _navigateToPage, enterPage as _enterPage, getCurrentPage as _getCurrentPage, getPageContent as _getPageContent, resolvePageTitle as _resolvePageTitle, collectFocusItems as _collectFocusItems, pageFocusNext as _pageFocusNext, pageFocusPrev as _pageFocusPrev, initializePageContent as _initializePageContent, registerForms as _registerForms, showFeedback as _showFeedback, executeCommand as _executeCommand } from "./runtime-pages.js";
+import { navigateToPage as _navigateToPage, enterPage as _enterPage, getCurrentPage as _getCurrentPage, getPageContent as _getPageContent, resolvePageTitle as _resolvePageTitle, resolvePageLoading as _resolvePageLoading, collectFocusItems as _collectFocusItems, pageFocusNext as _pageFocusNext, pageFocusPrev as _pageFocusPrev, initializePageContent as _initializePageContent, registerForms as _registerForms, showFeedback as _showFeedback, executeCommand as _executeCommand } from "./runtime-pages.js";
 import { handlePageSelect as _handlePageSelect, validateInput as _validateInput, resetFormFields as _resetFormFields } from "./runtime-forms.js";
 
 export class TUIRuntime implements RuntimeInternal {
@@ -84,6 +84,7 @@ export class TUIRuntime implements RuntimeInternal {
   /** @internal */ asyncManager = new AsyncContentManager();
   /** @internal */ spinnerTimer: ReturnType<typeof setTimeout> | null = null;
   /** @internal */ resolvedPageContent: Map<string, ContentBlock[]> = new Map();
+  /** @internal */ resolvedPageParams: Map<string, string> = new Map();
   /** @internal */ formRegistry: Map<string, FormBlock> = new Map();
   /** @internal */ currentParams: RouteParams = {};
   /** @internal */ dynamicCache: Map<string, ContentBlock[]> = new Map();
@@ -441,6 +442,7 @@ export class TUIRuntime implements RuntimeInternal {
   /** @internal */ getCurrentPage(): PageConfig | undefined { return _getCurrentPage(this); }
   /** @internal */ getPageContent(page: PageConfig): ContentBlock[] | null { return _getPageContent(this, page); }
   /** @internal */ resolvePageTitle(page: PageConfig): string { return _resolvePageTitle(this, page); }
+  /** @internal */ resolvePageLoading(page: PageConfig): string { return _resolvePageLoading(this, page); }
   /** @internal */ collectFocusItems(blocks: ContentBlock[]): FocusItem[] { return _collectFocusItems(this, blocks); }
   /** @internal */ initializePageContent(content: ContentBlock[]): void { _initializePageContent(this, content); }
   /** @internal */ registerForms(blocks: ContentBlock[]): void { _registerForms(this, blocks); }

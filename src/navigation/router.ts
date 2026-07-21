@@ -1,12 +1,19 @@
 import { eventBus } from "../core/events.js";
+import type { RouteParams } from "../router/types.js";
 
 export class Router {
   private pages: string[] = [];
   private _currentPage: string = "";
-  private history: string[] = [];
+  private _currentParams: RouteParams = {};
+  private history: { page: string; params: RouteParams }[] = [];
 
   get currentPage(): string {
     return this._currentPage;
+  }
+
+  /** Params of the current navigation entry — restored by back(). */
+  get currentParams(): RouteParams {
+    return this._currentParams;
   }
 
   get currentIndex(): number {
@@ -22,12 +29,13 @@ export class Router {
     // Don't auto-set currentPage — empty string means "home screen"
   }
 
-  navigate(pageId: string): boolean {
+  navigate(pageId: string, params?: RouteParams): boolean {
     if (!this.pages.includes(pageId)) return false;
 
-    this.history.push(this._currentPage);
+    this.history.push({ page: this._currentPage, params: this._currentParams });
     this._currentPage = pageId;
-    eventBus.emit("navigate", { from: this.history[this.history.length - 1], to: pageId });
+    this._currentParams = params ?? {};
+    eventBus.emit("navigate", { from: this.history[this.history.length - 1].page, to: pageId });
     return true;
   }
 
@@ -41,8 +49,9 @@ export class Router {
     if (this.history.length === 0) return false;
     const prev = this.history.pop()!;
     const from = this._currentPage;
-    this._currentPage = prev;
-    eventBus.emit("navigate", { from, to: prev });
+    this._currentPage = prev.page;
+    this._currentParams = prev.params ?? {};
+    eventBus.emit("navigate", { from, to: prev.page });
     return true;
   }
 
@@ -50,6 +59,7 @@ export class Router {
     if (this._currentPage === "") return true; // already home
     this.history = [];
     this._currentPage = "";
+    this._currentParams = {};
     return true;
   }
 

@@ -71,7 +71,7 @@ export function navigateToPage(rt: RuntimeInternal, pageId: string, params?: Rou
 
 function doNavigate(rt: RuntimeInternal, pageId: string, params?: RouteParams): void {
   const from = rt.router.currentPage;
-  rt.router.navigate(pageId);
+  rt.router.navigate(pageId, params);
   rt.currentParams = params ?? {};
   rt.scrollOffset = 0;
   enterPage(rt);
@@ -126,9 +126,24 @@ function toBlockArray(content: unknown): ContentBlock[] {
 
 function loadAsyncPageContent(rt: RuntimeInternal, page: PageConfig): void {
   const key = `page-${page.id}`;
-  const loader = page.content as () => Promise<ContentBlock[]>;
+  const loader = page.content as (params?: RouteParams) => Promise<ContentBlock[]>;
 
-  rt.asyncManager.load(key, loader, () => {
+  // Snapshot the params for this navigation — the loader and any refresh
+  // timer must keep using them even if the user navigates away mid-flight.
+  const params = rt.currentParams ?? {};
+  const paramsKey = JSON.stringify(params);
+
+  // A params change makes cached content for this page id stale (post/1's
+  // body under post/2's title). Drop it so the loading state shows, and
+  // supersede any in-flight load for the old params.
+  const prevParamsKey = rt.resolvedPageParams.get(page.id);
+  if (prevParamsKey !== undefined && prevParamsKey !== paramsKey) {
+    rt.resolvedPageContent.delete(page.id);
+    rt.asyncManager.reset(key);
+  }
+  rt.resolvedPageParams.set(page.id, paramsKey);
+
+  rt.asyncManager.load(key, () => loader(params), () => {
     const state = rt.asyncManager.getState(key);
     let content: ContentBlock[] | null = null;
     if (state?.status === "loaded" && state.content) {
@@ -154,7 +169,7 @@ function loadAsyncPageContent(rt: RuntimeInternal, page: PageConfig): void {
   });
 
   if (page.refreshInterval) {
-    rt.asyncManager.setupRefresh(key, page.refreshInterval, loader, () => {
+    rt.asyncManager.setupRefresh(key, page.refreshInterval, () => loader(params), () => {
       const state = rt.asyncManager.getState(key);
       const content = state?.status === "loaded" && state.content
         ? toBlockArray(state.content) : null;
@@ -264,7 +279,28 @@ export function registerForms(rt: RuntimeInternal, blocks: ContentBlock[]): void
 
 /** Resolve the page title for the given page, supporting params for dynamic file-based routes. */
 export function resolvePageTitle(rt: RuntimeInternal, page: PageConfig): string {
-  return page.title as string;
+  const title = page.title;
+  if (typeof title === "function") {
+    try {
+      return String(title(rt.currentParams ?? {}));
+    } catch {
+      return page.id;
+    }
+  }
+  return title;
+}
+
+/** Resolve the loading message for a page, supporting params for dynamic file-based routes. */
+export function resolvePageLoading(rt: RuntimeInternal, page: PageConfig): string {
+  const loading = page.loading;
+  if (typeof loading === "function") {
+    try {
+      return String(loading(rt.currentParams ?? {}));
+    } catch {
+      return "Loading...";
+    }
+  }
+  return loading ?? "Loading...";
 }
 
 /** Get the effective content for a page (resolved async or static). */

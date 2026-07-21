@@ -7,6 +7,10 @@ import type { AsyncState } from "./types.js";
 export class AsyncContentManager {
   private states: Map<string, AsyncState> = new Map();
   private refreshTimers: Map<string, ReturnType<typeof setInterval>> = new Map();
+  // Per-key load generation. A resolving load/refresh only writes its result
+  // if no newer load (or reset) superseded it — without this, navigating
+  // post/1 → post/2 quickly lets the slower stale fetch clobber the newer one.
+  private epochs: Map<string, number> = new Map();
 
   /** Get the state for a given key. */
   getState(key: string): AsyncState | undefined {
@@ -31,12 +35,16 @@ export class AsyncContentManager {
     const existing = this.states.get(key);
     if (existing?.status === "loading") return; // Already loading
 
+    const epoch = (this.epochs.get(key) ?? 0) + 1;
+    this.epochs.set(key, epoch);
     this.states.set(key, { status: "loading" });
 
     loader().then(content => {
+      if (this.epochs.get(key) !== epoch) return; // Superseded
       this.states.set(key, { status: "loaded", content, lastLoadTime: Date.now() });
       onComplete();
     }).catch(error => {
+      if (this.epochs.get(key) !== epoch) return; // Superseded
       this.states.set(key, { status: "error", error: error instanceof Error ? error : new Error(String(error)) });
       onComplete();
     });
@@ -55,10 +63,13 @@ export class AsyncContentManager {
     const timer = setInterval(() => {
       // Don't set to "loading" for refreshes — keep existing content visible
       const current = this.states.get(key);
+      const epoch = this.epochs.get(key) ?? 0;
       loader().then(content => {
+        if (this.epochs.get(key) !== epoch) return; // Superseded
         this.states.set(key, { status: "loaded", content, lastLoadTime: Date.now() });
         onComplete();
       }).catch(error => {
+        if (this.epochs.get(key) !== epoch) return; // Superseded
         // On refresh error, keep existing content but log the error
         if (current?.content) {
           this.states.set(key, { ...current, lastLoadTime: Date.now() });
@@ -99,8 +110,9 @@ export class AsyncContentManager {
     this.refreshTimers.clear();
   }
 
-  /** Reset state for a specific key. */
+  /** Reset state for a specific key. Discards any in-flight load's result. */
   reset(key: string): void {
+    this.epochs.set(key, (this.epochs.get(key) ?? 0) + 1);
     this.states.delete(key);
     this.clearRefresh(key);
   }

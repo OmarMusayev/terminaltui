@@ -189,6 +189,7 @@ export class FileRouter {
         id: route.name,
         title: menuItem.label,
         icon: menuItem.icon,
+        loading: meta?.loading,
         content: this.createPageContentLoader(route),
       });
     }
@@ -203,6 +204,7 @@ export class FileRouter {
         id: route.name,
         title: meta?.label ?? route.name,
         icon: meta?.icon,
+        loading: meta?.loading,
         _hidden: true,
         content: this.createPageContentLoader(route),
       });
@@ -214,22 +216,19 @@ export class FileRouter {
   /**
    * Create a content loader function for a route.
    * Returns an async function that loads, executes, and applies layouts.
-   * For dynamic routes, the loader is called with no args but the runtime
-   * passes params via rt.currentParams which the route content handler reads.
+   * The runtime passes the current route params on every navigation; they
+   * become the PageContext handed to the page's default export (same shape
+   * as resolvePage).
    */
-  private createPageContentLoader(route: Route): () => Promise<ContentBlock[]> {
+  private createPageContentLoader(route: Route): (params?: Record<string, string>) => Promise<ContentBlock[]> {
     const self = this;
-    return async () => {
+    return async (params?: Record<string, string>) => {
       const mod = await self.getPageModule(route);
 
-      // For dynamic routes, pass params from the runtime context
-      let context: PageContext | undefined;
-      if (route.isDynamic) {
-        // Params are set on rt.currentParams before this loader is called
-        // We can't access rt here, but the runtime calls this as page.content()
-        // The params will be passed through the existing route/async content system
-        context = undefined; // Will be handled by the runtime's existing route param system
-      }
+      const context: PageContext | undefined =
+        route.isDynamic || (params && Object.keys(params).length > 0)
+          ? { params: params ?? {} }
+          : undefined;
 
       let content = await mod.default(context);
 
