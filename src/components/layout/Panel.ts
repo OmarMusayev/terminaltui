@@ -6,7 +6,7 @@
 import type { PanelConfig, ContentBlock } from "../../config/types.js";
 import type { RenderContext } from "../base.js";
 import { stringWidth, truncate } from "../base.js";
-import { fgColor, reset, bold } from "../../style/colors.js";
+import { fgColor, reset, bold, dim } from "../../style/colors.js";
 import { getBorderChars, type BorderStyle } from "../../style/borders.js";
 import { computeBoxDimensions } from "../../layout/box-model.js";
 
@@ -51,11 +51,40 @@ export function renderPanel(
   }
 
   // Render content — cards keep their own borders; pass panelHeight so cards fill uniformly
-  const contentCtx: RenderContext = { ...ctx, width: innerWidth, panelHeight: innerHeight };
+  // The active panel gets a fresh focus tracker (never the inherited one — a
+  // nested panel must scroll in its own line-frame) so overflowing content can
+  // scroll to keep the focused block visible instead of hard-clipping it away.
+  const focusTrack = active ? { start: -1, end: -1 } : undefined;
+  const contentCtx: RenderContext = { ...ctx, width: innerWidth, panelHeight: innerHeight, focusTrack };
   const contentLines = renderContent(config.content, contentCtx);
 
-  // Clip content to inner height
-  const clipped = contentLines.slice(0, innerHeight);
+  // Clip content to inner height, scrolled so the focused block stays visible:
+  // bottom-align its end, but never scroll past its start (a block taller than
+  // the window anchors to its own top, matching page-level scroll behavior).
+  let scrollStart = 0;
+  if (contentLines.length > innerHeight && focusTrack && focusTrack.start >= 0) {
+    // One line of headroom below the focused block when content continues
+    // past it, so the ↓ marker gets a slot instead of colliding with the
+    // block's last line and being suppressed.
+    const headroom = focusTrack.end < contentLines.length ? 1 : 0;
+    scrollStart = Math.min(Math.max(0, focusTrack.end + headroom - innerHeight), focusTrack.start);
+    scrollStart = Math.min(scrollStart, contentLines.length - innerHeight);
+  }
+  const clipped = contentLines.slice(scrollStart, scrollStart + innerHeight);
+
+  // Overflow markers — shown when clipped content exists above/below, unless
+  // the marker line would overwrite part of the focused block itself.
+  const marker = (text: string) =>
+    fgColor(ctx.theme.subtle) + dim + truncate(text, innerWidth) + reset;
+  const inFocusRange = (line: number) =>
+    !!focusTrack && focusTrack.start >= 0 && line >= focusTrack.start && line < focusTrack.end;
+  if (scrollStart > 0 && clipped.length > 0 && !inFocusRange(scrollStart)) {
+    clipped[0] = marker("  ↑ more");
+  }
+  const lastVisible = scrollStart + clipped.length - 1;
+  if (scrollStart + innerHeight < contentLines.length && clipped.length > 0 && !inFocusRange(lastVisible)) {
+    clipped[clipped.length - 1] = marker("  ↓ more");
+  }
 
   // Pad content lines to fill inner dimensions
   const padded: string[] = [];

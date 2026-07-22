@@ -142,11 +142,18 @@ export function renderContentBlocks(rt: RuntimeInternal, blocks: ContentBlock[],
   for (const block of blocks) {
     // Pass focused context to blocks inside layouts when they match the current focus
     let blockCtx = ctx;
-    if (rt.currentFocusedBlock && block === rt.currentFocusedBlock) {
+    const isFocused = !!rt.currentFocusedBlock && block === rt.currentFocusedBlock;
+    if (isFocused) {
       blockCtx = { ...ctx, focused: true };
     }
+    const trackStart = lines.length;
     const blockLines = renderBlock(rt, block, blockCtx);
     lines.push(...blockLines);
+    if (ctx.focusTrack && rt.currentFocusedBlock &&
+        (isFocused || containsBlock([block], rt.currentFocusedBlock))) {
+      ctx.focusTrack.start = trackStart;
+      ctx.focusTrack.end = lines.length;
+    }
     lines.push("");
   }
   if (lines.length > 0 && lines[lines.length - 1] === "") {

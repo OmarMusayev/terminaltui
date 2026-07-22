@@ -371,6 +371,23 @@ async function main(): Promise<void> {
       assert(/post #\d/i.test(text), "back should land on the post with its resolved title");
     });
 
+    await test("post-detail: comments panel scrolls to follow focus", async () => {
+      // Regression: panels hard-clipped overflowing content — comment cards
+      // below the fold were unreachable (focus walked into them invisibly
+      // and down-arrow never scrolled). The panel window must slide with
+      // focus and hint hidden content with ↑/↓ markers.
+      const before = emu!.screen.text();
+      assert(before.includes("↓ more"), "overflowing comments panel should hint '↓ more'");
+      for (let i = 0; i < 10; i++) {
+        await emu!.press("down");
+        await sleep(150);
+      }
+      await emu!.waitForIdle(500);
+      const after = emu!.screen.text();
+      assert(after.includes("↑ more"), "panel should scroll down with focus and show '↑ more'");
+      assert(after !== before, "screen should change as the comments panel scrolls");
+    });
+
     await test("post-detail: goHome", async () => {
       await emu!.goHome();
       await emu!.waitForIdle(500);

@@ -11,6 +11,13 @@ export interface RenderContext {
   editing?: boolean;
   /** Available height inside a panel cell. Cards use this to fill uniform height. */
   panelHeight?: number;
+  /**
+   * Mutable out-parameter: when set, the content renderer records the line
+   * range [start, end) of the focused block (or the container holding it)
+   * relative to the lines it returns. Panels use this to scroll their
+   * clipped window so the focused block stays visible.
+   */
+  focusTrack?: { start: number; end: number };
 }
 
 /** A function that renders a content block to string lines. */
