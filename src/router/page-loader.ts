@@ -4,12 +4,32 @@
  */
 import { resolve, dirname, join } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import type { PageModule, LayoutModule, ApiModule, FileBasedConfig } from "./types.js";
 
 /** Cache of compiled modules by absolute file path. */
 const moduleCache = new Map<string, unknown>();
+
+/**
+ * file:// URL of the entry point of the framework copy that is currently
+ * running, or null when it can't be located.
+ *
+ * Compiled page/config modules must bind to THIS copy. Resolving the bare
+ * specifier "terminaltui" from the compiled .mjs's location instead can find
+ * nothing at all (running the repo's own CLI from a checkout: the repo does
+ * not contain itself in node_modules), or a different installed version than
+ * the CLI that compiled the file — two framework instances in one process.
+ *
+ * Only the bundled dist layout needs probing: chunks sit flat next to
+ * dist/index.js. Under tsx/ts-node, compileFile returns the source path
+ * before esbuild runs, so the src layout never reaches this.
+ */
+function runningFrameworkEntryUrl(): string | null {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const entry = join(here, "index.js");
+  return existsSync(entry) ? pathToFileURL(entry).href : null;
+}
 
 /**
  * Compile a TypeScript file to JavaScript using esbuild.
@@ -33,21 +53,31 @@ export async function compileFile(
 
   try {
     const { build } = await import("esbuild");
-    // Plugin: rewrite relative imports that land on the framework's
-    // src/index.js (`../../src/index.js`, `../../../src/index.js`, …) to the
-    // package name `terminaltui`. Externalizing the literal relative path
-    // would break at runtime, because the output .mjs lives one level deeper
-    // than the source (under `.terminaltui/`), so the same relative path
-    // resolves to a different location. Rewriting to a bare-specifier import
-    // lets Node's normal package resolution find the framework regardless
-    // of where the .mjs ends up.
+    // Plugin: rewrite framework imports — both relative imports that land on
+    // the framework's src/index.js (`../../src/index.js`, …) and the bare
+    // specifier `terminaltui` — to the absolute entry of the framework copy
+    // running this CLI. Externalizing the literal relative path would break
+    // at runtime (the output .mjs lives one level deeper, under
+    // `.terminaltui/`), and leaving the bare specifier external makes the
+    // compiled module resolve `terminaltui` from ITS location, which can
+    // find nothing (repo checkout running its own CLI) or a different
+    // version than the running one. Falls back to the bare specifier when
+    // the entry can't be located.
+    const frameworkEntry = runningFrameworkEntryUrl();
     const frameworkAliasPlugin = {
       name: "framework-alias",
       setup(b: any) {
-        b.onResolve({ filter: /(?:^|\/)src\/index\.[jt]s$/ }, (args: any) => ({
-          path: "terminaltui",
+        const target = frameworkEntry ?? "terminaltui";
+        b.onResolve({ filter: /(?:^|\/)src\/index\.[jt]s$/ }, () => ({
+          path: target,
           external: true,
         }));
+        if (frameworkEntry) {
+          b.onResolve({ filter: /^terminaltui$/ }, () => ({
+            path: frameworkEntry,
+            external: true,
+          }));
+        }
       },
     };
     await build({
