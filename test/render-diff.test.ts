@@ -494,7 +494,19 @@ async function main(): Promise<void> {
   testOverlayControlSanitization();
   testOverwideOverlayTruncation();
   testOutOfBandDesyncHeals();
-  await testE2EByteBehavior();
+
+  // The E2E section drives a real app through TUIEmulator. node-pty is an
+  // optional peer dep that is never installed in CI, so the emulator uses its
+  // piped-stdio fallback — which boots and drives apps fine on POSIX but not
+  // on Windows (the app never reaches its home menu, no bytes flow). The 79
+  // deterministic grid/byte tests above still run there; only the live-app
+  // section is POSIX-only.
+  if (process.platform === "win32") {
+    console.log("\n\x1b[1m  E2E: startup demo — bytes per keypress\x1b[0m");
+    console.log("  \x1b[2mskipped on Windows: PTY emulator cannot drive live apps (see comment)\x1b[0m");
+  } else {
+    await testE2EByteBehavior();
+  }
 
   console.log(`\n  Total: ${passed + failed}  Passed: ${passed}  Failed: ${failed}\n`);
   if (failed > 0) process.exit(1);
