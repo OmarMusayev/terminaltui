@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.3] - 2026-07-21
+
+Two fixes found by hands-on testing of the dashboard demo: panel content below the fold is now reachable, and the CLI can run its bundled demos from a repo checkout.
+
+### Fixed
+
+- **Panels scroll to keep the focused block visible.** Panels in `columns` / `rows` / `grid` layouts hard-clipped content taller than their region — overflowing blocks were never rendered, while arrow-key focus still walked into them invisibly (the dashboard demo's comments panel: focus vanished and down-arrow appeared dead). The active panel now slides its clip window to follow the focused block (one line of headroom below when content continues past it; blocks taller than the window anchor to their own top), and hidden overflow is hinted with dim `↑ more` / `↓ more` markers, clamped to the panel's inner width so narrow bordered panels keep their right border. Inactive overflowing panels keep their top-clip but gain the `↓ more` hint. Fixed dashboard-style regions still never grow — overflow scrolls inside the panel.
+- **Compiled pages/configs bind to the framework copy that compiled them.** Compiled `.terminaltui/*.mjs` output imported the framework as the bare specifier `terminaltui`, resolved from the output file's location. Running the repo's own CLI against its bundled demos (`npx terminaltui demo <name>` inside a checkout) found nothing — `Cannot find package 'terminaltui'` — and in consumer projects the compiled site could bind to a *different installed version* than the running CLI, putting two framework instances in one process. The esbuild alias now rewrites both relative `src/index` imports and the bare specifier to the `file://` URL of the entry next to the running dist bundle, falling back to the old bare-specifier behavior when that probe fails.
+
+### Changed
+
+- Windows CI runs the render-diff suite's deterministic portion only: the emulator's piped-stdio fallback cannot boot or drive a live app on Windows, so the E2E section that launches the startup demo is skipped there with a logged reason. The failing suites' individual `✘` assertion lines are now echoed into the CI log by the test runner, so matrix-only failures are diagnosable.
+
+### Added
+
+- Regression coverage: a panel scroll-window unit suite (22 assertions on window math, markers, and border safety) and a dashboard-QA E2E case that walks focus through the overflowing comments panel and asserts the window follows.
+
 ## [2.0.2] - 2026-07-20
 
 Dynamic routes actually receive their params now. This bug predates the v2 overhaul — any page opened with navigation params (`[id].ts` routes, or a card action with `params`) got `undefined` instead of a context, and function-typed `metadata.label`s were painted into the header as raw source. The dashboard demo's post-detail page showed both symptoms.
