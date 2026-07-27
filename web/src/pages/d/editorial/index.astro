@@ -1,0 +1,969 @@
+---
+/**
+ * EDITORIAL — the magazine direction.
+ *
+ * The argument: this framework's strongest asset is a set of real, full-colour
+ * terminal captures, and the second strongest is the writing. A magazine gives
+ * both of those the treatment they deserve — a feature opening, plates that run
+ * wider than the text, a two-column body with a quote broken across it, and a
+ * back-of-book that is a reading list rather than three little cards.
+ *
+ * Three type roles, no overlap:
+ *   Instrument Serif  headlines, decks, pull quote
+ *   Inter             everything you actually read
+ *   Departure Mono    eyebrows, labels, numerals (via .pixel / .pixel-eyebrow)
+ *   JetBrains Mono    code, file trees, terminal output
+ */
+import Shell from "@/layouts/Shell.astro";
+import TerminalFrame from "@/components/shared/TerminalFrame.astro";
+import StarButton from "@/components/shared/StarButton.astro";
+import CopyCommand from "@/components/shared/CopyCommand.astro";
+import { product, stats, comparison, componentGroups, themes, roadmap } from "@/data/product";
+import { getCollection } from "astro:content";
+import { baseFor, url, formatDate, readingTime } from "@/lib/site";
+
+const base = baseFor("editorial");
+
+const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const [lead, ...more] = posts;
+
+/** The masthead factbox. Every value comes from product.ts. */
+const spec: [string, string][] = [
+  ["Version", product.version],
+  ["License", product.license],
+  ["Node", product.node],
+  ["Runtime deps", String(stats.runtimeDeps)],
+  ["Components", String(stats.components)],
+  ["Themes", String(stats.themes)],
+  ["Tests", `${stats.tests.toLocaleString("en-US")} / ${stats.testSuites} suites`],
+];
+
+const statusLabel: Record<string, string> = {
+  shipped: "Shipped",
+  progress: "In progress",
+  planned: "Planned",
+};
+
+const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "—" : String(v));
+---
+
+<Shell
+  dir="editorial"
+  base={base}
+  defaultTheme="light"
+  title="terminaltui — a standardized engine for terminal apps"
+  description={`Write a pages directory of TypeScript and get a navigable terminal app. Ship it with npx, or host it over SSH. ${stats.components} components, ${stats.themes} themes, real images, MIT.`}
+  path={base}
+>
+  {/* ───────────────────────── 1. THE FEATURE OPENING ───────────────────── */}
+  <section class="ed-open">
+    <div class="wrap ed-grid">
+      <div class="ed-open-lede">
+        <p class="pixel-eyebrow ed-brow">terminaltui &middot; version {product.version}</p>
+        {/* The space before the break matters: without it the accessible name
+            and the SEO text read "goes in.A terminal". */}
+        <h1 class="ed-h1">A pages directory goes in. <br />A terminal app comes out.</h1>
+        <p class="ed-stand">
+          It routes screens the way a web framework routes URLs. Write
+          <code>pages/about.ts</code> and it becomes a screen people can navigate to, with
+          layout, theming and keyboard handling already decided. Publish it to npm, or host
+          it and let people reach it over SSH.
+        </p>
+        <div class="ed-cta">
+          <CopyCommand cmd="npx terminaltui try" class="ed-copy" />
+          <StarButton size="lg" />
+        </div>
+      </div>
+
+      <aside class="ed-spec" aria-label="Package facts">
+        <dl class="ed-spec-list tnum">
+          {spec.map(([k, v]) => (
+            <div class="ed-spec-row">
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </aside>
+    </div>
+
+    <div class="ed-plate ed-term">
+      <div class="ed-term-in">
+        <div class="ed-term-strip">
+          <span>welcome</span><span aria-hidden="true"> / </span><span>home</span>
+          <span class="ed-term-theme">cyberpunk</span>
+        </div>
+        <TerminalFrame demo="welcome" label="home" rows={22} />
+      </div>
+    </div>
+    <div class="wrap">
+      <p class="ed-cap">
+        The tour that <code>npx terminaltui try</code> opens. Not a mockup — a screen dump,
+        captured by running the demo inside the framework's own headless terminal.
+      </p>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 2. ROUTING ───────────────────────────────── */}
+  <section class="ed-sec ed-routing">
+    <div class="wrap ed-grid">
+      <div class="ed-head">
+        <p class="pixel-eyebrow ed-brow">The difference</p>
+        <h2 class="ed-h2">The file tree is the app</h2>
+        <p class="ed-deck">
+          Nothing to register, nothing to wire up. A file in <code>pages/</code> is a screen.
+          Brackets in the filename make it a dynamic route. A file in <code>api/</code> is a
+          GET endpoint.
+        </p>
+      </div>
+
+      <div class="ed-tree">
+        <div class="ed-tree-scroll">
+<pre class="ed-pre"><span class="ed-dim">my-app/</span>
+├─ pages/
+│  ├─ index.ts        <span class="ed-arrow">→</span> /
+│  ├─ about.ts        <span class="ed-arrow">→</span> /about
+│  └─ projects/
+│     ├─ index.ts     <span class="ed-arrow">→</span> /projects
+│     └─ [slug].ts    <span class="ed-arrow">→</span> /projects/:slug
+├─ api/
+│  └─ stats.ts        <span class="ed-arrow">→</span> GET /api/stats
+└─ config.ts</pre>
+        </div>
+      </div>
+
+      <div class="ed-routing-frame ed-term">
+        <div class="ed-term-in">
+          <div class="ed-term-strip">
+            <span>developer-portfolio</span><span aria-hidden="true"> / </span><span>projects</span>
+          </div>
+          <TerminalFrame demo="developer-portfolio" label="projects" rows={30} />
+        </div>
+        <p class="ed-cap">
+          <code>pages/projects/index.ts</code>, running. Navigation, the header and the theme
+          came with the framework.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 3. DISTRIBUTION ──────────────────────────── */}
+  <section class="ed-sec ed-dist">
+    <div class="wrap ed-grid">
+      <div class="ed-head">
+        <p class="pixel-eyebrow ed-brow">Distribution</p>
+        <h2 class="ed-h2">Two ways to ship, both of them short</h2>
+      </div>
+
+      <div class="ed-cols">
+        <p class="ed-drop">
+          Publishing to npm is the ordinary path. <code>terminaltui build</code> bundles the
+          project, you publish it, and anyone runs <code>npx your-app</code>. No installer, no
+          binary to sign, no download page, no runtime beyond the Node they already have.
+        </p>
+        <p>
+          The second path is the stranger one. <code>terminaltui serve</code> puts the app
+          behind SSH: one process, many sessions, colour depth negotiated per client from the
+          TERM they connect with. The app stops being software people acquire and becomes an
+          address they visit.
+        </p>
+        <p>
+          Which is where the renderer starts to matter. On a link with real latency, every
+          byte written is a byte somebody waits for.
+        </p>
+      </div>
+
+      <blockquote class="ed-quote">
+        <p>When nothing on screen changes, the renderer writes nothing at all.</p>
+      </blockquote>
+
+      <div class="ed-cmds">
+        <CopyCommand cmd="npx your-app" />
+        <CopyCommand cmd="terminaltui serve" />
+      </div>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 4. IMAGES (the bleed) ────────────────────── */}
+  <section class="ed-sec ed-images">
+    <div class="wrap ed-grid">
+      <div class="ed-images-text">
+        <p class="pixel-eyebrow ed-brow">Images</p>
+        <h2 class="ed-h2">Photographs, in a grid of characters</h2>
+        <p class="ed-body">
+          Real PNG and JPEG, decoded in JavaScript. No <code>sharp</code>, no
+          <code>node-gyp</code>, nothing to compile. On kitty and Ghostty it draws actual
+          pixels through the kitty graphics protocol. Everywhere else — Apple Terminal, tmux,
+          an SSH session — it paints coloured cells with block glyphs and keeps the same row
+          count, so nothing in your layout moves between tiers.
+        </p>
+        <p class="ed-inline-code"><code>image("./cover.png", &#123; width: 60 &#125;)</code></p>
+      </div>
+    </div>
+
+    <div class="ed-bleed ed-term">
+      <div class="ed-term-in">
+        <div class="ed-term-strip">
+          <span>welcome</span><span aria-hidden="true"> / </span><span>showcase</span>
+          <span class="ed-term-theme">100 &times; 32 cells</span>
+        </div>
+        <TerminalFrame demo="welcome" label="showcase" rows={26} />
+      </div>
+      <p class="ed-cap ed-cap-bleed">
+        The component sampler from the welcome tour. Every colour here is a character cell
+        with a foreground and a background. A photograph is painted into exactly the same
+        grid.
+      </p>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 5. WHAT SHIPS ────────────────────────────── */}
+  <section class="ed-sec ed-box">
+    <div class="wrap ed-grid">
+      <div class="ed-head ed-head-narrow">
+        <p class="pixel-eyebrow ed-brow">Contents</p>
+        <h2 class="ed-h2">What is already in the box</h2>
+        <p class="ed-deck">
+          Every component the framework exports, grouped by what it does. Under them a
+          twelve-column grid, and {stats.themes} themes that recolour all of it at once.
+        </p>
+        <dl class="ed-count">
+          <div><dt class="pixel">{stats.components}</dt><dd>components</dd></div>
+          <div><dt class="pixel">{stats.themes}</dt><dd>themes</dd></div>
+          <div><dt class="pixel">12</dt><dd>column grid</dd></div>
+          <div><dt class="pixel">{stats.asciiScenes}</dt><dd>ASCII scenes</dd></div>
+        </dl>
+      </div>
+
+      <div class="ed-index">
+        {componentGroups.map((g) => (
+          <div class="ed-index-row">
+            <h3 class="pixel-eyebrow ed-index-h">{g.group}</h3>
+            <p class="ed-index-items">{g.items.join("  ·  ")}</p>
+          </div>
+        ))}
+
+        <div class="ed-index-row">
+          <h3 class="pixel-eyebrow ed-index-h">Themes</h3>
+          <ul class="ed-themes">
+            {themes.map((t) => (
+              <li class="ed-theme">
+                <span class="ed-theme-name">{t.name}</span>
+                <span class="ed-theme-swatch" aria-hidden="true">
+                  {t.swatch.map((c) => <i style={`background:${c}`}></i>)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 6. COMPARISON ────────────────────────────── */}
+  <section class="ed-sec ed-compare">
+    <div class="wrap ed-grid">
+      <div class="ed-head ed-head-narrow">
+        <p class="pixel-eyebrow ed-brow">Against the alternatives</p>
+        <h2 class="ed-h2">Where it sits</h2>
+      </div>
+
+      <div class="ed-table-scroll">
+        <table class="ed-table">
+          <caption class="sr-only">terminaltui compared with Ink, Pastel and Bubble Tea</caption>
+          <thead>
+            <tr>
+              <th scope="col"><span class="sr-only">Capability</span></th>
+              {comparison.columns.map((c, i) => (
+                <th scope="col" class={i === 0 ? "ed-th-us" : undefined}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {comparison.rows.map((r) => (
+              <tr>
+                <th scope="row">{r.label}</th>
+                {r.values.map((v, i) => (
+                  <td class={i === 0 ? "ed-td-us" : undefined}>{cell(v)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="ed-caveat">{comparison.caveat}</p>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 7. TESTING ───────────────────────────────── */}
+  <section class="ed-sec ed-test">
+    <div class="wrap ed-grid">
+      <div class="ed-test-text">
+        <p class="pixel-eyebrow ed-brow">Testing</p>
+        <h2 class="ed-h2">Playwright, but the browser is a terminal</h2>
+        <p class="ed-body">
+          Import the emulator from <code>terminaltui/emulator</code>. It launches your app in
+          a real PTY, sends keypresses, and hands back the screen as cells you can assert on.
+          {" "}{stats.tests.toLocaleString("en-US")} tests across {stats.testSuites} suites run
+          that way. So did every terminal capture on this page.
+        </p>
+      </div>
+      <div class="ed-test-code">
+        <div class="ed-tree-scroll">
+<pre class="ed-pre"><span class="ed-kw">const</span> app = <span class="ed-kw">await</span> TUIEmulator.launch(<span class="ed-str">"./app"</span>);
+<span class="ed-kw">await</span> app.press(<span class="ed-str">"j"</span>);
+<span class="ed-kw">await</span> app.waitForText(<span class="ed-str">"Projects"</span>);
+expect(app.screen.cells()).toMatchSnapshot();</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 8. ROADMAP ──────────────────────────────── */}
+  <section class="ed-sec ed-road">
+    <div class="wrap ed-grid">
+      <div class="ed-head ed-head-narrow">
+        <p class="pixel-eyebrow ed-brow">Roadmap</p>
+        <h2 class="ed-h2">Shipped, in progress, planned</h2>
+      </div>
+
+      <ol class="ed-road-list">
+        {roadmap.map((r) => (
+          <li class={`ed-road-item is-${r.status}`}>
+            <p class="pixel-eyebrow ed-road-status">{statusLabel[r.status]}</p>
+            <h3 class="ed-road-title">{r.title}</h3>
+            <p class="ed-road-body">{r.body}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 9. THE BACK OF THE BOOK ──────────────────── */}
+  <section class="ed-sec ed-read">
+    <div class="wrap ed-grid">
+      <div class="ed-head ed-head-narrow">
+        <p class="pixel-eyebrow ed-brow">Writing</p>
+        <h2 class="ed-h2">Notes from building it</h2>
+      </div>
+
+      {lead && (
+        <article class="ed-lead">
+          <a class="ed-lead-link" href={url(base, `blog/${lead.id}/`)}>
+            <p class="ed-meta tnum">
+              <time datetime={lead.data.date.toISOString()}>{formatDate(lead.data.date)}</time>
+              <span aria-hidden="true"> &middot; </span>
+              <span>{readingTime(lead.body ?? "")} min</span>
+            </p>
+            <h3 class="ed-lead-title">{lead.data.title}</h3>
+            <p class="ed-lead-desc">{lead.data.description}</p>
+            <span class="ed-more">Read the post <span aria-hidden="true">→</span></span>
+          </a>
+        </article>
+      )}
+
+      <ol class="ed-more-list">
+        {more.map((p) => (
+          <li class="ed-more-item">
+            <a class="ed-more-link" href={url(base, `blog/${p.id}/`)}>
+              <p class="ed-meta tnum">
+                <time datetime={p.data.date.toISOString()}>{formatDate(p.data.date)}</time>
+                <span aria-hidden="true"> &middot; </span>
+                <span>{readingTime(p.body ?? "")} min</span>
+              </p>
+              <h3 class="ed-more-title">{p.data.title}</h3>
+              <p class="ed-more-desc">{p.data.description}</p>
+            </a>
+          </li>
+        ))}
+        <li class="ed-more-item">
+          <a class="ed-more-all" href={url(base, "blog/")}>
+            All writing <span aria-hidden="true">→</span>
+          </a>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  {/* ───────────────────────── 10. COLOPHON / CTA ───────────────────────── */}
+  <section class="ed-sec ed-end">
+    <div class="wrap ed-grid">
+      <div class="ed-end-in">
+        <h2 class="ed-h2 ed-end-h">If this is the shape you wanted</h2>
+        <p class="ed-body ed-end-body">
+          It was first published in March {new Date(product.firstPublished).getFullYear()} and
+          it is still small: {stats.downloadsMonth} downloads last month, the star count you
+          can see on the button. MIT, {stats.runtimeDeps} runtime dependencies, issues open.
+        </p>
+        <div class="ed-cta ed-end-cta">
+          <StarButton size="lg" label="Star terminaltui" />
+          <CopyCommand cmd="npx terminaltui try" class="ed-copy" />
+        </div>
+      </div>
+    </div>
+  </section>
+</Shell>
+
+<style>
+  /* ───────────────────────── grid & rhythm ─────────────────────────────
+     One 12-column grid, used asymmetrically. Every section stacks below
+     64rem, so nothing here can produce a sideways scroll on a phone. */
+
+  .ed-grid {
+    --wrap: 74rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0 clamp(1.25rem, 3vw, 2.5rem);
+  }
+  @media (min-width: 64rem) {
+    .ed-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  }
+  .ed-grid > * { grid-column: 1 / -1; min-width: 0; }
+
+  /* Deliberately uneven vertical rhythm — the opening breathes, the middle
+     sections are dense, the reading list opens up again. */
+  .ed-sec { padding-block: clamp(3.5rem, 8vw, 6rem); }
+  .ed-routing { padding-block: clamp(3rem, 6vw, 4.5rem); border-top: 1px solid var(--color-line); }
+  .ed-dist { padding-block: clamp(4rem, 10vw, 8rem); }
+  .ed-images { padding-block: clamp(3rem, 6vw, 4.5rem) 0; }
+  .ed-box { padding-block: clamp(3.5rem, 7vw, 5rem); border-top: 1px solid var(--color-line); }
+  .ed-compare { padding-block: clamp(3rem, 6vw, 4.5rem); }
+  .ed-test { padding-block: clamp(3rem, 6vw, 4.5rem); border-top: 1px solid var(--color-line); }
+  .ed-road { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
+  .ed-read { padding-block: clamp(4rem, 9vw, 7rem); border-top: 2px solid var(--color-ink); }
+  .ed-end { padding-block: clamp(4rem, 9vw, 7rem); border-top: 1px solid var(--color-line); }
+
+  /* ───────────────────────── type roles ───────────────────────────────── */
+
+  .ed-brow { color: var(--color-accent); margin: 0 0 1rem; }
+
+  .ed-h1 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-synthesis: none;
+    font-size: clamp(2.5rem, 7.4vw, 4.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.012em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .ed-h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-synthesis: none;
+    font-size: clamp(1.875rem, 4.2vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.008em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  /* The standfirst: wider column, larger, looser than body copy. */
+  .ed-stand {
+    font-size: clamp(1.125rem, 1.15rem + 0.4vw, 1.375rem);
+    line-height: 1.62;
+    letter-spacing: -0.003em;
+    color: var(--color-ink);
+    max-width: 48ch;
+    margin: 1.5rem 0 0;
+  }
+  .ed-deck {
+    font-size: 1.0625rem;
+    line-height: 1.62;
+    color: var(--color-muted);
+    max-width: 54ch;
+    margin: 1.125rem 0 0;
+  }
+  .ed-body {
+    font-size: 1rem;
+    line-height: 1.68;
+    color: var(--color-ink);
+    max-width: 60ch;
+    margin: 1.25rem 0 0;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    color: var(--color-ink);
+    background: var(--color-surface);
+    padding: 0.1em 0.32em;
+  }
+
+  /* ───────────────────────── 1. opening ───────────────────────────────── */
+
+  .ed-open { padding-block: clamp(2.5rem, 6vw, 5rem) 0; }
+  @media (min-width: 64rem) {
+    .ed-grid > .ed-open-lede { grid-column: 1 / span 8; }
+    .ed-grid > .ed-spec { grid-column: 10 / span 3; align-self: end; }
+  }
+
+  .ed-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.875rem;
+    margin-top: 2rem;
+  }
+  .ed-copy { flex: 1 1 17rem; max-width: 24rem; min-width: 0; }
+
+  .ed-spec { margin-top: 2.75rem; }
+  .ed-spec-list {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    margin: 0;
+    border-top: 1px solid var(--color-ink);
+  }
+  .ed-spec-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .ed-spec-row dt { color: var(--color-muted); }
+  .ed-spec-row dd { margin: 0; color: var(--color-ink); text-align: right; }
+
+  .ed-plate { margin-top: clamp(2.5rem, 6vw, 4rem); }
+
+  /* ───────────────────────── terminal plates ─────────────────────────────
+     The captures carry their own colour, so they need a dark ground. Rather
+     than hardcoding one, light mode borrows --color-ink (warm near-black)
+     and dark mode borrows --color-surface. Both are already the right
+     temperature for this palette. */
+
+  .ed-term {
+    --ed-ground: var(--color-ink);
+    --ed-ground-ink: var(--color-bg);
+  }
+  :global([data-theme="dark"]) .ed-term {
+    --ed-ground: var(--color-surface);
+    --ed-ground-ink: var(--color-muted);
+  }
+
+  /* The ground carries the padding, so the capture's own container query
+     measures the padded width and the frame is never clipped. */
+  .ed-term-in {
+    background: var(--ed-ground);
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+  }
+  .ed-term-strip {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    color: var(--ed-ground-ink);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    padding-bottom: 0.875rem;
+    opacity: 0.82;
+  }
+  .ed-term-theme { margin-left: auto; }
+
+  .ed-cap {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 58ch;
+    margin: 1rem 0 0;
+  }
+  .ed-cap code { background: transparent; padding: 0; color: var(--color-muted); }
+
+  /* The .wrap gutter is generous; this one is not, so plates run wider than
+     any text column on the page without ever touching the viewport edge. */
+  .ed-bleed {
+    padding-inline: clamp(0.75rem, 2vw, 2rem);
+    margin-top: clamp(2rem, 5vw, 3rem);
+  }
+  .ed-cap-bleed { max-width: 58ch; }
+
+  /* ───────────────────────── 2. routing ───────────────────────────────── */
+
+  .ed-head { margin-bottom: 2rem; }
+  .ed-head-narrow { max-width: 40rem; }
+
+  .ed-tree { margin-bottom: 1.75rem; }
+  .ed-routing-frame { margin-bottom: 0; }
+
+  @media (min-width: 64rem) {
+    .ed-routing .ed-grid > .ed-head { grid-column: 1 / span 4; margin-bottom: 0; }
+    .ed-routing .ed-grid > .ed-tree { grid-column: 1 / span 4; margin-top: 2.25rem; margin-bottom: 0; }
+    .ed-routing .ed-grid > .ed-routing-frame {
+      grid-column: 6 / span 7;
+      grid-row: 1 / span 2;
+      align-self: start;
+    }
+  }
+
+  .ed-tree-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+  .ed-pre {
+    font-family: var(--font-mono);
+    font-size: clamp(0.6875rem, 2.5vw, 0.8125rem);
+    line-height: 1.75;
+    margin: 0;
+    white-space: pre;
+    color: var(--color-ink);
+    border-left: 2px solid var(--color-line);
+    padding: 0.25rem 0 0.25rem 1rem;
+  }
+  .ed-dim { color: var(--color-muted); }
+  .ed-arrow { color: var(--color-accent); }
+  .ed-kw { color: var(--color-accent); }
+  .ed-str { color: var(--color-muted); }
+
+  /* ───────────────────────── 3. distribution ──────────────────────────── */
+
+  @media (min-width: 64rem) {
+    .ed-dist .ed-grid > .ed-head { grid-column: 1 / span 7; }
+    .ed-dist .ed-grid > .ed-cols { grid-column: 1 / span 10; }
+    .ed-dist .ed-grid > .ed-quote { grid-column: 1 / span 11; }
+    .ed-dist .ed-grid > .ed-cmds { grid-column: 1 / span 7; }
+  }
+
+  .ed-cols { margin-top: 2rem; }
+  @media (min-width: 48rem) {
+    .ed-cols {
+      columns: 2;
+      column-gap: clamp(2rem, 4vw, 3.5rem);
+      column-rule: 1px solid var(--color-line);
+    }
+  }
+  .ed-cols p {
+    font-size: 1rem;
+    line-height: 1.68;
+    margin: 0 0 1.1em;
+    break-inside: avoid-column;
+  }
+  .ed-cols p:last-child { margin-bottom: 0; }
+
+  /* An initial cap, set in the serif. One of them, on the first paragraph. */
+  .ed-drop::first-letter {
+    font-family: var(--font-serif);
+    font-size: 4.1em;
+    line-height: 0.74;
+    float: left;
+    padding: 0.05em 0.08em 0 0;
+    color: var(--color-accent);
+  }
+
+  /* The quote breaks the measure: full width, rules top and bottom. */
+  .ed-quote {
+    margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+    padding: clamp(1.75rem, 3.5vw, 2.5rem) 0;
+    border-top: 1px solid var(--color-ink);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .ed-quote p {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-synthesis: none;
+    font-size: clamp(1.625rem, 4.6vw, 2.75rem);
+    line-height: 1.14;
+    letter-spacing: -0.008em;
+    margin: 0;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+
+  .ed-cmds {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+  }
+  @media (min-width: 34rem) { .ed-cmds { grid-template-columns: 1fr 1fr; } }
+
+  /* ───────────────────────── 4. images ────────────────────────────────── */
+
+  @media (min-width: 64rem) {
+    .ed-images .ed-grid > .ed-images-text { grid-column: 1 / span 6; }
+  }
+  .ed-inline-code { margin: 1.5rem 0 0; }
+  .ed-inline-code code {
+    font-size: 0.9375rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-line);
+    display: inline-block;
+  }
+
+  /* ───────────────────────── 5. contents ──────────────────────────────── */
+
+  @media (min-width: 64rem) {
+    .ed-box .ed-grid > .ed-head { grid-column: 1 / span 5; margin-bottom: 0; }
+    .ed-box .ed-grid > .ed-index { grid-column: 7 / span 6; }
+  }
+  .ed-index { margin-top: 2rem; }
+  @media (min-width: 64rem) { .ed-index { margin-top: 0.5rem; } }
+
+  /* Numerals are one of the three jobs the pixel face is allowed to do. */
+  .ed-count {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 2rem;
+    margin: 2.5rem 0 0;
+    max-width: 22rem;
+  }
+  .ed-count dt {
+    font-size: var(--px-lg);
+    line-height: 1;
+    color: var(--color-ink);
+  }
+  .ed-count dd {
+    margin: 0.5rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    color: var(--color-muted);
+  }
+
+  .ed-index-row {
+    padding: 0.9rem 0;
+    border-top: 1px solid var(--color-line);
+  }
+  .ed-index-row:first-child { border-top: 1px solid var(--color-ink); }
+  .ed-index-h { color: var(--color-muted); margin: 0 0 0.5rem; }
+  .ed-index-items {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.85;
+    margin: 0;
+    color: var(--color-ink);
+    word-break: break-word;
+  }
+
+  .ed-themes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+  }
+  .ed-theme {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-ink);
+  }
+  .ed-theme-swatch { display: inline-flex; }
+  .ed-theme-swatch i { display: block; width: 7px; height: 12px; }
+
+  /* ───────────────────────── 6. comparison ────────────────────────────── */
+
+  @media (min-width: 64rem) {
+    .ed-compare .ed-grid > .ed-head { grid-column: 1 / span 6; }
+    .ed-compare .ed-grid > .ed-caveat { grid-column: 1 / span 7; }
+  }
+
+  .ed-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    margin-top: 2rem;
+  }
+  .ed-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 46rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .ed-table th,
+  .ed-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.7rem 1rem 0.7rem 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .ed-table thead th {
+    font-family: var(--font-display);
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+    font-synthesis: none;
+    font-weight: 400;
+    font-size: var(--px-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    border-bottom: 1px solid var(--color-ink);
+    padding-bottom: 0.7rem;
+  }
+  .ed-table thead th.ed-th-us { color: var(--color-accent); }
+  .ed-table tbody th {
+    font-weight: 500;
+    color: var(--color-ink);
+    width: 15rem;
+  }
+  .ed-table td { color: var(--color-muted); }
+  .ed-table td.ed-td-us { color: var(--color-ink); font-weight: 500; }
+
+  .ed-caveat {
+    font-family: var(--font-serif);
+    font-synthesis: none;
+    font-size: clamp(1.125rem, 2.2vw, 1.5rem);
+    line-height: 1.4;
+    color: var(--color-ink);
+    max-width: 46ch;
+    margin: 1.75rem 0 0;
+  }
+
+  /* ───────────────────────── 7. testing ───────────────────────────────── */
+
+  @media (min-width: 64rem) {
+    .ed-test .ed-grid > .ed-test-text { grid-column: 1 / span 5; }
+    .ed-test .ed-grid > .ed-test-code { grid-column: 7 / span 6; align-self: center; }
+  }
+  .ed-test-code { margin-top: 2rem; }
+  @media (min-width: 64rem) { .ed-test-code { margin-top: 0; } }
+  .ed-test-code .ed-pre { line-height: 1.9; }
+
+  /* ───────────────────────── 8. roadmap ───────────────────────────────── */
+
+  .ed-road-list {
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
+  }
+  .ed-road-item {
+    display: grid;
+    gap: 0.25rem 2rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--color-line);
+  }
+  .ed-road-item:first-child { border-top: 1px solid var(--color-ink); }
+  @media (min-width: 48rem) {
+    .ed-road-item {
+      grid-template-columns: 9rem minmax(0, 18rem) minmax(0, 1fr);
+      align-items: baseline;
+    }
+  }
+  .ed-road-status { color: var(--color-muted); margin: 0; }
+  .is-shipped .ed-road-status { color: var(--color-accent); }
+  .ed-road-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-synthesis: none;
+    font-size: 1.375rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+  .ed-road-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    margin: 0.25rem 0 0;
+    max-width: 52ch;
+  }
+  @media (min-width: 48rem) { .ed-road-body { margin-top: 0; } }
+
+  /* ───────────────────────── 9. reading list ──────────────────────────── */
+
+  @media (min-width: 64rem) {
+    .ed-read .ed-grid > .ed-head { grid-column: 1 / span 12; }
+    .ed-read .ed-grid > .ed-lead { grid-column: 1 / span 6; }
+    .ed-read .ed-grid > .ed-more-list { grid-column: 8 / span 5; }
+  }
+
+  .ed-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    color: var(--color-muted);
+    margin: 0 0 0.75rem;
+  }
+
+  /* Both columns of the back-of-book hang from one shared rule. */
+  .ed-lead {
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--color-ink);
+    padding-top: 1.75rem;
+  }
+  .ed-lead-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    padding-bottom: 0.5rem;
+  }
+  .ed-lead-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-synthesis: none;
+    font-size: clamp(1.875rem, 4.5vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.008em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .ed-lead-desc {
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--color-muted);
+    max-width: 46ch;
+    margin: 1rem 0 0;
+  }
+  /* inline-flex collapses the whitespace before the arrow; gap puts it back. */
+  .ed-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    margin-top: 0.5rem;
+    color: var(--color-accent);
+    font-size: 0.9375rem;
+  }
+  .ed-lead-link:hover .ed-lead-title { text-decoration: underline; text-underline-offset: 6px; }
+
+  .ed-more-list {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+  }
+  .ed-more-item { border-top: 1px solid var(--color-line); }
+  .ed-more-item:first-child { border-top: 1px solid var(--color-ink); }
+  .ed-more-link {
+    display: block;
+    padding: 1.75rem 0;
+    text-decoration: none;
+    color: inherit;
+  }
+  .ed-more-item:first-child .ed-more-link { padding-top: 1.75rem; }
+  .ed-more-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-synthesis: none;
+    font-size: 1.5rem;
+    line-height: 1.18;
+    margin: 0;
+  }
+  .ed-more-desc {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    margin: 0.5rem 0 0;
+    max-width: 44ch;
+  }
+  .ed-more-link:hover .ed-more-title { text-decoration: underline; text-underline-offset: 5px; }
+  .ed-more-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    color: var(--color-accent);
+    font-size: 0.9375rem;
+    text-decoration: none;
+  }
+  .ed-more-all:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+  /* ───────────────────────── 10. colophon ─────────────────────────────── */
+
+  @media (min-width: 64rem) {
+    .ed-end .ed-grid > .ed-end-in { grid-column: 1 / span 8; }
+  }
+  .ed-end-h { max-width: 18ch; }
+  .ed-end-body { margin-top: 1.25rem; max-width: 52ch; color: var(--color-muted); }
+  .ed-end-cta { margin-top: 2.25rem; }
+</style>

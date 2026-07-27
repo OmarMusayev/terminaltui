@@ -1,0 +1,136 @@
+---
+/**
+ * Site navigation. Deliberately not a hamburger: at small sizes the links wrap
+ * to a second row instead of hiding behind a menu button, so every destination
+ * stays one tap away and nothing depends on JavaScript.
+ */
+import PixelMark from "./PixelMark.astro";
+import StarButton from "./StarButton.astro";
+import { MARK } from "@/data/logo";
+import { product } from "@/data/product";
+import { url } from "@/lib/site";
+
+interface Props { active?: string; base?: string }
+const { active, base = "/" } = Astro.props;
+
+const links = [
+  { href: url(base, "docs/"), label: "Docs" },
+  { href: url(base, "demos/"), label: "Demos" },
+  { href: url(base, "blog/"), label: "Blog" },
+];
+---
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a href={base} class="nav-brand" aria-label={`${product.name} home`}>
+      <PixelMark grid={MARK} size={22} />
+      <span class="nav-word pixel">terminaltui</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Main">
+      {links.map((l) => (
+        <a href={l.href} class="nav-link" aria-current={active === l.label ? "page" : undefined}>
+          {l.label}
+        </a>
+      ))}
+    </nav>
+
+    <div class="nav-end">
+      <button
+        type="button"
+        class="nav-icon"
+        data-theme-toggle
+        aria-label="Switch to dark theme"
+      >
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 1.5v11a5.5 5.5 0 0 1 0-11Z"/>
+        </svg>
+      </button>
+      <StarButton size="sm" label="Star" />
+    </div>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    /* Solid, never frosted. A backdrop blur is glassmorphism and it makes the
+       terminal frames scrolling underneath look smeared. */
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .nav-in {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 60px;
+    flex-wrap: wrap;
+    padding-block: 0.625rem;
+  }
+  .nav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--color-ink);
+    margin-right: auto;
+    min-height: 44px;
+  }
+  .nav-word {
+    font-size: var(--px-sm);
+    letter-spacing: 0.02em;
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    order: 3;
+    width: 100%;
+    border-top: 1px solid var(--color-line);
+    padding-top: 0.5rem;
+    margin-top: 0.125rem;
+  }
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 0.75rem;
+    text-decoration: none;
+    color: var(--color-muted);
+    font-size: 0.9375rem;
+  }
+  .nav-link:hover { color: var(--color-ink); }
+  .nav-link[aria-current="page"] { color: var(--color-ink); }
+  .nav-end {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .nav-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-line);
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-radius: var(--radius);
+  }
+  .nav-icon:hover { color: var(--color-ink); border-color: var(--color-ink); }
+
+  /* Above 640px the links sit inline and the second row disappears. */
+  @media (min-width: 40rem) {
+    .nav-links {
+      order: 0;
+      width: auto;
+      border-top: 0;
+      padding-top: 0;
+      margin-top: 0;
+      margin-right: 0.5rem;
+    }
+    .nav-word { font-size: var(--px-sm); }
+  }
+</style>

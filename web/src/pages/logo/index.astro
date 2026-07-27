@@ -1,0 +1,473 @@
+---
+/**
+ * The logo exploration, shown as a process rather than a result: the
+ * constraint, five territories, twenty-five marks, three critiques, then the
+ * refinements. Everything is rendered live from the same grids the site uses,
+ * so nothing here is a mockup of a mockup.
+ */
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import "@/styles/global.css";
+import MarkCard from "@/components/logo/MarkCard.astro";
+import InContext from "@/components/logo/InContext.astro";
+import PixelMark from "@/components/shared/PixelMark.astro";
+import InContextTile from "@/components/logo/InContext.astro";
+import round1 from "@/data/logo-round1.json";
+import round2 from "@/data/logo-round2.json";
+import { MARK, MARK_TILE, MARK_NAME } from "@/data/logo";
+
+interface Cand { id: string; name: string; grid: string[]; rationale?: string; risk?: string }
+interface Score { id: string; distinctiveness: number; legibility16: number; brandFit: number; memorability: number; verdict: string }
+interface Critique { critic: string; scores: Score[]; top5: string[]; overall: string }
+
+const candidates = round1.candidates as Cand[];
+const critiques = round1.critiques as Critique[];
+const sets = (round2 as any).sets as
+  | { concept: string; verdict: string; variants: { id: string; kind: string; grid: string[]; note: string; at16: string }[] }[]
+  | undefined;
+
+const TERRITORIES = [
+  { key: "cell", title: "The Cell", blurb: "A terminal is a grid of character cells. Everything the framework does is decide what goes in each one." },
+  { key: "flow", title: "Prompt & Flow", blurb: "Entry and traversal — you type a command, an app appears, you move through it. Without the >_ cliché." },
+  { key: "frame", title: "Frame & Route", blurb: "Structure, because this is a framework: pages, layouts, panes, a twelve-column grid." },
+  { key: "mono", title: "Letterform", blurb: "A monogram designed as a glyph — as if the pixel typeface had one extra character." },
+  { key: "image", title: "Picture From Text", blurb: "The framework renders photographs as coloured cells. A 16x16 grid is literally that act." },
+];
+
+/** Mean of the four criteria across all three critics. */
+const avg = new Map<string, number>();
+for (const c of candidates) {
+  const all = critiques
+    .flatMap((q) => q.scores.filter((s) => s.id === c.id))
+    .flatMap((s) => [s.distinctiveness, s.legibility16, s.brandFit, s.memorability]);
+  if (all.length) avg.set(c.id, all.reduce((a, b) => a + b, 0) / all.length);
+}
+
+/** Borda-style: a mark scores 5 for a first place, 1 for a fifth, summed over critics. */
+const votes = new Map<string, number>();
+for (const q of critiques) {
+  (q.top5 ?? []).forEach((id, i) => votes.set(id, (votes.get(id) ?? 0) + (5 - i)));
+}
+const ranked = [...votes.entries()].sort((a, b) => b[1] - a[1]);
+const byId = new Map(candidates.map((c) => [c.id, c]));
+const finalists = ranked.slice(0, 7).map(([id], i) => ({ ...byId.get(id)!, rank: i + 1, vote: votes.get(id)! }));
+
+/** The runner-up, shown beside the recommendation so the choice is arguable. */
+const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "tt-a-refined");
+---
+
+<!doctype html>
+<html lang="en" data-dir="paper" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Logo exploration — terminaltui</title>
+    <meta name="description" content="Twenty-five pixel-grid logo candidates across five conceptual territories, three independent critiques, and the refinements that followed." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href="https://terminaltui.dev/logo/" />
+    <meta property="og:title" content="Logo exploration — terminaltui" />
+    <meta property="og:description" content="Twenty-five pixel-grid logo candidates, three critiques, and the refinements that followed." />
+    <meta property="og:image" content="https://terminaltui.dev/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="lx-top">
+      <div class="wrap lx-top-in">
+        <a href="/" class="lx-back">← Exploration</a>
+        <button type="button" class="lx-theme" data-theme-toggle aria-label="Switch to dark theme">
+          Invert
+        </button>
+      </div>
+    </header>
+
+    <main id="main" class="wrap lx">
+      <header class="lx-head">
+        <p class="pixel-eyebrow lx-eyebrow">Identity</p>
+        <h1 class="lx-h1 pixel">Logo exploration</h1>
+        <p class="lx-lede">
+          terminaltui had a placeholder mark that was never designed — three rectangles
+          standing in for a decision nobody had made. This is that decision, worked
+          through in the open: one hard constraint, five conceptual territories,
+          twenty-five candidates, three independent critiques, then refinement.
+        </p>
+      </header>
+
+      {/* ── the constraint ─────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="constraint">
+        <p class="lx-num pixel-eyebrow">01</p>
+        <div class="lx-body">
+          <h2 id="constraint" class="lx-h2 pixel">One constraint</h2>
+          <p class="lx-p">
+            Every mark is drawn on a <b>16&times;16 pixel grid</b> — the real favicon
+            grid, where one cell is one device pixel. Nothing here is a vector that was
+            later squashed into a small square; the small square was the design surface
+            from the first stroke.
+          </p>
+          <p class="lx-p">
+            The constraint does two jobs. It matches the identity, which is pixel type on
+            clean paper. And it makes the hardest question — <em>does this still read at
+            16px?</em> — impossible to defer, because there is no size at which the mark
+            is more detailed than the favicon.
+          </p>
+          <div class="lx-legend">
+            <span><i class="sw sw-ink"></i> ink · currentColor</span>
+            <span><i class="sw sw-acc"></i> accent · one signal colour</span>
+            <span><i class="sw sw-non"></i> empty</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── territories ────────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="territories">
+        <p class="lx-num pixel-eyebrow">02</p>
+        <div class="lx-body">
+          <h2 id="territories" class="lx-h2 pixel">Five territories</h2>
+          <p class="lx-p">
+            Five independent explorations, each forbidden from the developer-tool
+            clichés: no chevron-and-underscore in a rounded square, no traffic-light
+            window, no hexagon, no rocket, no isometric cube.
+          </p>
+        </div>
+      </section>
+
+      {TERRITORIES.map((t) => {
+        const marks = candidates.filter((c) => c.id.startsWith(t.key + "-"));
+        return (
+          <section class="lx-terr" aria-labelledby={`t-${t.key}`}>
+            <div class="lx-terr-head">
+              <h3 id={`t-${t.key}`} class="lx-h3 pixel">{t.title}</h3>
+              <p class="lx-terr-blurb">{t.blurb}</p>
+            </div>
+            <div class="lx-grid">
+              {marks.map((m) => (
+                <MarkCard id={m.id} name={m.name} grid={m.grid} rationale={m.rationale} risk={m.risk} score={avg.get(m.id)} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      {/* ── critique ───────────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="critique">
+        <p class="lx-num pixel-eyebrow">03</p>
+        <div class="lx-body">
+          <h2 id="critique" class="lx-h2 pixel">Three critiques</h2>
+          <p class="lx-p">
+            All twenty-five were scored independently by three reviewers with different
+            lenses — a brand designer judging them as identities, a pixel artist judging
+            craft, and a third asked only which one it would actually want on a tool it
+            used daily. None saw the others' scores.
+          </p>
+          <div class="lx-crits">
+            {critiques.map((q) => (
+              <div class="lx-crit">
+                <h3 class="lx-crit-h pixel-eyebrow">{q.critic}</h3>
+                <p class="lx-crit-top">
+                  {q.top5.map((id, i) => (
+                    <span class="lx-chip"><b>{i + 1}</b> {id}</span>
+                  ))}
+                </p>
+                <p class="lx-p lx-crit-txt">{q.overall}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── finalists ──────────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="finalists">
+        <p class="lx-num pixel-eyebrow">04</p>
+        <div class="lx-body">
+          <h2 id="finalists" class="lx-h2 pixel">Where they converged</h2>
+          <p class="lx-p">
+            Ranked by combining the three top-five lists, five points for a first place
+            down to one for a fifth. The letterform territory won on every reviewer's
+            card, which is the clearest signal in the whole exercise.
+          </p>
+        </div>
+      </section>
+
+      <div class="lx-grid lx-grid-wide">
+        {finalists.map((f) => (
+          <MarkCard id={f.id} name={f.name} grid={f.grid} rationale={f.rationale} score={avg.get(f.id)} rank={f.rank} />
+        ))}
+      </div>
+
+      {/* ── refinement ─────────────────────────────────────────────────── */}
+      {sets && sets.length > 0 && (
+        <>
+          <section class="lx-sec" aria-labelledby="refined">
+            <p class="lx-num pixel-eyebrow">05</p>
+            <div class="lx-body">
+              <h2 id="refined" class="lx-h2 pixel">Refinement</h2>
+              <p class="lx-p">
+                The strongest concepts went back for craft: optical centring, consistent
+                stroke weight, even counters, and the 16px legibility test taken
+                seriously. Each returned four versions — the idea executed correctly, a
+                bolder cut, the idea stripped to its minimum, and one genuine
+                reinterpretation.
+              </p>
+            </div>
+          </section>
+
+          {sets.map((s) => (
+            <section class="lx-terr">
+              <div class="lx-terr-head">
+                <h3 class="lx-h3 pixel">{s.concept}</h3>
+                <p class="lx-terr-blurb">{s.verdict}</p>
+              </div>
+              <div class="lx-grid">
+                {s.variants.map((v) => (
+                  <MarkCard id={v.id} kind={v.kind} grid={v.grid} note={v.note} at16={v.at16} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </>
+      )}
+
+      {/* ── in context ─────────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="context">
+        <p class="lx-num pixel-eyebrow">{sets && sets.length ? "06" : "05"}</p>
+        <div class="lx-body">
+          <h2 id="context" class="lx-h2 pixel">In context</h2>
+          <p class="lx-p">
+            A mark that only works on a white card at 200px is not a mark. Here is the
+            current front-runner where it will actually live.
+          </p>
+        </div>
+      </section>
+
+      <div class="lx-ctx">
+        <div class="lx-ctx-hero">
+          <PixelMark grid={MARK} size={128} title="terminaltui mark" />
+          <div>
+            <p class="lx-ctx-id"><code>{MARK_NAME}</code></p>
+            <p class="lx-ctx-note">
+              A lowercase <b>t</b> whose foot extends into a rule, with a block cursor
+              resting on it. The letterform and the command line are the same stroke.
+            </p>
+          </div>
+        </div>
+        <InContext grid={MARK} />
+      </div>
+
+      {/* ── recommendation ─────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="pick">
+        <p class="lx-num pixel-eyebrow">{sets && sets.length ? "07" : "06"}</p>
+        <div class="lx-body">
+          <h2 id="pick" class="lx-h2 pixel">The recommendation</h2>
+          <p class="lx-p">
+            <b>{MARK_NAME}.</b> Three reasons. It is the only mark in the set where the
+            accent carries meaning — it is a caret, not decoration, which is exactly how
+            the brief rations colour. It says both things the product is at once: a
+            letterform, and a line you type on. And it survives the 16px test with nothing
+            thinner than two device pixels.
+          </p>
+          <p class="lx-p">
+            It is wired into the site now, so every direction is already wearing it. The
+            grid lives in one file — swapping it is a one-line change.
+          </p>
+        </div>
+      </section>
+
+      <div class="lx-pick">
+        <figure class="lx-pick-one">
+          <div class="lx-pick-art"><PixelMark grid={MARK} size={88} /></div>
+          <figcaption>
+            <p class="lx-pick-h pixel">Primary</p>
+            <p class="lx-pick-t">On any ground, at any size. The default everywhere.</p>
+          </figcaption>
+        </figure>
+
+        <figure class="lx-pick-one">
+          <div class="lx-pick-art"><PixelMark grid={MARK_TILE} size={88} /></div>
+          <figcaption>
+            <p class="lx-pick-h pixel">Tile build</p>
+            <p class="lx-pick-t">
+              For an app icon or an avatar, where a mark on a transparent ground would
+              disappear. Fixed-size asset — the 2px knockouts silt up under non-integer
+              scaling, so it is never the primary.
+            </p>
+          </figcaption>
+        </figure>
+
+        {runnerUp && (
+          <figure class="lx-pick-one">
+            <div class="lx-pick-art"><PixelMark grid={runnerUp.grid} size={88} /></div>
+            <figcaption>
+              <p class="lx-pick-h pixel">Runner-up</p>
+              <p class="lx-pick-t">
+                <code>tt-a-refined</code> — the double-t ligature the critics ranked first,
+                built from the real Departure Mono <b>t</b>. Better typography, weaker
+                sign: a wide bar over two stems is a shape the eye already owns (pi, a
+                torii gate), and it needs the wordmark beside it to read as "tt".
+              </p>
+            </figcaption>
+          </figure>
+        )}
+      </div>
+
+      <footer class="lx-foot">
+        <p>
+          Marks render from the same 16&times;16 grids the site imports, so what is on
+          this page is the artwork, not a picture of it.
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      document.addEventListener("click", (e) => {
+        if (!(e.target as HTMLElement).closest("[data-theme-toggle]")) return;
+        const root = document.documentElement;
+        root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      });
+    </script>
+
+    <style>
+      .lx-top { border-bottom: 1px solid var(--color-line); position: sticky; top: 0; background: var(--color-bg); z-index: 20; }
+      .lx-top-in { display: flex; align-items: center; justify-content: space-between; min-height: 52px; }
+      .lx-back { color: var(--color-muted); text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; min-height: 44px; }
+      .lx-back:hover { color: var(--color-ink); }
+      .lx-theme {
+        font-family: var(--font-display);
+        font-size: var(--px-xs);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        background: none;
+        border: 1px solid var(--color-line);
+        color: var(--color-muted);
+        padding: 0.45rem 0.7rem;
+        cursor: pointer;
+        min-height: 34px;
+      }
+      .lx-theme:hover { color: var(--color-ink); border-color: var(--color-ink); }
+
+      .lx { --wrap: 84rem; padding-block: clamp(3rem, 7vw, 5rem) 4rem; }
+      .lx-eyebrow { color: var(--color-accent); margin: 0 0 1rem; }
+      .lx-h1 { font-size: clamp(2rem, 6vw, var(--px-xl)); margin: 0; line-height: 1.1; }
+      .lx-lede { margin: 1.5rem 0 0; max-width: 62ch; font-size: 1.0625rem; line-height: 1.65; color: var(--color-muted); }
+      .lx-head { padding-bottom: 3rem; border-bottom: 1px solid var(--color-line); }
+
+      .lx-sec {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding-top: 3.5rem;
+        margin-bottom: 2rem;
+      }
+      @media (min-width: 52rem) {
+        .lx-sec { grid-template-columns: 5rem 1fr; gap: 2rem; }
+      }
+      .lx-num { color: var(--color-accent); margin: 0; padding-top: 0.4rem; }
+      .lx-body { max-width: 62ch; }
+      .lx-h2 { font-size: var(--px-md); margin: 0 0 1rem; line-height: 1.2; }
+      .lx-h3 { font-size: var(--px-sm); margin: 0; }
+      .lx-p { margin: 0 0 1rem; line-height: 1.65; color: var(--color-muted); }
+      .lx-p b { color: var(--color-ink); font-weight: 600; }
+
+      .lx-legend { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 1.5rem; font-size: 0.8125rem; color: var(--color-muted); }
+      .lx-legend span { display: inline-flex; align-items: center; gap: 0.5rem; }
+      .sw { width: 12px; height: 12px; display: inline-block; }
+      .sw-ink { background: var(--color-ink); }
+      .sw-acc { background: var(--color-accent); }
+      .sw-non { border: 1px solid var(--color-line); }
+
+      .lx-terr { margin-top: 2.5rem; }
+      .lx-terr-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.5rem 1.25rem;
+        padding-bottom: 0.875rem;
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid var(--color-line);
+      }
+      .lx-terr-blurb { margin: 0; font-size: 0.875rem; color: var(--color-muted); max-width: 60ch; }
+
+      .lx-grid { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
+      @media (min-width: 34rem) { .lx-grid { grid-template-columns: 1fr 1fr; } }
+      @media (min-width: 62rem) { .lx-grid { grid-template-columns: repeat(3, 1fr); } }
+      @media (min-width: 82rem) { .lx-grid { grid-template-columns: repeat(4, 1fr); } }
+      .lx-grid-wide { margin-top: 1rem; }
+
+      .lx-crits { display: grid; gap: 1.5rem; grid-template-columns: 1fr; margin-top: 1.75rem; }
+      @media (min-width: 62rem) { .lx-crits { grid-template-columns: repeat(3, 1fr); } }
+      .lx-crit { border-top: 2px solid var(--color-ink); padding-top: 0.875rem; }
+      .lx-crit-h { margin: 0 0 0.75rem; color: var(--color-ink); }
+      .lx-crit-top { display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0 0 0.875rem; }
+      .lx-chip {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        border: 1px solid var(--color-line);
+        padding: 0.2rem 0.4rem;
+        color: var(--color-muted);
+      }
+      .lx-chip b { color: var(--color-accent); }
+      .lx-crit-txt { font-size: 0.875rem; margin: 0; }
+
+      .lx-ctx { margin-top: 1.5rem; }
+      .lx-ctx-hero {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        padding: 2rem;
+        border: 1px solid var(--color-line);
+        background: var(--color-surface);
+        margin-bottom: 1.5rem;
+        color: var(--color-ink);
+      }
+      .lx-ctx-id { margin: 0; font-size: 0.9375rem; color: var(--color-muted); }
+      .lx-ctx-id code { font-family: var(--font-mono); color: var(--color-ink); }
+      .lx-ctx-note {
+        margin: 0.5rem 0 0;
+        max-width: 44ch;
+        color: var(--color-muted);
+        font-size: 0.9375rem;
+        line-height: 1.55;
+      }
+      .lx-ctx-note b { color: var(--color-ink); font-weight: 600; }
+
+      .lx-pick {
+        display: grid;
+        gap: 1.25rem;
+        grid-template-columns: minmax(0, 1fr);
+        margin-top: 1.5rem;
+      }
+      @media (min-width: 56rem) { .lx-pick { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      .lx-pick-one {
+        margin: 0;
+        border: 1px solid var(--color-line);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .lx-pick-art {
+        display: grid;
+        place-items: center;
+        padding: 2rem 1rem;
+        border-bottom: 1px solid var(--color-line);
+        color: var(--color-ink);
+      }
+      .lx-pick-one figcaption { padding: 1rem 1.125rem 1.25rem; }
+      .lx-pick-h { margin: 0 0 0.5rem; font-size: var(--px-sm); }
+      .lx-pick-t { margin: 0; font-size: 0.875rem; line-height: 1.55; color: var(--color-muted); }
+      .lx-pick-t code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-ink); }
+      .lx-pick-t b { color: var(--color-ink); font-weight: 600; }
+
+      .lx-foot {
+        margin-top: 4rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--color-line);
+        color: var(--color-muted);
+        font-size: 0.8125rem;
+      }
+      .lx-foot p { margin: 0; max-width: 60ch; }
+    </style>
+  </body>
+</html>

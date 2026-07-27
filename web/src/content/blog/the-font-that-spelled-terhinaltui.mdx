@@ -1,0 +1,71 @@
+---
+title: "The font that spelled TERHINALTUI"
+description: "An ASCII banner face drew M, V and W as H, U and H. It shipped, because the bug was only visible in the one place nobody reads carefully: the headline."
+date: 2026-07-23
+tags: ["ascii", "typography", "bugs"]
+frame: { demo: "conference", label: "home" }
+---
+
+terminaltui ships fourteen ASCII art fonts for page banners. One of them, `Block`, is
+the compact one — the face you get when the window is not wide enough for anything
+grander. It is four rows tall.
+
+At four rows, `M`, `V` and `W` were all drawn the same way: a horizontal bar between two
+full-height stems, differing only in how high the bar sat.
+
+That is not a cue anyone can read. Here is a real capture of a page set in it:
+
+```
+TRY: TERHINALTUI.DEU
+```
+
+That is supposed to say `TRY: TERMINALTUI.DEV`. The M rendered as an H. The V rendered
+as a U. From the one font compact enough to set a URL at mid-range window sizes, on the
+line telling people where to find the project.
+
+`WATCHING` came out as `HATCHING`, which is at least funnier.
+
+## Why it survived
+
+The failure mode is specific and it is worth naming, because it generalizes.
+
+Banner text is *display type*. Nobody proofreads a headline — you look at it, recognize
+its shape, and move on. Body text gets read letter by letter, so a broken glyph there is
+caught in minutes. A broken glyph in a 4-row ASCII banner just makes the word look
+slightly wrong in a way you attribute to the medium. It is ASCII art. It is *supposed*
+to be crunchy.
+
+And the tests were green, because the tests asserted that the banner rendered, that it
+was the right number of rows, and that it was the right number of columns. All true. The
+letters were the wrong letters.
+
+## The fix
+
+All three are redrawn so the interior stroke **changes column as it changes row**, which
+is the only distinguishing signal available at this size:
+
+- `M` gains a descending V between the stems.
+- `V` narrows to a one-column point.
+- `W` gains a centre stem and two feet.
+
+Each is one column wider than before, because centring a middle stem needs an odd ink
+width. That is a real cost — it means the compact face is now slightly less compact — and
+it is the correct trade, because a face that fits and lies is worth less than one that
+fits marginally worse and does not.
+
+## The test that should have existed
+
+The interesting part is not the glyphs. It is that the test suite grew a new *kind* of
+assertion:
+
+> For every bundled face, render every letter, and fail if any two letters produce
+> identical output.
+
+That check does not need to know what an `M` should look like. It only needs to know that
+an `M` must not look like an `H`. It is cheap, it is total, and it catches the entire
+class of bug rather than the three instances we happened to find.
+
+Most of the useful tests I have written lately have that shape. Not "is this output
+correct" — which requires knowing the answer in advance for every input — but "is this
+output *self-consistent*", which the machine can check exhaustively without being told
+anything.

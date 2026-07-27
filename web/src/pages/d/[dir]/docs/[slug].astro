@@ -1,0 +1,233 @@
+---
+/**
+ * A documentation page, rendered from the repository's own markdown.
+ */
+import { getCollection, render } from "astro:content";
+import Shell from "@/layouts/Shell.astro";
+import { DIRECTION_KEYS, getDirection, baseFor, url } from "@/lib/site";
+import { docSections, docMeta, docNeighbours, docOrder } from "@/data/docs";
+import { product } from "@/data/product";
+import "@/styles/prose.css";
+
+export async function getStaticPaths() {
+  const docs = await getCollection("docs");
+  const known = docs.filter((d) => docOrder.includes(d.id));
+  return DIRECTION_KEYS.flatMap((dir) =>
+    known.map((doc) => ({ params: { dir, slug: doc.id }, props: { doc } })),
+  );
+}
+
+const { dir } = Astro.params;
+const { doc } = Astro.props;
+const direction = getDirection(dir!);
+const base = baseFor(dir!);
+const { Content, headings } = await render(doc);
+
+const meta = docMeta(doc.id);
+const { prev, next } = docNeighbours(doc.id);
+const origin = Astro.site?.origin ?? product.site;
+const permalink = url(base, `docs/${doc.id}/`);
+const title = meta?.label ?? doc.id;
+
+const schema = [
+  {
+    "@type": "TechArticle",
+    "@id": `${origin}${permalink}#doc`,
+    headline: title,
+    description: meta?.blurb ?? "",
+    mainEntityOfPage: `${origin}${permalink}`,
+    author: { "@id": `${origin}/#person` },
+    isPartOf: { "@id": `${origin}/#website` },
+  },
+  {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${origin}${base}` },
+      { "@type": "ListItem", position: 2, name: "Docs", item: `${origin}${url(base, "docs/")}` },
+      { "@type": "ListItem", position: 3, name: title },
+    ],
+  },
+];
+
+const toc = headings.filter((h) => h.depth === 2);
+---
+
+<Shell
+  dir={direction.key}
+  base={base}
+  active="Docs"
+  defaultTheme={direction.defaultTheme}
+  title={`${title} — terminaltui docs`}
+  description={meta?.blurb ?? `${title} — terminaltui documentation.`}
+  path={permalink}
+  type="article"
+  schema={schema}
+>
+  <div class="wrap dp">
+    <nav class="dp-side" aria-label="Documentation">
+      {docSections.map((s) => (
+        <div class="dp-grp">
+          <p class="dp-grp-h pixel-eyebrow">{s.title}</p>
+          <ul class="dp-grp-l">
+            {s.items.map((it) => (
+              <li>
+                <a
+                  href={url(base, `docs/${it.slug}/`)}
+                  class="dp-side-a"
+                  aria-current={it.slug === doc.id ? "page" : undefined}
+                >{it.label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+
+    <article class="dp-main">
+      <p class="dp-crumb">
+        <a href={url(base, "docs/")}>Docs</a>
+        <span aria-hidden="true"> / </span>
+        <span>{meta?.section}</span>
+      </p>
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      <nav class="dp-pager" aria-label="Documentation pages">
+        {prev ? (
+          <a class="dp-pg" href={url(base, `docs/${prev.slug}/`)}>
+            <span class="dp-pg-l pixel-eyebrow">Previous</span>
+            <span class="dp-pg-t">{prev.label}</span>
+          </a>
+        ) : <span />}
+        {next && (
+          <a class="dp-pg dp-pg-n" href={url(base, `docs/${next.slug}/`)}>
+            <span class="dp-pg-l pixel-eyebrow">Next</span>
+            <span class="dp-pg-t">{next.label}</span>
+          </a>
+        )}
+      </nav>
+
+      <p class="dp-edit">
+        <a href={`${product.repo}/blob/main/docs/${doc.id}.md`} rel="noopener">Edit this page on GitHub</a>
+      </p>
+    </article>
+
+    {toc.length > 2 && (
+      <aside class="dp-toc" aria-label="On this page">
+        <p class="dp-toc-h pixel-eyebrow">On this page</p>
+        <ol class="dp-toc-l">
+          {toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}
+        </ol>
+      </aside>
+    )}
+  </div>
+</Shell>
+
+<style>
+  .dp {
+    --wrap: 88rem;
+    display: grid;
+    /* minmax(0,...) — see the note on the demos grid. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+    padding-block: 2rem 4rem;
+    align-items: start;
+  }
+  @media (min-width: 60rem) {
+    .dp { grid-template-columns: 15rem minmax(0, 1fr); gap: 3rem; }
+  }
+  @media (min-width: 82rem) {
+    .dp { grid-template-columns: 15rem minmax(0, 1fr) 13rem; }
+  }
+
+  .dp-side { min-width: 0; }
+  @media (min-width: 60rem) {
+    .dp-side { position: sticky; top: 5.5rem; max-height: calc(100vh - 7rem); overflow-y: auto; }
+  }
+  .dp-grp + .dp-grp { margin-top: 1.5rem; }
+  .dp-grp-h { color: var(--color-muted); margin: 0 0 0.5rem; }
+  .dp-grp-l { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--color-line); }
+  .dp-side-a {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0.25rem 0 0.25rem 0.875rem;
+    margin-left: -1px;
+    border-left: 1px solid transparent;
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: 0.9375rem;
+  }
+  .dp-side-a:hover { color: var(--color-ink); }
+  .dp-side-a[aria-current="page"] {
+    color: var(--color-accent);
+    border-left-color: var(--color-accent);
+  }
+
+  .dp-main { min-width: 0; }
+  .dp-crumb { margin: 0 0 1.5rem; font-size: 0.8125rem; color: var(--color-muted); }
+  .dp-crumb a { color: var(--color-muted); }
+  .dp-crumb a:hover { color: var(--color-accent); }
+
+  /* The markdown supplies its own H1. */
+  .dp-main :global(.prose > h1:first-child) {
+    font-family: var(--font-body);
+    font-size: clamp(2rem, 4vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .dp-pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .dp-pg {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--color-line);
+    text-decoration: none;
+    color: inherit;
+    min-height: 44px;
+  }
+  .dp-pg:hover { border-color: var(--color-ink); }
+  .dp-pg-n { text-align: right; }
+  .dp-pg-l { color: var(--color-muted); margin: 0; }
+  .dp-pg-t { font-weight: 500; }
+
+  .dp-edit { margin: 1.5rem 0 0; font-size: 0.875rem; }
+  .dp-edit a { color: var(--color-muted); }
+  .dp-edit a:hover { color: var(--color-accent); }
+
+  .dp-toc { display: none; }
+  @media (min-width: 82rem) {
+    .dp-toc { display: block; position: sticky; top: 5.5rem; }
+  }
+  .dp-toc-h { color: var(--color-muted); margin: 0 0 0.6rem; }
+  .dp-toc-l {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 1px solid var(--color-line);
+    display: grid;
+    gap: 0.35rem;
+  }
+  .dp-toc-l a {
+    display: block;
+    padding: 0.1rem 0 0.1rem 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+  .dp-toc-l a:hover { color: var(--color-ink); }
+</style>

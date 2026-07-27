@@ -1,0 +1,750 @@
+---
+/**
+ * PAPER — Swiss editorial.
+ *
+ * The whole page is built from three things: a hairline, an alignment, and a
+ * very large jump in type size. There is not one filled box on it except the
+ * terminal screens, which are screens rather than cards. Vermilion appears five
+ * times, counted deliberately: the hero cursor, the shell prompts, the
+ * terminaltui column head, the one in-progress roadmap status, and the rule
+ * above the closing line.
+ */
+import Shell from "@/layouts/Shell.astro";
+import Section from "@/components/paper/Section.astro";
+import Screen from "@/components/paper/Screen.astro";
+import StarButton from "@/components/shared/StarButton.astro";
+import CopyCommand from "@/components/shared/CopyCommand.astro";
+import {
+  product,
+  stats,
+  comparison,
+  componentGroups,
+  themes,
+  demos,
+  roadmap,
+} from "@/data/product";
+import { getCollection } from "astro:content";
+import { baseFor, url, formatDate, readingTime } from "@/lib/site";
+
+const base = baseFor("paper");
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+
+const routes = [
+  ["pages/index.ts", "/"],
+  ["pages/about.ts", "/about"],
+  ["pages/projects/index.ts", "/projects"],
+  ["pages/projects/[slug].ts", "/projects/:slug"],
+  ["api/stats.ts", "GET /api/stats"],
+];
+
+const statusLabel: Record<string, string> = {
+  shipped: "Shipped",
+  progress: "In progress",
+  planned: "Planned",
+};
+const shippedish = roadmap.filter((r) => r.status !== "planned");
+const planned = roadmap.filter((r) => r.status === "planned");
+
+const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "No" : v);
+---
+
+<Shell
+  dir="paper"
+  base={base}
+  defaultTheme="light"
+  title="terminaltui — a standardized engine for terminal apps"
+  description="A TypeScript framework for terminal apps: file-based routing for screens, 42 components, real images, and shipping over npx or SSH."
+  path={base}
+>
+  {/* ── HERO ──────────────────────────────────────────────────────────── */}
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-label">
+        <p class="pixel-eyebrow hero-eyebrow">terminaltui</p>
+        <p class="hero-meta">MIT<br />Node {product.node}</p>
+      </div>
+
+      <div class="hero-main">
+        <h1 class="pixel hero-h1">
+          A standardized engine for terminal apps.<span class="caret" aria-hidden="true"></span>
+        </h1>
+        <p class="hero-lede">{product.pitch}</p>
+
+        <div class="hero-act">
+          <CopyCommand cmd="npx terminaltui try" />
+          <StarButton size="lg" />
+        </div>
+        <p class="hero-note">A five-page guided tour. Nothing to install.</p>
+      </div>
+    </div>
+
+    <div class="wrap hero-shot">
+      <Screen
+        demo="welcome"
+        label="home"
+        caption="The welcome tour, cyberpunk theme, 100 columns. Not a mockup: this is the real cell grid, dumped out of a headless PTY."
+      />
+    </div>
+  </section>
+
+  {/* ── 01 ROUTING ────────────────────────────────────────────────────── */}
+  <Section n="01" kicker="Routing" space="loose">
+    <h2 class="h2 pixel">The file is the screen.</h2>
+    <div class="cols2">
+      <p class="lede">
+        A directory of TypeScript files becomes a navigable app. Brackets make a route
+        dynamic. A file under <code>api/</code> is an HTTP endpoint. You do not design an
+        architecture, because there is one.
+      </p>
+      <p class="body">
+        Nothing else routes terminal <em>screens</em> this way. Ink is a component library.
+        Pastel routes CLI subcommands. Bubble Tea gives you an update loop and a blank
+        canvas.
+      </p>
+    </div>
+
+    <div class="tree" role="table" aria-label="File paths and the routes they produce">
+      {routes.map(([file, route]) => (
+        <div class="tree-row" role="row">
+          <code class="tree-file" role="cell">{file}</code>
+          <span class="tree-arrow" aria-hidden="true">→</span>
+          <code class="tree-route" role="cell">{route}</code>
+        </div>
+      ))}
+    </div>
+
+    <div class="shot-inset">
+      <Screen
+        demo="developer-portfolio"
+        label="projects"
+        rows={24}
+        caption="pages/projects.ts in the developer-portfolio demo. Cards, focus ring and keyboard navigation, none of it hand-drawn."
+      />
+    </div>
+  </Section>
+
+  {/* ── 02 DISTRIBUTION ───────────────────────────────────────────────── */}
+  <Section n="02" kicker="Distribution" space="tight">
+    <h2 class="h2 pixel">Two ways to ship. Both are one line.</h2>
+    <div class="split">
+      <div class="split-a">
+        <h3 class="sub pixel-eyebrow">Over npm</h3>
+        <CopyCommand cmd="npx your-app" />
+        <p class="body">
+          Publish the bundle and anyone runs it. No install step, no binary to build for
+          three platforms, no Electron, no browser.
+        </p>
+      </div>
+      <div class="split-b">
+        <h3 class="sub pixel-eyebrow">Over SSH</h3>
+        <CopyCommand cmd="terminaltui serve" />
+        <p class="body">
+          One server, many sessions. Colour depth is negotiated per client from its{" "}
+          <code>TERM</code>, so the same app is correct in Apple Terminal and in kitty.
+        </p>
+      </div>
+    </div>
+  </Section>
+
+  {/* ── 03 IMAGES ─────────────────────────────────────────────────────── */}
+  <Section n="03" kicker="Images" space="vast">
+    <h2 class="h2 pixel">Photographs, in a grid of characters.</h2>
+    <p class="lede">
+      On kitty and Ghostty the renderer draws real pixels through the kitty graphics
+      protocol. Everywhere else it paints coloured cells with block glyphs at the same row
+      count, so the layout never moves and images survive tmux, SSH and Apple Terminal.
+    </p>
+    <p class="code-line"><code>image("./cover.png", &#123; width: 60 &#125;)</code></p>
+    <p class="body">
+      {stats.runtimeDeps} runtime dependencies hold the whole thing up: esbuild, jpeg-js,
+      pngjs. No sharp, no node-gyp, no postinstall build. Video is the same pipeline over
+      a sequence of frames; it is in progress and not shipped.
+    </p>
+  </Section>
+
+  <div class="wrap bleed">
+    <Screen
+      demo="welcome"
+      label="showcase"
+      caption="The component showcase, rendered at 100×32. Every colour you see here is a terminal colour."
+    />
+  </div>
+
+  {/* ── 04 IN THE BOX ─────────────────────────────────────────────────── */}
+  <Section n="04" kicker="In the box" space="loose">
+    <h2 class="h2 pixel">Designed before you start.</h2>
+    <p class="lede">
+      {stats.components} components, {stats.themes} themes, a 12-column grid,
+      {" "}{stats.asciiFonts} ASCII fonts and {stats.asciiScenes} scenes. The first commit
+      already looks considered.
+    </p>
+
+    <dl class="groups">
+      {componentGroups.map((g) => (
+        <div class="group">
+          <dt class="pixel-eyebrow group-t">{g.group}</dt>
+          <dd class="group-d">{g.items.join("  ·  ")}</dd>
+        </div>
+      ))}
+    </dl>
+
+    <ul class="themes" aria-label="Built-in themes">
+      {themes.map((t) => (
+        <li class="theme">
+          <span class="theme-n">{t.name}</span>
+          <span class="theme-sw" aria-hidden="true">
+            {t.swatch.map((c) => <i style={`background:${c}`}></i>)}
+          </span>
+        </li>
+      ))}
+    </ul>
+
+    <div class="shot-inset">
+      <Screen
+        demo="welcome"
+        label="themes"
+        rows={26}
+        caption="The theme picker, live. Switching a theme re-colours every component; you do not restyle anything."
+      />
+    </div>
+  </Section>
+
+  {/* ── 05 DEMOS ──────────────────────────────────────────────────────── */}
+  <Section n="05" kicker="Demos" space="tight">
+    <h2 class="h2 pixel">{stats.demos} demos. One command each.</h2>
+    <ul class="demos">
+      {demos.map((d) => (
+        <li class="demo">
+          <span class="demo-n">{d.label}</span>
+          <code class="demo-c">{d.cmd}</code>
+          <span class="demo-t">{d.theme}</span>
+        </li>
+      ))}
+    </ul>
+  </Section>
+
+  {/* An interlude. Wider than everything else on the page, and unlabelled. */}
+  <div class="wrap interlude">
+    <Screen
+      demo="restaurant"
+      label="menu"
+      caption="restaurant demo, gruvbox theme — one of the eleven, captured at 100×32."
+    />
+  </div>
+
+  {/* ── 06 COMPARISON ─────────────────────────────────────────────────── */}
+  <Section n="06" kicker="Comparison" space="normal">
+    <h2 class="h2 pixel">Against the alternatives.</h2>
+    <p class="lede caveat">{comparison.caveat}</p>
+
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <caption class="sr-only">terminaltui compared with Ink, Pastel and Bubble Tea</caption>
+        <thead>
+          <tr>
+            <th scope="col"><span class="sr-only">Capability</span></th>
+            {comparison.columns.map((c, i) => (
+              <th scope="col" class={i === 0 ? "col-us pixel-eyebrow" : "pixel-eyebrow"}>{c}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {comparison.rows.map((r) => (
+            <tr>
+              <th scope="row">{r.label}</th>
+              {r.values.map((v, i) => (
+                <td class={i === 0 ? "us" : ""}>{cell(v)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="after-tbl">
+      <StarButton size="lg" />
+      <p class="body after-tbl-p">
+        {stats.tests.toLocaleString("en-US")} tests across {stats.testSuites} suites.
+        First published {formatDate(new Date(`${product.firstPublished}T12:00:00`))}.
+      </p>
+    </div>
+  </Section>
+
+  {/* ── 07 TESTING ────────────────────────────────────────────────────── */}
+  <Section n="07" kicker="Testing" space="tight">
+    <h2 class="h2 pixel">Playwright, but the browser is a terminal.</h2>
+    <div class="cols2">
+      <p class="lede">
+        Launch the app in a real PTY, send keypresses, assert on what is on screen. The
+        emulator ships in the package.
+      </p>
+      <p class="body">
+        Every terminal screen on this page was produced with it: boot the demo, drive it,
+        dump the coloured cell grid. That is why they are exact.
+      </p>
+    </div>
+    <pre class="code"><code>{`import { TUIEmulator } from "terminaltui/emulator";
+
+const app = await TUIEmulator.launch("dist/cli.js");
+await app.press("j");
+await app.waitForText("Projects");
+app.screen.cells();`}</code></pre>
+  </Section>
+
+  {/* ── 08 ROADMAP ────────────────────────────────────────────────────── */}
+  <Section n="08" kicker="Roadmap" space="loose">
+    <h2 class="h2 pixel">What exists, and what does not.</h2>
+    <dl class="road">
+      {shippedish.map((r) => (
+        <div class="road-row">
+          <dt>
+            <span class={`stat stat-${r.status} pixel-eyebrow`}>{statusLabel[r.status]}</span>
+            <span class="road-t">{r.title}</span>
+          </dt>
+          <dd class="road-d">{r.body}</dd>
+        </div>
+      ))}
+    </dl>
+    <p class="road-lead pixel-eyebrow">Planned, not built</p>
+    <ul class="road-planned">
+      {planned.map((r) => <li>{r.title}</li>)}
+    </ul>
+  </Section>
+
+  {/* ── 09 WRITING ────────────────────────────────────────────────────── */}
+  <Section n="09" kicker="Writing" space="normal">
+    <h2 class="h2 pixel">Engineering notes.</h2>
+    <ol class="posts">
+      {posts.map((p) => (
+        <li class="post">
+          <a class="post-link" href={url(base, `blog/${p.id}/`)}>
+            <span class="post-meta tnum">
+              <time datetime={p.data.date.toISOString()}>{formatDate(p.data.date)}</time>
+              <span aria-hidden="true"> · </span>{readingTime(p.body ?? "")} min
+            </span>
+            <span class="post-t">{p.data.title}</span>
+            <span class="post-d">{p.data.description}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+    <p class="more"><a href={url(base, "blog/")}>All writing</a></p>
+  </Section>
+
+  {/* ── CLOSING ───────────────────────────────────────────────────────── */}
+  <section class="end">
+    <div class="wrap end-grid">
+      <div class="end-label"><span class="pixel-eyebrow">Take it</span></div>
+      <div>
+        <p class="end-line pixel">Write pages. Ship a terminal app.</p>
+        <p class="body end-p">
+          MIT, Node {product.node}, {stats.runtimeDeps} runtime dependencies. First
+          published in March 2026, so it is young. The count below is live, not a badge.
+          Read the source and decide for yourself.
+        </p>
+        <div class="end-act">
+          <StarButton size="lg" />
+          <CopyCommand cmd="npx terminaltui try" />
+        </div>
+      </div>
+    </div>
+  </section>
+</Shell>
+
+<style>
+  /* ─────────────────────────────────────────────────────────────────────
+   * Shared type. The whole design is the distance between .h2 and .body.
+   * Pixel type steps between the --px-* sizes rather than using clamp(),
+   * because Departure Mono only stays crisp at its design multiples.
+   * ─────────────────────────────────────────────────────────────────── */
+  .h2 {
+    font-size: var(--px-md);
+    line-height: 1.15;
+    letter-spacing: 0.005em;
+    margin: 0 0 1.5rem;
+    max-width: 22ch;
+    overflow-wrap: break-word;
+  }
+  .lede {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 54ch;
+    color: var(--color-ink);
+  }
+  .body {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 54ch;
+    color: var(--color-muted);
+  }
+  .sub { color: var(--color-ink); margin: 0 0 1rem; }
+  code { font-family: var(--font-mono); font-size: 0.9em; }
+
+  /* The shared controls default to a filled surface. This direction has no
+     fills anywhere, so they are reduced to their hairline. */
+  /* Repeated class names only to out-specify the components' own scoped rules. */
+  :global(.cc.cc.cc), :global(.sb.sb.sb) { background: transparent; }
+  /* The shared copy button is 32px; a finger needs 44. Grown with negative
+     margins so the command row keeps its height. */
+  :global(.cc-btn.cc-btn.cc-btn) {
+    width: 44px;
+    height: 44px;
+    margin: -0.375rem -0.375rem -0.375rem 0;
+  }
+
+  .cols2 { display: grid; gap: 1.25rem; }
+  .shot-inset { margin-top: 2.5rem; }
+
+  @media (min-width: 48rem) {
+    .h2 { font-size: var(--px-lg); margin-bottom: 2rem; }
+    .cols2 { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+  }
+  @media (min-width: 72rem) {
+    .h2 { font-size: var(--px-xl); }
+  }
+
+  /* ── HERO ─────────────────────────────────────────────────────────── */
+  .hero { --wrap: 72rem; padding-block: clamp(3rem, 9vw, 7rem) 0; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .hero-eyebrow { color: var(--color-muted); margin: 0; }
+  .hero-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    margin: 0.5rem 0 0;
+  }
+  .hero-h1 {
+    font-size: var(--px-lg);
+    line-height: 1.06;
+    letter-spacing: 0;
+    margin: 0;
+    max-width: 16ch;
+    overflow-wrap: break-word;
+    text-wrap: pretty;
+  }
+  /* The one moving thing on the page, and it stops for reduced motion. */
+  .caret {
+    display: inline-block;
+    width: 0.55em;
+    height: 0.82em;
+    margin-left: 0.18em;
+    vertical-align: -0.06em;
+    background: var(--color-accent);
+    animation: blink 1.4s steps(1, end) infinite;
+  }
+  @keyframes blink { 0%, 55% { opacity: 1 } 56%, 100% { opacity: 0 } }
+  @media (prefers-reduced-motion: reduce) { .caret { animation: none } }
+
+  .hero-lede {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 46ch;
+    margin: 1.75rem 0 0;
+  }
+  .hero-act {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+  .hero-act :global(.cc) { flex: 1 1 17rem; min-width: 0; }
+  .hero-note {
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    margin: 0.875rem 0 0;
+  }
+  .hero-shot { margin-top: clamp(3rem, 7vw, 5rem); --wrap: 72rem; }
+
+  @media (min-width: 56rem) {
+    .hero-grid { grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0 3rem; }
+    .hero-label { padding-top: 0.4rem; }
+    .hero-h1 { font-size: var(--px-xl); }
+  }
+  @media (min-width: 90rem) {
+    .hero-h1 { font-size: var(--px-2xl); }
+  }
+
+  /* ── 01 ROUTING ───────────────────────────────────────────────────── */
+  .tree {
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--color-line);
+    max-width: 40rem;
+  }
+  .tree-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--color-line);
+    padding-block: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+  }
+  .tree-file { color: var(--color-ink); overflow-wrap: anywhere; }
+  .tree-arrow { color: var(--color-muted); text-align: center; }
+  .tree-route { color: var(--color-muted); overflow-wrap: anywhere; }
+
+  /* ── 02 DISTRIBUTION ──────────────────────────────────────────────── */
+  .split { display: grid; gap: 2.5rem; }
+  .split :global(.cc) { margin-bottom: 1rem; }
+  @media (min-width: 48rem) {
+    .split { grid-template-columns: 1fr 1fr; gap: 3rem; }
+    .split-b { border-left: 1px solid var(--color-line); padding-left: 3rem; }
+  }
+
+  /* ── 03 IMAGES ────────────────────────────────────────────────────── */
+  .code-line {
+    margin: 2rem 0;
+    padding-block: 1rem;
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+    overflow-x: auto;
+  }
+  .code-line code {
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    color: var(--color-ink);
+  }
+  .bleed {
+    --wrap: 88rem;
+    padding-bottom: clamp(4rem, 10vw, 8rem);
+  }
+
+  /* ── 04 IN THE BOX ────────────────────────────────────────────────── */
+  .groups {
+    margin: 2.75rem 0 0;
+    border-top: 1px solid var(--color-line);
+  }
+  .group {
+    border-bottom: 1px solid var(--color-line);
+    padding-block: 1.125rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .group-t { color: var(--color-muted); margin: 0; }
+  .group-d {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.9;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+  @media (min-width: 48rem) {
+    .group { grid-template-columns: 7rem minmax(0, 1fr); gap: 1.5rem; align-items: baseline; }
+  }
+
+  .themes {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+    max-width: 34rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .theme {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.625rem;
+    border-bottom: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-ink);
+  }
+  .theme-sw { display: inline-flex; gap: 2px; flex: none; }
+  .theme-sw i { display: block; width: 12px; height: 12px; }
+  @media (min-width: 34rem) {
+    .themes { grid-template-columns: 1fr 1fr; column-gap: 2.5rem; }
+  }
+
+  /* ── 05 DEMOS ─────────────────────────────────────────────────────── */
+  .demos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-line);
+  }
+  .demo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.25rem 1rem;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+    align-items: baseline;
+  }
+  .demo-n { font-size: 0.9375rem; }
+  .demo-c {
+    grid-column: 1 / -1;
+    font-family: var(--font-mono);
+    font-size: 0.78125rem;
+    color: var(--color-muted);
+    overflow-wrap: anywhere;
+  }
+  .demo-t {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    text-align: right;
+  }
+  @media (min-width: 48rem) {
+    .demo { grid-template-columns: 14rem minmax(0, 1fr) 8rem; }
+    .demo-c { grid-column: auto; }
+  }
+
+  .interlude { --wrap: 88rem; padding-bottom: clamp(4rem, 11vw, 9rem); }
+
+  /* ── 06 COMPARISON ────────────────────────────────────────────────── */
+  .caveat { max-width: 58ch; color: var(--color-muted); }
+  .tbl-scroll {
+    margin-top: 2.5rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .tbl {
+    width: 100%;
+    min-width: 46rem;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    text-align: left;
+  }
+  .tbl th, .tbl td {
+    padding: 0.875rem 1rem 0.875rem 0;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: top;
+    font-weight: 400;
+  }
+  .tbl thead th { border-bottom: 1px solid var(--color-ink); color: var(--color-muted); }
+  /* Vermilion as a rule rather than as 12px text: it carries the emphasis
+     without dropping small type to a 4.46:1 contrast ratio. */
+  .tbl thead th.col-us { color: var(--color-ink); border-bottom: 2px solid var(--color-accent); }
+  .tbl tbody th { color: var(--color-muted); width: 15rem; }
+  .tbl td { color: var(--color-muted); }
+  .tbl td.us { color: var(--color-ink); }
+
+  .after-tbl {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem 2rem;
+  }
+  .after-tbl-p { font-size: 0.875rem; max-width: 34ch; }
+
+  /* ── 07 TESTING ───────────────────────────────────────────────────── */
+  .code {
+    margin: 2.5rem 0 0;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.8;
+    color: var(--color-ink);
+  }
+
+  /* ── 08 ROADMAP ───────────────────────────────────────────────────── */
+  .road { margin: 0; border-top: 1px solid var(--color-line); }
+  .road-row {
+    padding-block: 1.5rem;
+    border-bottom: 1px solid var(--color-line);
+    display: grid;
+    gap: 0.5rem;
+  }
+  .road-row dt { display: grid; gap: 0.5rem; }
+  .stat { color: var(--color-muted); }
+  /* Darkened toward ink so a 12px label still clears 4.5:1. */
+  .stat-progress { color: color-mix(in srgb, var(--color-accent) 82%, var(--color-ink)); }
+  .road-t { font-size: 1.0625rem; }
+  .road-d { margin: 0; color: var(--color-muted); font-size: 0.9375rem; line-height: 1.6; max-width: 52ch; }
+  @media (min-width: 48rem) {
+    .road-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 2.5rem; align-items: baseline; }
+  }
+  .road-lead { color: var(--color-muted); margin: 2.5rem 0 1rem; }
+  .road-planned {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+    font-size: 1.0625rem;
+    color: var(--color-ink);
+  }
+  .road-planned li { padding-left: 1.25rem; position: relative; }
+  .road-planned li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.7em;
+    width: 8px;
+    height: 1px;
+    background: var(--color-line);
+  }
+  @media (min-width: 48rem) {
+    .road-planned { grid-template-columns: 1fr 1fr; column-gap: 2.5rem; }
+  }
+
+  /* ── 09 WRITING ───────────────────────────────────────────────────── */
+  .posts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-line); }
+  .post { border-bottom: 1px solid var(--color-line); }
+  .post-link {
+    display: grid;
+    gap: 0.375rem;
+    padding-block: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    min-height: 44px;
+  }
+  .post-meta { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-muted); }
+  .post-t { font-size: 1.125rem; line-height: 1.3; font-weight: 500; }
+  .post-d { font-size: 0.9375rem; line-height: 1.6; color: var(--color-muted); max-width: 60ch; }
+  .post-link:hover .post-t { text-decoration: underline; text-underline-offset: 4px; }
+  @media (min-width: 48rem) {
+    .post-link { grid-template-columns: 9rem minmax(0, 1fr); column-gap: 2.5rem; }
+    .post-meta { grid-row: span 2; padding-top: 0.35rem; }
+    .post-t, .post-d { grid-column: 2; }
+  }
+  .more { margin: 2rem 0 0; font-size: 0.9375rem; }
+  .more a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-muted);
+    text-underline-offset: 4px;
+  }
+  .more a:hover { color: var(--color-ink); }
+
+  /* ── CLOSING ──────────────────────────────────────────────────────── */
+  .end {
+    --wrap: 72rem;
+    padding-block: clamp(4rem, 11vw, 9rem) clamp(3.5rem, 8vw, 6rem);
+    border-top: 2px solid var(--color-accent);
+  }
+  .end-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.75rem; }
+  .end-label { color: var(--color-muted); }
+  .end-line {
+    font-size: var(--px-lg);
+    line-height: 1.1;
+    margin: 0 0 1.5rem;
+    max-width: 18ch;
+    overflow-wrap: break-word;
+  }
+  .end-p { margin-bottom: 2rem; max-width: 50ch; }
+  .end-act { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: stretch; }
+  .end-act :global(.cc) { flex: 1 1 17rem; min-width: 0; }
+  @media (min-width: 56rem) {
+    .end-grid { grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0 3rem; }
+    .end-label { padding-top: 0.4rem; }
+    .end-line { font-size: var(--px-xl); }
+  }
+</style>

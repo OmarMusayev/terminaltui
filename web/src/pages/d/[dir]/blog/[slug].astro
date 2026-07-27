@@ -1,0 +1,209 @@
+---
+/**
+ * A blog post. Shared across every direction — the art direction arrives
+ * entirely through tokens, so there is no per-direction branching here.
+ */
+import { getCollection, render } from "astro:content";
+import Shell from "@/layouts/Shell.astro";
+import TerminalFrame from "@/components/shared/TerminalFrame.astro";
+import StarButton from "@/components/shared/StarButton.astro";
+import { DIRECTION_KEYS, getDirection, baseFor, url, formatDate, readingTime } from "@/lib/site";
+import { product } from "@/data/product";
+import "@/styles/prose.css";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog", ({ data }) => !data.draft);
+  return DIRECTION_KEYS.flatMap((dir) =>
+    posts.map((post) => ({ params: { dir, slug: post.id }, props: { post } })),
+  );
+}
+
+const { dir } = Astro.params;
+const { post } = Astro.props;
+const direction = getDirection(dir!);
+const base = baseFor(dir!);
+const { Content, headings } = await render(post);
+
+const minutes = readingTime(post.body ?? "");
+const origin = Astro.site?.origin ?? product.site;
+const permalink = url(base, `blog/${post.id}/`);
+
+const schema = [
+  {
+    "@type": "BlogPosting",
+    "@id": `${origin}${permalink}#post`,
+    headline: post.data.title,
+    description: post.data.description,
+    datePublished: post.data.date.toISOString(),
+    ...(post.data.updated ? { dateModified: post.data.updated.toISOString() } : {}),
+    author: { "@id": `${origin}/#person` },
+    keywords: post.data.tags.join(", "),
+    mainEntityOfPage: `${origin}${permalink}`,
+  },
+  {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${origin}${base}` },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${origin}${url(base, "blog/")}` },
+      { "@type": "ListItem", position: 3, name: post.data.title },
+    ],
+  },
+];
+
+/** Only h2s — a three-level contents panel on a 1,200-word post is noise. */
+const toc = headings.filter((h) => h.depth === 2);
+---
+
+<Shell
+  dir={direction.key}
+  base={base}
+  active="Blog"
+  defaultTheme={direction.defaultTheme}
+  title={`${post.data.title} — terminaltui`}
+  description={post.data.description}
+  path={permalink}
+  type="article"
+  schema={schema}
+  article={{
+    published: post.data.date.toISOString(),
+    updated: post.data.updated?.toISOString(),
+    tags: [...post.data.tags],
+  }}
+>
+  <article class="wrap po">
+    <nav class="po-back" aria-label="Breadcrumb">
+      <a href={url(base, "blog/")}><span aria-hidden="true">←</span> All posts</a>
+    </nav>
+
+    <header class="po-head">
+      <h1 class="po-title">{post.data.title}</h1>
+      <p class="po-meta tnum">
+        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+        <span aria-hidden="true"> · </span>
+        <span>{minutes} min read</span>
+        {post.data.tags.length > 0 && (
+          <>
+            <span aria-hidden="true"> · </span>
+            <span>{post.data.tags.join(", ")}</span>
+          </>
+        )}
+      </p>
+    </header>
+
+    {post.data.frame && (
+      <div class="po-frame">
+        <TerminalFrame
+          demo={post.data.frame.demo}
+          label={post.data.frame.label}
+          rows={18}
+          caption="Real output, captured by booting the demo inside terminaltui's own headless PTY emulator."
+        />
+      </div>
+    )}
+
+    <div class="po-body">
+      {toc.length > 2 && (
+        <aside class="po-toc" aria-label="On this page">
+          <h2 class="pixel-eyebrow po-toc-h">On this page</h2>
+          <ol class="po-toc-list">
+            {toc.map((h) => (
+              <li><a href={`#${h.slug}`}>{h.text}</a></li>
+            ))}
+          </ol>
+        </aside>
+      )}
+
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+
+    <footer class="po-foot">
+      <p class="po-foot-p">
+        terminaltui is MIT licensed and built in the open. If this was useful, a star
+        is the most direct way to say so.
+      </p>
+      <StarButton size="md" />
+    </footer>
+  </article>
+</Shell>
+
+<style>
+  .po { --wrap: 72rem; padding-block: clamp(2rem, 5vw, 3.5rem) clamp(3rem, 8vw, 5rem); }
+
+  .po-back { margin-bottom: 2.5rem; font-size: 0.875rem; }
+  .po-back a { color: var(--color-muted); text-decoration: none; }
+  .po-back a:hover { color: var(--color-accent); }
+
+  .po-head { max-width: 28ch; }
+  .po-title {
+    font-size: clamp(2rem, 5.5vw, 3.25rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 0;
+    font-weight: 600;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+  .po-meta {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    margin: 1.25rem 0 0;
+  }
+
+  .po-frame { margin-block: 3rem; max-width: 52rem; }
+
+  .po-body {
+    display: grid;
+    /* minmax(0,...) not 1fr — a code block's min-content width would otherwise
+       widen the track past the viewport. See the same note on the demos grid. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+    margin-top: 3rem;
+  }
+
+  .po-toc { order: -1; min-width: 0; }
+  .po-toc-h { color: var(--color-muted); margin: 0 0 0.875rem; }
+  .po-toc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    border-left: 1px solid var(--color-line);
+  }
+  .po-toc-list a {
+    display: block;
+    padding: 0.125rem 0 0.125rem 0.875rem;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+  .po-toc-list a:hover { color: var(--color-ink); }
+
+  /* The contents panel becomes a sticky sidebar only when there is room. */
+  @media (min-width: 64rem) {
+    .po-body { grid-template-columns: minmax(0, 1fr) 14rem; gap: 4rem; }
+    .po-toc { order: 1; position: sticky; top: 6rem; align-self: start; }
+  }
+
+  .po-foot {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-line);
+    max-width: var(--measure);
+  }
+  .po-foot-p {
+    margin: 0 0 1.25rem;
+    color: var(--color-muted);
+    line-height: 1.6;
+  }
+
+  :global([data-dir="editorial"]) .po-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+</style>

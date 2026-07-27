@@ -1,0 +1,102 @@
+---
+title: "Real pixels in a terminal that has none"
+description: "Drawing a photograph inside a grid of characters, and why the obvious way to use the kitty graphics protocol was the wrong one."
+date: 2026-07-25
+tags: ["images", "rendering", "terminals"]
+featured: true
+frame: { demo: "welcome", label: "showcase" }
+---
+
+A terminal has no pixels. It has cells, and each cell holds one character with a
+foreground and a background color. So when `image("./cover.png")` draws a photograph,
+the question is not *how do I put pixels on the screen* — it is *what is the closest
+thing to a photograph I can build out of letters*.
+
+There are two answers, and terminaltui ships both.
+
+## The cell path
+
+Most terminals get the cell renderer. Each terminal cell is painted with one Unicode
+block-element glyph plus two colors, which means a single cell can carry up to four
+independently colored sub-pixels:
+
+```
+█ = one cell        ▘▝  = quadrant glyph, 2x2 sub-cells
+                    ▖▗    fg color paints the "ink" sub-cells
+                          bg color paints the rest
+```
+
+The image is decoded, box-filtered down to a sub-cell grid, and then each cell picks
+the glyph-plus-two-colors combination with the lowest error, with both pens snapped
+onto the palette the terminal can actually display.
+
+That is the entire trick, and its virtue is that the output is *ordinary styled text*.
+It survives everything: width measurement, truncation, panel clipping, the per-row
+frame diff, tmux, and SSH. There is no native dependency — no `sharp`, no `node-gyp`.
+Three runtime dependencies, and two of them are image decoders.
+
+The tier is negotiated from the terminal's real capabilities. Quadrant glyphs at 2x2
+when there is color and Unicode; half blocks at 1x2 when a multiplexer is in the way;
+background-only when there is no glyph coverage at all; a luminance ramp at sixteen
+colors; plain ASCII when there is no color whatsoever. Every tier produces **the same
+number of rows**, which is the property that lets the layout engine reserve space
+before a single pixel has been decoded.
+
+## The pixel path, and the decision inside it
+
+kitty and Ghostty can do better than glyphs: they implement a graphics protocol that
+draws actual pixels. The obvious way to use it is the classic one — place the image at
+the cursor and let the terminal own it from then on.
+
+We cannot use that mode at all, and the reason is architectural rather than aesthetic.
+
+**terminaltui never clears the screen.** There is no `\x1b[2J` anywhere in the write
+path. Navigation does not clear; the per-row frame diff *is* the redraw strategy. A
+cursor-anchored image would therefore outlive the page that drew it and float over the
+next one, because nothing ever comes along to erase it.
+
+So the pixel path uses the protocol's Unicode-placeholder variant instead. The image is
+transmitted once, then drawn as a grid of ordinary-looking cells — each one a
+`U+10EEEE` character carrying two zero-width diacritics that encode its row and column,
+with the image id hidden in the row's foreground color.
+
+The payoff is that a placement row *is a row*:
+
+- `stringWidth()` measures it as exactly `cols` columns.
+- `cutToWidth` clips it — and a clipped placement is still a valid partial image,
+  because every cell names its own coordinates.
+- A panel scrolls it. A column layout lays it out.
+- The frame diff writes **zero bytes** for it when it has not changed.
+
+None of those needed a special case. The image became a row, and rows already worked.
+
+Deletion gets easier too. Because the placement is anchored to cells the framework
+already tracks, "this image is no longer on screen" reduces to "its id stopped being
+placed this frame" — a set difference, rather than damage tracking.
+
+## What it costs
+
+Transmission is the expensive part, and it is paid once per image, per size, per
+terminal. The buffer is sampled at 10x20 pixels per cell:
+
+| Block | Source buffer | Transmission | Placement rows, per frame |
+|-------|---------------|--------------|---------------------------|
+| 40x12 cells | 400x240 px | 376 KiB | 4.0 KiB |
+| 60x19 cells | 600x380 px | 894 KiB | 9.3 KiB |
+| 99x30 cells | 990x600 px | 2.3 MiB | 23.9 KiB |
+
+Over SSH that table is the whole story of the tier. A kitty client connecting to
+`terminaltui serve` does get real pixels, and does pay about a megabyte for a
+60-column photograph on the frame where it first appears. After that, a static image
+re-renders to identical rows and the diff sends nothing.
+
+## Failing toward cells
+
+Every way the pixel path can fail — no runtime to carry the transmission, a footprint
+larger than kitty's 297-entry diacritic table can address, a source that will not
+decode — demotes to the cell ladder. It never throws, never emits a short block, and
+never paints placeholder cells for an image the terminal does not have.
+
+That rule is why the feature could ship at all. The pixel path is an optimization on
+top of something that already worked everywhere, so the worst case for a terminal we
+guess wrong about is a slightly coarser picture — not a broken screen.

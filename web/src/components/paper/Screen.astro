@@ -1,0 +1,49 @@
+---
+/**
+ * A captured terminal screen, given a ground to sit on.
+ *
+ * The captures carry foreground colours only — no cell backgrounds — so on warm
+ * paper the bright terminal palette is illegible. This is the one place on the
+ * page with a filled surface, and it is not decoration: it is the screen. In
+ * light mode the ground is the ink colour, which makes a hard near-black block
+ * against the paper; in dark mode the frame sits directly on the page with a
+ * hairline around it, the way an inset window would.
+ */
+import TerminalFrame from "@/components/shared/TerminalFrame.astro";
+
+interface Props {
+  demo: string;
+  label?: string;
+  rows?: number;
+  caption?: string;
+  class?: string;
+}
+const { demo, label, rows, caption, class: className = "" } = Astro.props;
+---
+
+<div class={`scr ${className}`}>
+  <div class="scr-ground">
+    <TerminalFrame demo={demo} label={label} rows={rows} />
+  </div>
+  {caption && <p class="scr-cap">{caption}</p>}
+</div>
+
+<style>
+  .scr { min-width: 0; }
+  .scr-ground {
+    background: var(--color-ink);
+    padding: clamp(0.75rem, 2.5vw, 1.5rem);
+    border-radius: 0;
+  }
+  :global([data-theme="dark"]) .scr-ground {
+    background: var(--color-bg);
+    border: 1px solid var(--color-line);
+  }
+  .scr-cap {
+    margin: 0.875rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+    max-width: 58ch;
+  }
+</style>

@@ -1,0 +1,1245 @@
+{
+ "candidates": [
+  {
+   "id": "cell-subdivide",
+   "name": "Subdivide",
+   "grid": [
+    "................",
+    "................",
+    "..#####..#####..",
+    "..#####..#####..",
+    "..#####..#####..",
+    "..#####..#####..",
+    "..#####..#####..",
+    "................",
+    "................",
+    "..#####..##.##..",
+    "..#####..##.##..",
+    "..#####.........",
+    "..#####..##.++..",
+    "..#####..##.++..",
+    "................",
+    "................"
+   ],
+   "rationale": "Four equal cells, three left alone and one resolved into four smaller ones — the framework's whole job is deciding, per cell, how fine the resolution needs to be (and it quietly nods at the image renderer, which trades one cell for many).",
+   "risk": "A harsh critic would say a 2x2 of squares is close to a certain four-square OS logo, and that the subdivided quadrant could be misread as a fifth quadrant rather than a finer grid."
+  },
+  {
+   "id": "cell-xor",
+   "name": "XOR",
+   "grid": [
+    "................",
+    ".#########......",
+    ".#########......",
+    ".#########......",
+    ".#########......",
+    ".#########......",
+    ".#####....#####.",
+    ".#####....#####.",
+    ".#####....#####.",
+    ".#####....#####.",
+    "......#########.",
+    "......#########.",
+    "......#########.",
+    "......#########.",
+    "......#########.",
+    "................"
+   ],
+   "rationale": "Two cells overlap and the intersection inverts to nothing — the literal behaviour of a cursor crossing filled text, drawn as one hard geometric event with no accent colour needed.",
+   "risk": "A harsh critic would say two offset squares is the universal copy/duplicate glyph, and the knocked-out square could read as a hole rather than an inversion."
+  },
+  {
+   "id": "cell-ragged",
+   "name": "Ragged Line",
+   "grid": [
+    "................",
+    ".####.####.####.",
+    ".####.####.####.",
+    ".####.####.####.",
+    ".####.####.####.",
+    "................",
+    ".####.####.####.",
+    ".####.####.####.",
+    ".####.####.####.",
+    ".####.####.####.",
+    "................",
+    ".####.++++......",
+    ".####.++++......",
+    ".####.++++......",
+    ".####.++++......",
+    "................"
+   ],
+   "rationale": "A block of text rendered purely as cells: two full lines, then a third that stops early, with the write head sitting in the one cell that carries the accent — asymmetric by content, not by decoration.",
+   "risk": "A harsh critic would say a 3x3 grid of squares is an app-launcher icon, and that the idea depends on reading order the viewer may not perform."
+  },
+  {
+   "id": "cell-void",
+   "name": "Void",
+   "grid": [
+    "................",
+    "................",
+    "..############..",
+    "..############..",
+    "..############..",
+    "..###....#####..",
+    "..###....#####..",
+    "..###....#####..",
+    "..###....#####..",
+    "..############..",
+    "..############..",
+    "..############..",
+    "..############..",
+    "..############..",
+    "................",
+    "................"
+   ],
+   "rationale": "A solid field of ink where exactly one cell was never written — the grid is implied entirely by the absence, which is the most restrained way to say \"one cell is different\".",
+   "risk": "A harsh critic would say a square with a square hole is close to a die face or a stylised letter, and that the off-centre placement reads as a mistake rather than a decision."
+  },
+  {
+   "id": "cell-span",
+   "name": "Span",
+   "grid": [
+    "................",
+    ".##..##..##..##.",
+    ".##..##..##..##.",
+    "................",
+    "................",
+    ".##..##..######.",
+    ".##..##..######.",
+    ".........######.",
+    ".........######.",
+    ".##..##..######.",
+    ".##..##..######.",
+    "................",
+    "................",
+    ".##..##..##..##.",
+    ".##..##..##..##.",
+    "................"
+   ],
+   "rationale": "An even field of sixteen cells with one object occupying a 2x2 span — the real terminal problem of wide glyphs and images that refuse to fit a single cell, stated as pure geometry.",
+   "risk": "A harsh critic would say the small squares read as a generic dot-grid or dashboard icon, and that the large block will dominate so much at 16px that the grid around it becomes noise."
+  },
+  {
+   "id": "flow-descent",
+   "name": "Descent",
+   "grid": [
+    "................",
+    "................",
+    "................",
+    "..####..........",
+    "..####..........",
+    "....##..........",
+    "....##..........",
+    "....######......",
+    "....######......",
+    "........##......",
+    "........##......",
+    "........####++..",
+    "........####++..",
+    "................",
+    "................",
+    "................"
+   ],
+   "rationale": "A single 2px stroke walking down and to the right in three equal steps — the pixel grid's most natural expression of traversal, with the final tread extended and tipped in accent to mark arrival.",
+   "risk": "A harsh critic would say a staircase is a staircase: it could read as a bar chart, a 'steps' icon, or generic growth imagery rather than anything specific to terminals."
+  },
+  {
+   "id": "flow-threshold",
+   "name": "Threshold",
+   "grid": [
+    "................",
+    "................",
+    "................",
+    "....##########..",
+    "....##########..",
+    "....##......##..",
+    "............##..",
+    "########++..##..",
+    "########++..##..",
+    "............##..",
+    "....##......##..",
+    "....##########..",
+    "....##########..",
+    "................",
+    "................",
+    "................"
+   ],
+   "rationale": "A closed frame whose left wall breaks open for a bar arriving from off-canvas and stopping just past centre — the app is a room, and the mark is the moment you are inside it rather than outside it.",
+   "risk": "It sits uncomfortably near the standard 'log in / enter' glyph, and the bar bleeding off the left edge will look like a cropping error to anyone who does not read it as motion."
+  },
+  {
+   "id": "flow-keys",
+   "name": "Cluster",
+   "grid": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "......####......",
+    "......####......",
+    "......####......",
+    "......####......",
+    "................",
+    ".####.####.####.",
+    ".####.####.####.",
+    ".####.####.####.",
+    ".####.####.####.",
+    "................",
+    "................",
+    "................"
+   ],
+   "rationale": "The inverted-T arrow cluster reduced to four equal squares and hairline gutters — navigation stated as pure geometry, and on a second look it also reads as a layout grid with one module lifted out of the row.",
+   "risk": "Four squares is the least defended shape in design; without the arrow-key mental model it risks reading as a gaming/keyboard icon or as no idea at all."
+  },
+  {
+   "id": "flow-route",
+   "name": "Route",
+   "grid": [
+    "................",
+    "................",
+    "..##...#####++..",
+    "..##...#####++..",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    "..#######...##..",
+    "..#######...##..",
+    "................",
+    "................",
+    "................",
+    "..##...##...##..",
+    "..##...##...##..",
+    "................",
+    "................"
+   ],
+   "rationale": "A nine-node field with one right-angled route drawn through it, entering at the left edge and exiting top-right — routing made literal: a fixed set of pages, one path taken across them.",
+   "risk": "It is the most diagrammatic of the five and the busiest at 16px; the five unvisited dots could dissolve into noise or read as an unrelated dotted pattern."
+  },
+  {
+   "id": "flow-branch",
+   "name": "Branch",
+   "grid": [
+    "................",
+    "................",
+    "...##...........",
+    "...##...........",
+    "...######.......",
+    "...######.......",
+    "...##...........",
+    "...##...........",
+    "...########.....",
+    "...########.....",
+    "...##...........",
+    "...##...........",
+    "...#########++..",
+    "...#########++..",
+    "................",
+    "................"
+   ],
+   "rationale": "A terminal tree connector with three arms of increasing reach, so the branch tips themselves form a stepped diagonal — descent through a file-routed hierarchy, ending on the page you are currently on.",
+   "risk": "Tree/sitemap connectors are common in dev tooling, and the deliberate asymmetry of the arm lengths could be mistaken for sloppy alignment rather than intent."
+  },
+  {
+   "id": "frame-tiling-misaligned",
+   "name": "Tiling",
+   "grid": [
+    "................",
+    ".######..++++++.",
+    ".######..++++++.",
+    ".######..++++++.",
+    ".######..++++++.",
+    ".######.........",
+    ".######.........",
+    ".######..######.",
+    ".######..######.",
+    ".######..######.",
+    ".........######.",
+    ".........######.",
+    ".####....######.",
+    ".####....######.",
+    ".####....######.",
+    "................"
+   ],
+   "rationale": "Four solid panes on a single vertical gutter whose horizontal splits deliberately do NOT line up across the gutter — the anti-generic move, since every stock \"layout\" icon aligns its dividers into a cross, and the notch at the bottom-left keeps the silhouette from being a plain square.",
+   "risk": "It is still a tiled rectangle, so a harsh critic sees the layout icon from every design tool's toolbar before they see terminaltui."
+  },
+  {
+   "id": "frame-grid-span",
+   "name": "Span",
+   "grid": [
+    "................",
+    ".#..#..#..#..#..",
+    ".#..#..#..#..#..",
+    ".#..#..#..#..#..",
+    ".#..##########..",
+    ".#..##########..",
+    ".#..##########..",
+    ".#..##########..",
+    ".#..#..#..#..#..",
+    ".#..#..#..#..#..",
+    ".+++++++..#..#..",
+    ".+++++++..#..#..",
+    ".+++++++..#..#..",
+    ".#..#..#..#..#..",
+    ".#..#..#..#..#..",
+    "................"
+   ],
+   "rationale": "Hairline column guides running the full height with two unequal solid elements snapped onto them — literally the 12-column grid with structure imposed, and the guides continue past the elements so you read the system, not just the blocks.",
+   "risk": "The 1px guides are the whole idea and they are the first thing to die on a laser-etched sticker or a low-DPI tab; at a glance it can read as a bar chart."
+  },
+  {
+   "id": "frame-crop-viewport",
+   "name": "Registration",
+   "grid": [
+    "................",
+    ".####......####.",
+    ".####......####.",
+    ".##..........##.",
+    ".##.####.+++.##.",
+    "....####.+++....",
+    "....####.+++....",
+    "....####.+++....",
+    "....####........",
+    "....####........",
+    "....####........",
+    ".##.####.....##.",
+    ".##..........##.",
+    ".####......####.",
+    ".####......####.",
+    "................"
+   ],
+   "rationale": "Four print-registration corners imply the viewport without drawing a window, and the two unequal panes floating inside — one tall, one short and accented — turn a crop mark into a layout with a focused region.",
+   "risk": "Corner brackets are the universal \"scan / focus / crop\" idiom, so it risks reading as a camera or QR affordance rather than a brand."
+  },
+  {
+   "id": "frame-page-xor",
+   "name": "Overlap",
+   "grid": [
+    "................",
+    ".##########.....",
+    ".##########.....",
+    ".##########.....",
+    ".##########.....",
+    ".####......####.",
+    ".####......####.",
+    ".####......####.",
+    ".####......####.",
+    ".####......####.",
+    ".####......####.",
+    ".....##########.",
+    ".....##########.",
+    ".....##########.",
+    ".....##########.",
+    "................"
+   ],
+   "rationale": "Two pages of equal size, offset and knocked out where they intersect, so depth is expressed as a void instead of a drop shadow — a route stack rendered with no perspective, no chrome, and no accent needed.",
+   "risk": "Two overlapping squares is the duplicate/copy glyph, and the stepped silhouette can read as an abstract S at small sizes."
+  },
+  {
+   "id": "frame-nested-brackets",
+   "name": "Nest",
+   "grid": [
+    "................",
+    ".##..##..##.....",
+    ".##..##..##.++..",
+    ".##..##..##.++..",
+    ".##..##..##.....",
+    ".##..##..######.",
+    ".##..##..######.",
+    ".##..##.........",
+    ".##..##.........",
+    ".##..##########.",
+    ".##..##########.",
+    ".##.............",
+    ".##.............",
+    ".##############.",
+    ".##############.",
+    "................"
+   ],
+   "rationale": "Three open corner brackets nested at even 2px intervals — layout contains layout contains page — with a single small accent square as the leaf route sitting in the innermost enclosure, so the mark reads as file-based routing depth rather than a window.",
+   "risk": "Nested L-brackets stepping up to the right can be mistaken for stairs or an ascending bar chart, and the lone 2x2 leaf may look like a stray notification dot in monochrome."
+  },
+  {
+   "id": "mono-tt-ligature",
+   "name": "Double-t Ligature",
+   "grid": [
+    "................",
+    "................",
+    "....##...##.....",
+    "....##...##.....",
+    "....##...##.....",
+    "..############..",
+    "..############..",
+    "....##...##.....",
+    "....##...##.....",
+    "....##...##.....",
+    "....##...##.....",
+    "....##...##.....",
+    "....##...##.....",
+    "....####.####...",
+    "................",
+    "................"
+   ],
+   "rationale": "A 'tt' ligature that Departure Mono does not contain — two lowercase stems hung from a single continuous crossbar, feet turning right — so the mark reads as one extra character cut for the family rather than a picture of anything.",
+   "risk": "A harsh critic would say two stems on one rail reads as a rake, a comb, or a π before it resolves into two t's."
+  },
+  {
+   "id": "mono-t-rules",
+   "name": "Row × Column",
+   "grid": [
+    "................",
+    "................",
+    ".....##.........",
+    ".....##.........",
+    ".....##.........",
+    "...##++######...",
+    "...##++######...",
+    ".....##.........",
+    ".....##.........",
+    ".....##.........",
+    ".....##.........",
+    ".....##.........",
+    ".....##.........",
+    ".....##.........",
+    "................",
+    "................"
+   ],
+   "rationale": "The t reduced to two equal 2px rules that overshoot on all four ends, with the accent marking the single cell where they cross — a terminal cell is literally the intersection of a row and a column, and the short left arm is what makes it a t and not a plus.",
+   "risk": "Strip the accent and a critic could call it a dagger or a generic crosshair; it is the plainest mark in the set and leans entirely on the crossbar height to be legible."
+  },
+  {
+   "id": "mono-tu-fused",
+   "name": "tu, One Advance",
+   "grid": [
+    "................",
+    "................",
+    ".....##.........",
+    ".....##.........",
+    ".....##.........",
+    "...#######......",
+    "...#######......",
+    ".....##....##...",
+    ".....##....##...",
+    ".....##....##...",
+    ".....##....##...",
+    ".....##....##...",
+    ".....########...",
+    ".....########...",
+    "................",
+    "................"
+   ],
+   "rationale": "Lowercase 'tu' fused on a shared stem — the t's stem descends past the crossbar and becomes the u's left stem — so two characters occupy one monospace advance, which is the most typographic thing a monogram can do.",
+   "risk": "At favicon size the fused pair can read as a single unfamiliar Cyrillic-looking glyph rather than as the letters t and u."
+  },
+  {
+   "id": "mono-t-baseline",
+   "name": "Baseline t",
+   "grid": [
+    "................",
+    "................",
+    "....##..........",
+    "....##..........",
+    "....##..........",
+    "..#######.......",
+    "..#######.......",
+    "....##..........",
+    "....##..........",
+    "....##..........",
+    "....##..........",
+    "....##..........",
+    "....########++..",
+    "....########++..",
+    "................",
+    "................"
+   ],
+   "rationale": "The lowercase t's foot refuses to stop: it runs on and becomes the baseline the letter stands on, terminating in one accent cell, giving a deliberately diagonal weight distribution (light top-left, heavy bottom-right) instead of a centred, symmetrical mark.",
+   "risk": "An accent block at the end of a horizontal rule sits uncomfortably close to the banned end-of-line cursor cliché, just without the chevron."
+  },
+  {
+   "id": "mono-t-stencil",
+   "name": "Stencil t",
+   "grid": [
+    "................",
+    "................",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    "..###..##..###..",
+    "..###..##..###..",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......####.....",
+    ".......####.....",
+    "................",
+    "................"
+   ],
+   "rationale": "A stencil cut of the t: the crossbar is severed into two detached rules with 2px gaps, so the white space is drawn as deliberately as the ink, and the right-turning foot is what anchors the reading back to a letter.",
+   "risk": "The floating arms may read as a slider handle or a math operator, and a critic could argue the stencil break is a device applied to the letter rather than an idea coming out of it."
+  },
+  {
+   "id": "image-horizon",
+   "name": "Horizon",
+   "grid": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "......####......",
+    ".....######.....",
+    "....########....",
+    "....########....",
+    "..############..",
+    ".....######.....",
+    ".....++..++.....",
+    ".......++.......",
+    "................",
+    "................",
+    "................",
+    "................"
+   ],
+   "rationale": "A sun resting on a hairline waterline with its reflection breaking up into shorter and shorter runs — a whole landscape photograph told in three tones and eleven rows, which is exactly what the renderer does to a JPEG.",
+   "risk": "A critic would say a sun-over-water sunset is the most photographed cliché on earth, and that the accent shimmer is the only thing keeping it from being a generic weather icon."
+  },
+  {
+   "id": "image-peaks",
+   "name": "Two Ranges",
+   "grid": [
+    "................",
+    "................",
+    "................",
+    ".........##.....",
+    "........#..#....",
+    ".......#....#...",
+    "......#......#..",
+    "..##.#.......#..",
+    ".####........#..",
+    ".#####.......#..",
+    ".######......#..",
+    ".##############.",
+    "................",
+    "................",
+    "................",
+    "................"
+   ],
+   "rationale": "Depth conveyed the way a terminal actually conveys it — the near ridge is solid ink, the far peak is a one-pixel outline, so atmospheric perspective is rendered as a difference in fill weight rather than in colour.",
+   "risk": "A critic would say mountains are the second most overused logo subject after the swoosh, and that the hairline far peak is the first thing to disappear at 12mm on a laptop lid."
+  },
+  {
+   "id": "image-eye",
+   "name": "The Eye",
+   "grid": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    ".....######.....",
+    "...#..####..#...",
+    "..#...#++#...#..",
+    "..#...#++#...#..",
+    "...#..####..#...",
+    ".....######.....",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................"
+   ],
+   "rationale": "An eye reduced to a hexagonal lid outline and a four-cell square pupil — the most complex thing a human can recognise, drawn with 36 marks, with a two-cell accent glint that only exists in colour.",
+   "risk": "A critic would say an eye reads as surveillance or an AI-vision startup, and that the single-pixel gaps between lid and pupil will close up at favicon size and turn the whole thing into a blob."
+  },
+  {
+   "id": "image-aperture",
+   "name": "Iris",
+   "grid": [
+    "................",
+    "................",
+    "..############..",
+    "..#####....###..",
+    "..###......###..",
+    "..#.........##..",
+    "..#.........##..",
+    "..#..........#..",
+    "..#..........#..",
+    "..##.........#..",
+    "..##.........#..",
+    "..###......###..",
+    "..###....#####..",
+    "..############..",
+    "................",
+    "................"
+   ],
+   "rationale": "Four blades stepping inward from a square frame, each rotated 90° from the last, so the opening is an off-axis polygon — a shutter caught mid-travel, all hard edges, no curve anywhere.",
+   "risk": "A critic would say it is the heaviest mark of the five and could read as a decorative frame or an ornate picture border rather than an aperture."
+  },
+  {
+   "id": "image-terminator",
+   "name": "Terminator",
+   "grid": [
+    "................",
+    "................",
+    "......###.......",
+    "....######.#....",
+    "...######.#.#...",
+    "...#######.#....",
+    "..#######.#.#...",
+    "..########.#.#..",
+    "..#######.#.#...",
+    "..########.#.#..",
+    "...######.#.#...",
+    "...#######.#....",
+    "....#####.#.....",
+    "......####......",
+    "................",
+    "................"
+   ],
+   "rationale": "A sphere lit from one side, where the shaded half is a literal 50% checkerboard — the exact technique the framework uses to make a midtone out of two colours, so the mark is a demonstration of the method rather than a picture of the result.",
+   "risk": "A critic would say it is a circle with a frayed edge, and that at 16px the dither reads as compression damage or an unfinished render rather than as shadow."
+  }
+ ],
+ "critiques": [
+  {
+   "critic": "brand",
+   "scores": [
+    {
+     "id": "mono-tt-ligature",
+     "distinctiveness": 8,
+     "legibility16": 8,
+     "brandFit": 9,
+     "memorability": 8,
+     "verdict": "The strongest idea in the set — a glyph the brand's own typeface doesn't contain, so mark and wordmark are visibly one system — though the 1px feet break the 2px weight and must be recut."
+    },
+    {
+     "id": "cell-void",
+     "distinctiveness": 6,
+     "legibility16": 8,
+     "brandFit": 7,
+     "memorability": 8,
+     "verdict": "The only candidate that owns its bounding box; one unwritten cell in a solid field is a real idea, but the hole currently looks stumbled-into rather than placed."
+    },
+    {
+     "id": "cell-span",
+     "distinctiveness": 6,
+     "legibility16": 7,
+     "brandFit": 7,
+     "memorability": 6,
+     "verdict": "A dot field with one merged 2x2 is the most convincingly terminal of the abstract marks; the risk is that it just reads as the app-launcher grid."
+    },
+    {
+     "id": "mono-t-rules",
+     "distinctiveness": 6,
+     "legibility16": 9,
+     "brandFit": 8,
+     "memorability": 8,
+     "verdict": "Row meets column with the accent on the cell where they cross — economical and instantly redrawable — but in one colour it collapses into a plain dagger, which is where a logo spends most of its life."
+    },
+    {
+     "id": "cell-xor",
+     "distinctiveness": 5,
+     "legibility16": 7,
+     "brandFit": 6,
+     "memorability": 6,
+     "verdict": "Hard, confident and needs no accent, but two squares boolean-subtracted is the house style of every design-tool icon set and at a glance it is simply a Z."
+    },
+    {
+     "id": "frame-nested-brackets",
+     "distinctiveness": 7,
+     "legibility16": 5,
+     "brandFit": 7,
+     "memorability": 5,
+     "verdict": "Conceptually the most accurate mark here — nesting is the product — yet 2px strokes on 2px gaps will moiré and the accent leaf vanishes exactly where the idea lives."
+    },
+    {
+     "id": "image-terminator",
+     "distinctiveness": 7,
+     "legibility16": 4,
+     "brandFit": 5,
+     "memorability": 7,
+     "verdict": "The most arresting picture and a genuine demonstration of the dither pipeline, but a half-lit sphere is the universal dark-mode toggle icon and the 1px checkerboard turns to mud off-grid."
+    },
+    {
+     "id": "flow-keys",
+     "distinctiveness": 4,
+     "legibility16": 8,
+     "brandFit": 5,
+     "memorability": 6,
+     "verdict": "Legible and easy to redraw, but you have drawn the Tetris T-piece, and nobody can unsee that once it is said aloud."
+    },
+    {
+     "id": "frame-page-xor",
+     "distinctiveness": 5,
+     "legibility16": 6,
+     "brandFit": 6,
+     "memorability": 5,
+     "verdict": "The same boolean move as cell-xor flattened into slabs that read as a letter Z; redundant beside its sibling and the weaker of the two."
+    },
+    {
+     "id": "flow-branch",
+     "distinctiveness": 4,
+     "legibility16": 7,
+     "brandFit": 6,
+     "memorability": 5,
+     "verdict": "The tree connector is genuinely on-message for file-based routing, but three arms of increasing length is a bar chart, and a bar chart is the last thing this should be."
+    },
+    {
+     "id": "mono-tu-fused",
+     "distinctiveness": 6,
+     "legibility16": 5,
+     "brandFit": 6,
+     "memorability": 4,
+     "verdict": "The shared-advance conceit is clever prose and awkward drawing; the detached right stem reads as debris rather than a u."
+    },
+    {
+     "id": "mono-t-stencil",
+     "distinctiveness": 5,
+     "legibility16": 5,
+     "brandFit": 6,
+     "memorability": 5,
+     "verdict": "Severing the crossbar scatters the letter into three floating parts at avatar size, and stencil is an industrial-brand cliché imported from outside our category."
+    },
+    {
+     "id": "frame-tiling-misaligned",
+     "distinctiveness": 4,
+     "legibility16": 5,
+     "brandFit": 5,
+     "memorability": 3,
+     "verdict": "Deliberate misalignment reads as a rendering bug at small sizes, and the short bottom-left pane looks like a mistake rather than a decision."
+    },
+    {
+     "id": "cell-subdivide",
+     "distinctiveness": 3,
+     "legibility16": 8,
+     "brandFit": 5,
+     "memorability": 4,
+     "verdict": "Four squares in a square is the most exhausted geometry in developer branding and sits uncomfortably close to Microsoft; the subdivided quadrant is a footnote nobody will read."
+    },
+    {
+     "id": "cell-ragged",
+     "distinctiveness": 3,
+     "legibility16": 6,
+     "brandFit": 5,
+     "memorability": 3,
+     "verdict": "A 3x3 block grid missing a corner, indistinguishable from a hundred stock layout glyphs, with an accent that is decoration pretending to be a cursor."
+    },
+    {
+     "id": "mono-t-baseline",
+     "distinctiveness": 3,
+     "legibility16": 8,
+     "brandFit": 6,
+     "memorability": 4,
+     "verdict": "A lowercase t with a long foot is just a lowercase t — Departure Mono already ships one and it is better balanced than this."
+    },
+    {
+     "id": "flow-descent",
+     "distinctiveness": 3,
+     "legibility16": 6,
+     "brandFit": 3,
+     "memorability": 4,
+     "verdict": "Stock staircase iconography, and a stroke descending to the right reads as a declining trend line, which is a strange thing to stamp on a framework."
+    },
+    {
+     "id": "image-aperture",
+     "distinctiveness": 3,
+     "legibility16": 6,
+     "brandFit": 4,
+     "memorability": 4,
+     "verdict": "At any real size the blades merge into a thick square donut, and aperture marks are the property of camera companies."
+    },
+    {
+     "id": "frame-grid-span",
+     "distinctiveness": 3,
+     "legibility16": 3,
+     "brandFit": 4,
+     "memorability": 3,
+     "verdict": "1px guides disintegrate below 32px; this is a screenshot of a Figma layout-grid panel, not a mark."
+    },
+    {
+     "id": "frame-crop-viewport",
+     "distinctiveness": 3,
+     "legibility16": 3,
+     "brandFit": 4,
+     "memorability": 3,
+     "verdict": "Six separate elements fighting inside sixteen pixels, built on crop corners that already serve as the stock scan/focus icon."
+    },
+    {
+     "id": "image-eye",
+     "distinctiveness": 3,
+     "legibility16": 3,
+     "brandFit": 3,
+     "memorability": 6,
+     "verdict": "The 1px lids vanish at avatar size, and an eye reads as surveillance or observability — two categories this product is not in."
+    },
+    {
+     "id": "flow-route",
+     "distinctiveness": 4,
+     "legibility16": 2,
+     "brandFit": 3,
+     "memorability": 2,
+     "verdict": "Illegible confetti at 16px; the path never resolves into a figure and the whole thing reads as pixel dropout."
+    },
+    {
+     "id": "flow-threshold",
+     "distinctiveness": 2,
+     "legibility16": 4,
+     "brandFit": 3,
+     "memorability": 3,
+     "verdict": "This is Feather's log-in icon with a frame drawn around it, and a mark that already ships in every icon set cannot be an identity."
+    },
+    {
+     "id": "image-horizon",
+     "distinctiveness": 2,
+     "legibility16": 4,
+     "brandFit": 2,
+     "memorability": 5,
+     "verdict": "A sun setting over water is the default logo of wellness apps and solar startups; nothing in it says terminal."
+    },
+    {
+     "id": "image-peaks",
+     "distinctiveness": 1,
+     "legibility16": 5,
+     "brandFit": 2,
+     "memorability": 3,
+     "verdict": "Mountains. In 2026. For a terminal framework. No."
+    }
+   ],
+   "top5": [
+    "mono-tt-ligature",
+    "cell-void",
+    "cell-span",
+    "mono-t-rules",
+    "cell-xor"
+   ],
+   "overall": "The set's central failure is that it keeps illustrating the documentation instead of building an identity. The cell/, frame/ and flow/ families are diagrams — layout diagrams, routing diagrams, icon-set verbs — and most of them converge on the same four-blocks-in-a-square geometry already occupied by Microsoft, Windows Terminal, and every stock \"layout\" glyph. Several are literally existing icons: flow-threshold is Feather's log-in, frame-crop-viewport is the scan/focus corners, image-aperture is a camera shutter, image-terminator is the dark-mode toggle moon, flow-keys is the Tetris T-piece, frame-grid-span is a Figma layout-grid panel. cell-xor and frame-page-xor are the same boolean idea drawn twice, so one of them is dead weight. The whole image/ family should be retired outright — a sun over water and a pair of mountains are the two most exhausted logo pictures alive, and a framework does not need a landscape.\n\nThe richest territory by a wide margin is the typographic one, and it is richest precisely because the brief already commits the entire brand to a pixel typeface. If the wordmark is Departure Mono, the mark should be a glyph cut on that same grid — not a picture of a feature. mono-tt-ligature is the only candidate where mark and wordmark are visibly the same system, and \"a character the font doesn't contain\" is an ownable story a competitor cannot copy without looking like a copy. Fix the 1px feet to 2px and it is done. The second-richest territory is the pure-ink solid: cell-void is the only mark that fills its bounding box, survives as a sticker, and needs no explanation — but the hole must be placed, not dropped.\n\nOne discipline the set ignores: three candidates (mono-t-rules, cell-ragged, flow-branch, frame-nested-brackets) put their entire idea in the accent colour, which means the idea disappears in a favicon, a stamp, a laser-etched sticker, an OG image in greyscale, and a monochrome GitHub avatar. Re-test every survivor in flat black before choosing. That test alone drops mono-t-rules from a contender to a fallback."
+  },
+  {
+   "critic": "pixel",
+   "scores": [
+    {
+     "id": "cell-subdivide",
+     "distinctiveness": 4,
+     "legibility16": 8,
+     "brandFit": 7,
+     "memorability": 6,
+     "verdict": "Technically the cleanest grid here — 12x12 body on cols 2–13/rows 2–13, 2px primary gutters at cols 7–8/rows 7–8 stepping down to 1px sub-gutters at col 11/row 11, a real weight hierarchy — but the silhouette is a 2x2 square grid, which is the most-drawn icon in software."
+    },
+    {
+     "id": "cell-xor",
+     "distinctiveness": 3,
+     "legibility16": 7,
+     "brandFit": 5,
+     "memorability": 5,
+     "verdict": "Mixes units: 5px arms against a 4x4 knockout at cols 6–9/rows 6–9, so nothing is a multiple of anything, and 81% of the bounding box is ink — at 16px it is a dark blob with a nick in it, and frame-page-xor draws the same idea with better arithmetic."
+    },
+    {
+     "id": "cell-ragged",
+     "distinctiveness": 3,
+     "legibility16": 6,
+     "brandFit": 6,
+     "memorability": 4,
+     "verdict": "A 3x3 of 4px blocks on 1px gutters (cols 5, 10; rows 5, 10) is dimensionally correct but the gutters are the thinnest thing on the canvas and will silt up first; dropping the block at cols 11–14/rows 11–14 pulls the centroid up-left and the mark leans."
+    },
+    {
+     "id": "cell-void",
+     "distinctiveness": 2,
+     "legibility16": 6,
+     "brandFit": 4,
+     "memorability": 4,
+     "verdict": "The hole at cols 5–8/rows 5–8 sits 3px from the left edge and 5px from the right, 3px from the top and 5px from the bottom — that 3:5 offset is too small to read as a decision and too large to read as centred, so it just looks misdrawn; the silhouette is a filled square, i.e. no silhouette at all."
+    },
+    {
+     "id": "cell-span",
+     "distinctiveness": 4,
+     "legibility16": 5,
+     "brandFit": 6,
+     "memorability": 4,
+     "verdict": "Unit discipline is genuinely good (2px dots, 2px gutters, a 6x6 span that resolves as 2+2+2) but twelve isolated 2x2 specks become texture at 16px, and rows 7–8 are empty across cols 1–8 so the left half opens a hole the composition never closes."
+    },
+    {
+     "id": "flow-descent",
+     "distinctiveness": 4,
+     "legibility16": 6,
+     "brandFit": 4,
+     "memorability": 5,
+     "verdict": "The rationale claims three equal steps and they are not: the tread at rows 3–4 is 4px (cols 2–5) while the treads at rows 7–8 and 11–12 are 6px — a first-run drafting error — and a staircase descending to the right reads as a declining bar chart to exactly this audience."
+    },
+    {
+     "id": "flow-threshold",
+     "distinctiveness": 3,
+     "legibility16": 4,
+     "brandFit": 4,
+     "memorability": 3,
+     "verdict": "Stroke weight is incoherent: top/bottom/right walls are 2px but the left wall survives only as 1-row stubs at row 5 and row 10, which will vanish, and the bar bleeds off col 0 while the frame sits at cols 4–13, so the mark hangs left with no margin on one side and 2px on the other — and the resulting shape is the stock 'log in' glyph."
+    },
+    {
+     "id": "flow-keys",
+     "distinctiveness": 2,
+     "legibility16": 8,
+     "brandFit": 5,
+     "memorability": 6,
+     "verdict": "Reads instantly and you could redraw it blind, but what you would be redrawing is the T-tetromino; the mass is bottom-weighted (three blocks at rows 9–12 against one at rows 4–7) while the margins are 4 top / 3 bottom, so the optical centring is backwards by a pixel."
+    },
+    {
+     "id": "flow-route",
+     "distinctiveness": 4,
+     "legibility16": 3,
+     "brandFit": 5,
+     "memorability": 2,
+     "verdict": "The path merges into its nodes — rows 7–8 run cols 2–8 as one 7px slug, so you cannot tell a station from a track — rows 4–6 carry only two ink pixels across the whole width, and rows 9–11 are dead empty, which detaches the bottom row of dots into a separate object."
+    },
+    {
+     "id": "flow-branch",
+     "distinctiveness": 5,
+     "legibility16": 8,
+     "brandFit": 7,
+     "memorability": 6,
+     "verdict": "Rigorously 2px everywhere with a clean stepped diagonal of arm tips (6, 8, 11) and no fragile detail; the flaws are that the spine at cols 3–4 puts the centroid near col 6 so the whole mark sits ~1.5px left of optical centre, and a left rail with three growing bars is also the universal bar-chart/filter glyph."
+    },
+    {
+     "id": "frame-tiling-misaligned",
+     "distinctiveness": 3,
+     "legibility16": 5,
+     "brandFit": 5,
+     "memorability": 3,
+     "verdict": "The gutter discipline is fine (2px at cols 7–8, 2px at rows 5–6 and 10–11) but the pane at rows 12–14 is 4px wide against 6px everywhere else, which reads as a truncation bug rather than a considered notch; the mark is ~60% ink and resolves at 16px as a dark rectangle with two scratches."
+    },
+    {
+     "id": "frame-grid-span",
+     "distinctiveness": 4,
+     "legibility16": 2,
+     "brandFit": 4,
+     "memorability": 3,
+     "verdict": "Five 1px rules at cols 1, 4, 7, 10, 13 are the exact detail that dies first — the whole substrate of the mark is the fragile part — and the two blocks (rows 4–7/cols 4–13 and rows 10–12/cols 1–7) share no edge, module or logic, so it reads as an equaliser, not a grid system."
+    },
+    {
+     "id": "frame-crop-viewport",
+     "distinctiveness": 5,
+     "legibility16": 3,
+     "brandFit": 4,
+     "memorability": 3,
+     "verdict": "Six disconnected elements at 16px is confetti; worse, the panes are 4px (cols 4–7) and 3px (cols 9–11) wide with a 1px gutter at col 8 between them, so three different measures fight inside a frame that is itself built from 2px and 4px pieces."
+    },
+    {
+     "id": "frame-page-xor",
+     "distinctiveness": 3,
+     "legibility16": 8,
+     "brandFit": 5,
+     "memorability": 6,
+     "verdict": "Geometrically the tidiest mark in the set — two 10x10 pages, uniform 4px arms, a 6x6 knockout at cols 5–10/rows 5–10, perfect diagonal symmetry — but two offset overlapping squares is the copy/duplicate icon every developer has clicked ten thousand times."
+    },
+    {
+     "id": "frame-nested-brackets",
+     "distinctiveness": 7,
+     "legibility16": 7,
+     "brandFit": 8,
+     "memorability": 7,
+     "verdict": "The only mark with a real rhythm: 2px stroke, 2px gap, held without exception across cols 1–2/5–6/9–10 and rows 5–6/9–10/13–14, 1px margin all round, and the mass runs the diagonal so it is optically as well as mathematically centred; the risk is the three verticals stacking into a comb at the top edge, and the 2x2 accent at cols 12–13 is doing a lot of work to sell the 'leaf route' reading."
+    },
+    {
+     "id": "mono-tt-ligature",
+     "distinctiveness": 6,
+     "legibility16": 5,
+     "brandFit": 7,
+     "memorability": 5,
+     "verdict": "The best idea in the set — a character Departure Mono does not contain — undone by drafting: the feet at row 13 are 1 row tall against 2px everywhere else and will disappear, and the gap between feet narrows to 1px at col 8 while the stem counter above is 3px (cols 6–8), so the rhythm collapses at the baseline and the mark reads as a torii gate."
+    },
+    {
+     "id": "mono-t-rules",
+     "distinctiveness": 5,
+     "legibility16": 9,
+     "brandFit": 7,
+     "memorability": 8,
+     "verdict": "Uniform 2px throughout, survives anywhere, and you could redraw it from memory after one look — but the crossing at cols 5–6 puts the centroid near col 6.5 against a canvas centre of 7.5 so it sits a pixel left, and a stem with a short left arm and long right arm reads as a dagger before it reads as a t."
+    },
+    {
+     "id": "mono-tu-fused",
+     "distinctiveness": 7,
+     "legibility16": 5,
+     "brandFit": 7,
+     "memorability": 5,
+     "verdict": "The most genuinely typographic move here, but the crossbar at cols 3–9 is 7px and lands 2 left / 3 right of the stem while the bowl at cols 5–12 is 8px, so no two horizontals agree, and the u's right stem starts unsupported at row 7/cols 11–12 — at 16px nobody reads 'tu', they read an abstract hook."
+    },
+    {
+     "id": "mono-t-baseline",
+     "distinctiveness": 6,
+     "legibility16": 8,
+     "brandFit": 8,
+     "memorability": 7,
+     "verdict": "Fully consistent 2px stroke with the best composed asymmetry in the set — the crossbar leans left (cols 2–8) against a baseline leaning right (cols 4–13), counter-rotating around the stem — but the centroid computes to roughly col 5.9 / row 8.7, so despite the long right rule it sits about 1.5px left and 1px low and needs shifting up and right."
+    },
+    {
+     "id": "mono-t-stencil",
+     "distinctiveness": 5,
+     "legibility16": 4,
+     "brandFit": 6,
+     "memorability": 4,
+     "verdict": "Best-centred mark here (stem at cols 7–8 straddles the true axis, centroid lands near 7.7/7.9) and then throws it away: the crossbar segments at cols 2–4 and 11–13 are 3px wide against a 2px stem, and detached counters at this size are never completed by the eye — the bars read as debris, not as a severed crossbar."
+    },
+    {
+     "id": "image-horizon",
+     "distinctiveness": 2,
+     "legibility16": 4,
+     "brandFit": 3,
+     "memorability": 5,
+     "verdict": "Every element below row 7 is one row tall — the waterline at row 8, the reflection at row 9, the accent dashes at rows 10–11 — so the bottom half is all fragile detail, the dome's steps (4, 6, 8, 8) are too coarse to read as round, and the result is the stock sunrise weather glyph, which says nothing about terminals."
+    },
+    {
+     "id": "image-peaks",
+     "distinctiveness": 2,
+     "legibility16": 3,
+     "brandFit": 2,
+     "memorability": 4,
+     "verdict": "Outright defective: there is an orphan single pixel at row 7/col 5 detached from the mass by a gap at col 4, and the far peak's right slope stops descending at col 13 and runs vertically for rows 6–10, so it is a shark fin, not a mountain — and the entire far range is 1px line work that will grey out."
+    },
+    {
+     "id": "image-eye",
+     "distinctiveness": 3,
+     "legibility16": 3,
+     "brandFit": 3,
+     "memorability": 5,
+     "verdict": "The lid is not a contour, it is eight isolated pixels with a two-column break between col 3 and col 6 at row 6; worse, the pupil at cols 6–9 leaves exactly 1px of white against the lid bars at cols 5–10, so the negative space that makes an eye an eye does not exist — at 16px this is a square surrounded by dust."
+    },
+    {
+     "id": "image-aperture",
+     "distinctiveness": 2,
+     "legibility16": 5,
+     "brandFit": 3,
+     "memorability": 4,
+     "verdict": "The 180° rotational symmetry is real and correctly executed (5/3 at row 3 mirrors 3/5 at row 12), but the frame is 1px at rows 2 and 13 and the walls thin to a single pixel at col 2/rows 5–8, and the opening is an amorphous blob rather than a polygon — plus the camera iris is the most exhausted mark in the entire catalogue of logos."
+    },
+    {
+     "id": "image-terminator",
+     "distinctiveness": 6,
+     "legibility16": 3,
+     "brandFit": 5,
+     "memorability": 6,
+     "verdict": "The technique is on-brand but it eats its own silhouette: because the checker phase decides whether each contour pixel exists, the right edge staggers between col 10 and col 13 down rows 3–13, so the circle is chewed away and the mark is a left-weighted solid lump trailing noise — a 1px dither needs 32px minimum, not 16."
+    }
+   ],
+   "top5": [
+    "frame-nested-brackets",
+    "mono-t-baseline",
+    "mono-t-rules",
+    "flow-branch",
+    "cell-subdivide"
+   ],
+   "overall": "Two failures run through nearly the whole set. First, unit discipline: the good marks pick a 2px module and never break it (frame-nested-brackets, mono-t-baseline, flow-branch), and almost everything else quietly mixes 1px, 2px, 3px and 4px in the same drawing — mono-tt-ligature's 1-row feet, mono-t-stencil's 3px crossbar against a 2px stem, frame-crop-viewport's 4px and 3px panes with a 1px gutter, flow-threshold's 1-row wall stubs. At 16 pixels the thinnest element in a mark determines its life expectancy, and half these candidates put their concept in that element. Second, optical centring is treated as bounding-box centring. Almost every mark is boxed neatly into cols 1–14 / rows 1–14 and then leans, because the ink is not evenly distributed inside the box: mono-t-baseline's centroid lands near col 5.9 despite its long right rule; flow-branch sits ~1.5px left of centre; flow-keys has more margin above than below while carrying three quarters of its mass at the bottom.\n\nThe image territory (horizon, peaks, eye, aperture, terminator) should be abandoned wholesale. Not because rendering images is off-brief — it is one of the framework's two real differentiators — but because photographic subjects at 16x16 demand 1px line work and dithering, both of which are exactly what a favicon destroys, and because sun/mountain/eye/aperture are the four most depleted forms in logo design. image-terminator is the only one with a genuine idea and it needs 32px minimum to survive; it is a hero illustration or a loading state, not a mark.\n\nThe frame/grid/cell territory is where the craft is highest and the thinking is laziest: a 2x2 grid, a 3x3 grid, a square with a hole, two overlapping squares. These read cleanly and mean nothing specific. The richest territory is the typographic one, because the identity is already type-led (Departure Mono wordmark, pixel display against neutral sans) and a letterform mark is the only kind that will sit correctly beside that wordmark instead of competing with it. That territory is currently underexplored — five candidates, three of them variations on the same lowercase t. The single best unexplored move is mono-tt-ligature's premise (a glyph the brand's own typeface does not contain) executed with the rigour of frame-nested-brackets: hold 2px absolutely, give the feet two rows, and equalise the counter between the stems with the gap between the feet. Redraw that and it beats everything above it."
+  },
+  {
+   "critic": "fable",
+   "scores": [
+    {
+     "id": "cell-subdivide",
+     "distinctiveness": 7,
+     "legibility16": 8,
+     "brandFit": 8,
+     "memorability": 7,
+     "verdict": "The best of the cell family — a real idea (per-cell resolution) told in one move, though quadtree subdivision is borrowed from mapping/graphics iconography rather than invented."
+    },
+    {
+     "id": "cell-xor",
+     "distinctiveness": 4,
+     "legibility16": 9,
+     "brandFit": 7,
+     "memorability": 6,
+     "verdict": "Bold and bulletproof at 16px, but two offset squares with a knockout is the universal copy-to-clipboard icon, and no amount of rationale changes what people will see."
+    },
+    {
+     "id": "cell-ragged",
+     "distinctiveness": 4,
+     "legibility16": 8,
+     "brandFit": 6,
+     "memorability": 5,
+     "verdict": "Reads as a skeleton-loading placeholder, not a logo — the accent cursor is the only good pixel in it and it isn't enough."
+    },
+    {
+     "id": "cell-void",
+     "distinctiveness": 5,
+     "legibility16": 9,
+     "brandFit": 6,
+     "memorability": 6,
+     "verdict": "Admirably restrained and the strongest silhouette here, but a square with a hole in it says nothing specific enough to survive as an identity."
+    },
+    {
+     "id": "cell-span",
+     "distinctiveness": 4,
+     "legibility16": 6,
+     "brandFit": 6,
+     "memorability": 4,
+     "verdict": "The wide-glyph concept is genuinely on-brand but the drawing is a generic app-grid-with-big-tile, and the mysteriously missing left cells in rows 7-8 make it look like a rendering bug."
+    },
+    {
+     "id": "flow-descent",
+     "distinctiveness": 5,
+     "legibility16": 7,
+     "brandFit": 6,
+     "memorability": 6,
+     "verdict": "A pleasant pixel staircase that could belong to any retro-flavored brand — competent, anonymous, says nothing about terminals."
+    },
+    {
+     "id": "flow-threshold",
+     "distinctiveness": 4,
+     "legibility16": 7,
+     "brandFit": 6,
+     "memorability": 5,
+     "verdict": "The 'you are inside the room' story is nice writing wrapped around what is visually the stock sign-in icon minus its arrowhead."
+    },
+    {
+     "id": "flow-keys",
+     "distinctiveness": 7,
+     "legibility16": 9,
+     "brandFit": 7,
+     "memorability": 8,
+     "verdict": "The arrow-key cluster is the one mark here a user could redraw perfectly after a single glance, and it speaks the audience's native language — its only sin is saying 'keyboard' slightly louder than 'framework'."
+    },
+    {
+     "id": "flow-route",
+     "distinctiveness": 6,
+     "legibility16": 4,
+     "brandFit": 7,
+     "memorability": 4,
+     "verdict": "Routing is the product's best story and this is its worst telling — nine nodes and a bent path collapse into clutter the moment you squint."
+    },
+    {
+     "id": "flow-branch",
+     "distinctiveness": 6,
+     "legibility16": 8,
+     "brandFit": 8,
+     "memorability": 7,
+     "verdict": "The tree-connector reads instantly as file structure — the number-one differentiator — and the stepped tips give it a diagonal; it just has to live near git-branch iconography without being confused for it."
+    },
+    {
+     "id": "frame-tiling-misaligned",
+     "distinctiveness": 7,
+     "legibility16": 7,
+     "brandFit": 8,
+     "memorability": 5,
+     "verdict": "The deliberately misaligned splits are the most tasteful single decision in the whole set, but an asymmetric tiling is exactly the kind of mark you cannot redraw from memory."
+    },
+    {
+     "id": "frame-grid-span",
+     "distinctiveness": 6,
+     "legibility16": 4,
+     "brandFit": 7,
+     "memorability": 4,
+     "verdict": "Conceptually the 12-column grid, optically a barcode — the hairlines turn to grey noise at favicon size."
+    },
+    {
+     "id": "frame-crop-viewport",
+     "distinctiveness": 5,
+     "legibility16": 4,
+     "brandFit": 5,
+     "memorability": 4,
+     "verdict": "Registration corners plus two floating panes is three ideas fighting in a 16px box, and screenshot tools already own the crop-mark trope."
+    },
+    {
+     "id": "frame-page-xor",
+     "distinctiveness": 4,
+     "legibility16": 8,
+     "brandFit": 6,
+     "memorability": 5,
+     "verdict": "Same copy-icon problem as cell-xor with a bigger offset — a handsome pinwheel that belongs to a thousand 'layers' logos."
+    },
+    {
+     "id": "frame-nested-brackets",
+     "distinctiveness": 6,
+     "legibility16": 5,
+     "brandFit": 7,
+     "memorability": 5,
+     "verdict": "Nesting-as-routing-depth is smart on paper, but squinted it becomes a labyrinth of parallel lines with no single shape to hold onto."
+    },
+    {
+     "id": "mono-tt-ligature",
+     "distinctiveness": 7,
+     "legibility16": 8,
+     "brandFit": 9,
+     "memorability": 8,
+     "verdict": "The one with a real idea: 'tt' as a character Departure Mono never cut, so the logo and the brand typeface are the same voice — this is what the brief means by lo-fi and refined at once."
+    },
+    {
+     "id": "mono-t-rules",
+     "distinctiveness": 5,
+     "legibility16": 8,
+     "brandFit": 7,
+     "memorability": 6,
+     "verdict": "The cell-equals-row-times-column insight is the sharpest thinking in the mono set, but the drawing reads as an off-center plus sign and the 't' claim is wishful."
+    },
+    {
+     "id": "mono-tu-fused",
+     "distinctiveness": 6,
+     "legibility16": 5,
+     "brandFit": 7,
+     "memorability": 5,
+     "verdict": "Typographically clever and completely illegible as letters at small size — it reads as a maze glyph, and 'tu' isn't even the natural monogram for terminaltui."
+    },
+    {
+     "id": "mono-t-baseline",
+     "distinctiveness": 6,
+     "legibility16": 8,
+     "brandFit": 9,
+     "memorability": 8,
+     "verdict": "Quietly excellent: a clean pixel 't' whose foot becomes a command line ending in a cursor-accent, giving the letter a second reading that is exactly the product."
+    },
+    {
+     "id": "mono-t-stencil",
+     "distinctiveness": 5,
+     "legibility16": 6,
+     "brandFit": 6,
+     "memorability": 5,
+     "verdict": "Stencil logic belongs to spray paint and shipping crates, not to a pixel grid — the severed crossbar reads as damage, not intention."
+    },
+    {
+     "id": "image-horizon",
+     "distinctiveness": 5,
+     "legibility16": 6,
+     "brandFit": 4,
+     "memorability": 6,
+     "verdict": "A genuinely pretty pixel sunset that would make a lovely docs illustration and a wrong logo — it brands the number-two feature, not the framework."
+    },
+    {
+     "id": "image-peaks",
+     "distinctiveness": 2,
+     "legibility16": 6,
+     "brandFit": 3,
+     "memorability": 4,
+     "verdict": "Two mountains is the literal broken-image placeholder icon; adopting it as a logo would be an unforced error."
+    },
+    {
+     "id": "image-eye",
+     "distinctiveness": 3,
+     "legibility16": 7,
+     "brandFit": 3,
+     "memorability": 5,
+     "verdict": "Every observability startup of the last decade has an eye — this one is nicely economical and still completely unownable."
+    },
+    {
+     "id": "image-aperture",
+     "distinctiveness": 3,
+     "legibility16": 5,
+     "brandFit": 3,
+     "memorability": 4,
+     "verdict": "A camera shutter says photography tool, mushes into a blobby frame at 16px, and has nothing to do with terminals."
+    },
+    {
+     "id": "image-terminator",
+     "distinctiveness": 7,
+     "legibility16": 5,
+     "brandFit": 6,
+     "memorability": 6,
+     "verdict": "The cleverest concept in the image family — the dither IS the renderer's technique, plus the terminator/terminal pun — but single-pixel checkerboard turns to moiré mush anywhere except exactly 16x16."
+    }
+   ],
+   "top5": [
+    "mono-tt-ligature",
+    "mono-t-baseline",
+    "flow-keys",
+    "cell-subdivide",
+    "flow-branch"
+   ],
+   "overall": "The set's collective failure is drawing diagrams of features instead of marks: most candidates illustrate routing, layout panes, or image rendering — explanations that need their rationale paragraph to work, which a logo never gets. The whole image-* family should be cut outright (mountains, eyes, and apertures are stock clip-art territory that brands the wrong thing), and the xor pair collapses into the universal copy icon. The richest territory is the typographic one, and it's not close: the brief says pixel type against monochrome IS the identity, so a monogram that behaves like an extra character cut for Departure Mono (tt-ligature, baseline-t) makes the logo and the brand one system instead of two. Second-richest is the cell family's core insight — one cell treated differently from its neighbors (subdivide, void) — which is the product's actual atomic unit. The winning move is probably a marriage of the two finalists: the tt-ligature's specificity with the baseline-t's cursor-accent command-line reading."
+  }
+ ]
+}

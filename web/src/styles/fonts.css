@@ -1,0 +1,48 @@
+/**
+ * Departure Mono — a monospaced pixel typeface by Helena Zhang, SIL OFL 1.1.
+ * https://departuremono.com · license shipped at /fonts/DepartureMono-LICENSE.txt
+ *
+ * This is the brand voice: display type, wordmark, section markers, numerals.
+ * It is never used for body copy — reading paragraphs of pixel type is punishment.
+ */
+@font-face {
+  font-family: "Departure Mono";
+  src: url("/fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/**
+ * Pixel type only stays crisp at integer multiples of its design size, and only
+ * with antialiasing disabled. Apply this to any element set in Departure Mono
+ * at display sizes; sizes should come from the --px-* scale below.
+ */
+.pixel {
+  font-family: "Departure Mono", ui-monospace, monospace;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: never;
+  font-synthesis: none;
+}
+
+/* Departure Mono's grid resolves cleanly at these sizes. Do not use 17px. */
+:root {
+  --px-xs: 12px;
+  --px-sm: 16px;
+  --px-md: 24px;
+  --px-lg: 32px;
+  --px-xl: 48px;
+  --px-2xl: 64px;
+  --px-3xl: 96px;
+}
+
+/* Small pixel type reads as a label when uppercased and tracked out. */
+.pixel-eyebrow {
+  font-family: "Departure Mono", ui-monospace, monospace;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  font-size: var(--px-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}

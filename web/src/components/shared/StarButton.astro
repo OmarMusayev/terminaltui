@@ -1,0 +1,91 @@
+---
+/**
+ * GitHub star CTA with a live count.
+ *
+ * The fallback count is rendered server-side so it is crawlable and correct
+ * with JavaScript off; the fetch only ever upgrades it. There is deliberately
+ * no spinner — a number that might be 30 seconds stale beats a loading state.
+ */
+import { product, STAR_FALLBACK } from "@/data/product";
+
+interface Props {
+  label?: string;
+  class?: string;
+  size?: "sm" | "md" | "lg";
+}
+const { label = "Star on GitHub", class: className = "", size = "md" } = Astro.props;
+---
+
+<a
+  href={product.repo}
+  class={`sb sb-${size} ${className}`}
+  rel="noopener"
+  data-star-cta
+>
+  <svg class="sb-mark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+    ></path>
+  </svg>
+  <span class="sb-label">{label}</span>
+  <span class="sb-count" data-star-count aria-label={`${STAR_FALLBACK} stars on GitHub`}>
+    {STAR_FALLBACK}
+  </span>
+</a>
+
+<script is:inline define:vars={{ fallback: STAR_FALLBACK }}>
+  // One request per page load, shared by every button on the page.
+  if (!window.__starFetch) {
+    window.__starFetch = fetch("https://api.github.com/repos/OmarMusayev/terminaltui", {
+      headers: { Accept: "application/vnd.github+json" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => (typeof d?.stargazers_count === "number" ? d.stargazers_count : null))
+      .catch(() => null);
+  }
+  window.__starFetch.then((n) => {
+    if (n === null || n === fallback) return;
+    const text = n.toLocaleString("en-US");
+    for (const el of document.querySelectorAll("[data-star-count]")) {
+      el.textContent = text;
+      el.setAttribute("aria-label", `${text} stars on GitHub`);
+    }
+  });
+</script>
+
+<style>
+  .sb {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    text-decoration: none;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .sb:hover {
+    border-color: var(--color-ink);
+  }
+  .sb:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .sb-sm { padding: 0.5rem 0.75rem; font-size: 0.8125rem; min-height: 44px; }
+  .sb-md { padding: 0.75rem 1rem; font-size: 0.875rem; min-height: 44px; }
+  .sb-lg { padding: 1rem 1.5rem; font-size: 1rem; min-height: 52px; }
+  .sb-count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    padding-left: 0.625rem;
+    margin-left: 0.125rem;
+    border-left: 1px solid var(--color-line);
+    color: var(--color-muted);
+  }
+  .sb:hover .sb-count { color: var(--color-ink); }
+  .sb-mark { flex: none; }
+</style>

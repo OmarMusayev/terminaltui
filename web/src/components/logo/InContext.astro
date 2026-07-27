@@ -1,0 +1,166 @@
+---
+/**
+ * A mark shown where it will actually live. A logo that only works on a white
+ * card at 200px is not a logo — these are the four contexts that decide it.
+ */
+import PixelMark from "@/components/shared/PixelMark.astro";
+
+interface Props { grid: readonly string[]; label?: string }
+const { grid, label = "terminaltui" } = Astro.props;
+---
+
+<div class="ctx">
+  {/* Browser tab */}
+  <div class="ctx-item">
+    <div class="tab">
+      <div class="tab-bar">
+        <span class="tab-chip">
+          <PixelMark grid={grid} size={14} />
+          <span class="tab-title">terminaltui — a standardized…</span>
+        </span>
+      </div>
+      <div class="tab-url"><span>terminaltui.dev</span></div>
+    </div>
+    <p class="ctx-cap">Browser tab · 14px favicon</p>
+  </div>
+
+  {/* GitHub avatar */}
+  <div class="ctx-item">
+    <div class="avatars">
+      <span class="av av-lg"><PixelMark grid={grid} size={40} /></span>
+      <span class="av av-md"><PixelMark grid={grid} size={26} /></span>
+      <span class="av av-sm"><PixelMark grid={grid} size={16} /></span>
+    </div>
+    <p class="ctx-cap">Repository avatar · 64 / 40 / 24px</p>
+  </div>
+
+  {/* Terminal title bar */}
+  <div class="ctx-item">
+    <div class="term">
+      <div class="term-bar">
+        <PixelMark grid={grid} size={13} />
+        <span class="term-name">{label}</span>
+      </div>
+      <pre class="term-body">$ npx terminaltui try
+<span class="term-dim">  booting…</span></pre>
+    </div>
+    <p class="ctx-cap">Terminal title bar</p>
+  </div>
+
+  {/* Wordmark lockup */}
+  <div class="ctx-item">
+    <div class="lock">
+      <span class="lock-a"><PixelMark grid={grid} size={30} /><b class="pixel">terminaltui</b></span>
+      <span class="lock-b"><PixelMark grid={grid} size={20} /><b class="pixel">terminaltui</b></span>
+    </div>
+    <p class="ctx-cap">Wordmark lockup · Departure Mono</p>
+  </div>
+</div>
+
+<style>
+  .ctx {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 34rem) { .ctx { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 68rem) { .ctx { grid-template-columns: repeat(4, 1fr); } }
+
+  .ctx-item { min-width: 0; }
+  .ctx-cap {
+    margin: 0.625rem 0 0;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .tab, .term, .lock, .avatars {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    min-height: 118px;
+  }
+
+  .tab-bar { padding: 0.5rem 0.5rem 0; }
+  .tab-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-line);
+    border-bottom: 0;
+    padding: 0.4rem 0.6rem;
+    max-width: 100%;
+    color: var(--color-ink);
+  }
+  .tab-title {
+    font-size: 11px;
+    color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tab-url {
+    border-top: 1px solid var(--color-line);
+    background: var(--color-bg);
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-muted);
+  }
+
+  .avatars {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .av {
+    display: grid;
+    place-items: center;
+    background: var(--color-bg);
+    border: 1px solid var(--color-line);
+    color: var(--color-ink);
+  }
+  .av-lg { width: 64px; height: 64px; }
+  .av-md { width: 40px; height: 40px; }
+  .av-sm { width: 24px; height: 24px; }
+
+  .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-ink);
+  }
+  .term-name { font-family: var(--font-mono); font-size: 11px; color: var(--color-muted); }
+  .term-body {
+    margin: 0;
+    padding: 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--color-ink);
+    background: var(--color-bg);
+    overflow-x: auto;
+  }
+  .term-dim { color: var(--color-muted); }
+
+  .lock {
+    display: grid;
+    align-content: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .lock-a, .lock-b {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--color-ink);
+  }
+  .lock-a b { font-size: 24px; font-weight: 400; letter-spacing: 0.01em; }
+  .lock-b b { font-size: 16px; font-weight: 400; letter-spacing: 0.04em; }
+</style>

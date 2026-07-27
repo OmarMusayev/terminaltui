@@ -146,40 +146,44 @@ export const fontData: Font = {
       "█ █ ",
       "▀█▀ ",
     ],
-    // Four columns like every other letter, stems at FULL height for three of
-    // the four rows, and the point ATTACHED.
+    // Strokes that actually CONVERGE, drawn on half-columns.
     //
-    // Two defects were in play. The letter used to be six columns wide with its
-    // stems two apart, so the converging rows could only meet diagonally:
-    // ` █ █ ` over `  ▀  ` puts the vertex corner-to-corner with the strokes
-    // above it, and a terminal draws a corner touch as a detached speck rather
-    // than a join. Pinching at `▀█▀` fixed the join but bought it by cutting the
-    // stems off after two rows — half-height ▀ cells on row 3 — which left V
-    // visibly squat next to the full-height letters either side of it.
+    // Every earlier attempt at this letter failed the same way, and it took
+    // three goes to name the reason: a V needs its strokes to move inward as
+    // they descend, and a whole-cell grid cannot move them by less than a whole
+    // cell. `█ █` over ` █ ` steps a full column in one row, which puts the rows
+    // corner-to-corner — a terminal draws a corner touch as a detached speck,
+    // not a join. Avoiding the speck by keeping the stems parallel and closing
+    // them with `█▄█` connects fine but is no longer a V at all: rendered large
+    // it reads as a U with a stub under it, which is exactly what it is.
     //
-    // Joining at the BOTTOM of row 3 instead (`█▄█`) does both: the ▄ shares a
-    // vertical edge with the full blocks on each side, so it is a real join, and
-    // the stems stay full height the whole way down to it. The ▀ on row 4 then
-    // sits directly under that ▄ in the same column — again a vertical edge, not
-    // a corner — so the taper reads as one continuous descent to a point.
+    // ▌ and ▐ break the grid. They give HALF-column resolution, so a stroke one
+    // full cell wide can step inward half a cell per row, and consecutive rows
+    // then overlap by half a cell — a shared vertical edge, not a corner. The
+    // gap between the strokes closes 6 half-columns → 4 → 2 → 0 down the four
+    // rows, and where they meet on row 3 the left stroke's ▌ and the right
+    // stroke's ▐ land in the same cell and fuse into `█`.
+    //
+    // Five columns, because convergence needs somewhere to travel: at the
+    // face's usual four there is not enough width for the taper to be visible.
+    // This is the one letter in the face allowed the extra column.
     V: [
-      "█ █ ",
-      "█ █ ",
-      "█▄█ ",
-      " ▀  ",
+      "█   █ ",
+      "▐▌ ▐▌ ",
+      " ▐█▌  ",
+      "  ▀   ",
     ],
-    // Two V's sharing a centre stem, so it takes the same fix as `V` — the ▄
-    // cells on row 3 are what attach the two points to the letter. Row 3 was
-    // `█ █ █`, three stems with nothing between them, leaving the ` ▀ ▀ ` below
-    // touching only at corners: two specks under a letter rather than the feet
-    // of one. Six columns is kept here (V's six were the anomaly, W earns them);
-    // the interior stroke still changes column as it changes row, which is what
-    // keeps W from reading as H at four rows.
+    // Literally two of the `V` above, overlapped so they share their middle
+    // column: the left V occupies columns 0–4, the right V columns 4–8, and on
+    // row 2 the left V's ▌ and the right V's ▐ meet in column 4 and fuse into
+    // the `█` that is the letter's centre peak. Same half-column construction,
+    // same reason — a W is where the old whole-cell form failed worst, because
+    // it stacked the fault twice and put TWO specks under the letter.
     W: [
-      "█   █ ",
-      "█   █ ",
-      "█▄█▄█ ",
-      " ▀ ▀  ",
+      "█   █   █ ",
+      "▐▌ ▐█▌ ▐▌ ",
+      " ▐█▌ ▐█▌  ",
+      "  ▀   ▀   ",
     ],
     X: [
       "█ █ ",

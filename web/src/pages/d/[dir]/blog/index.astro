@@ -1,0 +1,176 @@
+---
+/**
+ * Blog index — one implementation, rendered in every direction.
+ *
+ * With four posts a card grid looks like a failed launch, so this is a list:
+ * one lead post given real space, then the rest as generously-spaced rows.
+ * A list reads as "a journal" at any length; a grid only works once it is full.
+ */
+import { getCollection } from "astro:content";
+import Shell from "@/layouts/Shell.astro";
+import { DIRECTION_KEYS, getDirection, baseFor, url, formatDate, readingTime } from "@/lib/site";
+
+export async function getStaticPaths() {
+  return DIRECTION_KEYS.map((dir) => ({ params: { dir } }));
+}
+
+const { dir } = Astro.params;
+const direction = getDirection(dir!);
+const base = baseFor(dir!);
+
+const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+
+const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
+---
+
+<Shell
+  dir={direction.key}
+  base={base}
+  active="Blog"
+  defaultTheme={direction.defaultTheme}
+  title="Blog — terminaltui"
+  description="Engineering notes from building a terminal application framework: rendering images without pixels, negotiating terminal capabilities, and the bugs found along the way."
+  path={url(base, "blog/")}
+>
+  <div class="wrap bl">
+    <header class="bl-head">
+      <p class="pixel-eyebrow bl-eyebrow">Writing</p>
+      <h1 class="bl-title pixel">Notes from the engine room</h1>
+      <p class="bl-lede">
+        How the framework is built, and what broke on the way. Mostly rendering,
+        terminal compatibility, and the occasional bug worth writing down.
+      </p>
+      <ul class="bl-tags" aria-label="Topics covered">
+        {tags.map((t) => <li class="bl-tag">{t}</li>)}
+      </ul>
+    </header>
+
+    {/*
+      A ruled list, not a featured-split. A big lead card plus a couple of rows
+      needs six or more posts to look intentional; below that it reads as a
+      launch that stalled. A ruled list looks correct at three posts and at forty.
+    */}
+    <ol class="bl-list">
+      {posts.map((p) => (
+        <li class="bl-item">
+          <a href={url(base, `blog/${p.id}/`)} class="bl-item-link">
+            <p class="bl-meta tnum">
+              <time datetime={p.data.date.toISOString()}>{formatDate(p.data.date)}</time>
+              <span class="bl-dot" aria-hidden="true">·</span>
+              <span>{readingTime(p.body ?? "")} min</span>
+            </p>
+            <div class="bl-item-main">
+              <h2 class="bl-item-title">{p.data.title}</h2>
+              <p class="bl-item-desc">{p.data.description}</p>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ol>
+
+    <p class="bl-rss">
+      <a href="/rss.xml">RSS feed</a>
+    </p>
+  </div>
+</Shell>
+
+<style>
+  .bl { --wrap: 60rem; padding-block: clamp(3rem, 8vw, 6rem); }
+
+  .bl-eyebrow { color: var(--color-accent); margin: 0 0 1.25rem; }
+  .bl-title {
+    font-size: clamp(2rem, 6vw, var(--px-xl));
+    line-height: 1.1;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+  .bl-lede {
+    margin: 1.25rem 0 0;
+    max-width: 52ch;
+    color: var(--color-muted);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+  .bl-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 1.75rem 0 0;
+    padding: 0;
+  }
+  .bl-tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    padding: 0.25rem 0.5rem;
+  }
+
+  .bl-head { padding-bottom: 3.5rem; border-bottom: 1px solid var(--color-line); }
+
+  .bl-meta {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+    margin: 0 0 0.75rem;
+  }
+
+  .bl-list { list-style: none; margin: 0; padding: 0; }
+  .bl-item { border-bottom: 1px solid var(--color-line); }
+  .bl-item-link {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding-block: 2rem;
+    text-decoration: none;
+    color: inherit;
+  }
+  .bl-meta {
+    font-family: var(--font-display);
+    font-size: var(--px-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin: 0;
+    white-space: nowrap;
+  }
+  .bl-dot { margin-inline: 0.4em; }
+  .bl-item-main { min-width: 0; }
+  .bl-item-title {
+    font-size: 1.3125rem;
+    line-height: 1.3;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .bl-item-desc {
+    margin: 0.5rem 0 0;
+    max-width: 62ch;
+    color: var(--color-muted);
+    line-height: 1.6;
+  }
+  .bl-item-link:hover .bl-item-title { text-decoration: underline; text-underline-offset: 4px; }
+
+  /* A date column appears once there is room for it. */
+  @media (min-width: 46rem) {
+    .bl-item-link { grid-template-columns: 10rem 1fr; gap: 2rem; align-items: baseline; }
+    .bl-meta { padding-top: 0.35rem; }
+  }
+
+  .bl-rss { margin: 2.5rem 0 0; font-size: 0.875rem; }
+  .bl-rss a { color: var(--color-muted); }
+  .bl-rss a:hover { color: var(--color-accent); }
+
+  /* The editorial direction sets post titles in its serif. */
+  :global([data-dir="editorial"]) .bl-item-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: 0;
+    font-size: 1.5rem;
+  }
+</style>

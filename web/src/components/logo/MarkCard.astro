@@ -1,0 +1,117 @@
+---
+/**
+ * One candidate mark, shown at its working size plus the sizes it has to
+ * survive. The 16px cell is the one that decides whether a mark is real.
+ */
+import PixelMark from "@/components/shared/PixelMark.astro";
+
+interface Props {
+  id: string;
+  name?: string;
+  grid: readonly string[];
+  rationale?: string;
+  risk?: string;
+  note?: string;
+  at16?: string;
+  kind?: string;
+  score?: number;
+  rank?: number;
+}
+const { id, name, grid, rationale, risk, note, at16, kind, score, rank } = Astro.props;
+---
+
+<figure class="mk">
+  <div class="mk-big">
+    <PixelMark grid={grid} size={104} title={name ?? id} />
+  </div>
+
+  <div class="mk-sizes" aria-label="Rendered at 16, 24, 32 and 48 pixels">
+    {[16, 24, 32, 48].map((s) => (
+      <span class="mk-s">
+        <PixelMark grid={grid} size={s} />
+        <em class="mk-px">{s}</em>
+      </span>
+    ))}
+  </div>
+
+  <figcaption class="mk-cap">
+    <p class="mk-id">
+      <code>{id}</code>
+      {kind && <span class="mk-kind">{kind}</span>}
+      {rank && <span class="mk-rank">#{rank}</span>}
+      {score !== undefined && <span class="mk-score tnum">{score.toFixed(1)}</span>}
+    </p>
+    {name && <p class="mk-name">{name}</p>}
+    {rationale && <p class="mk-txt">{rationale}</p>}
+    {note && <p class="mk-txt">{note}</p>}
+    {at16 && <p class="mk-txt mk-warn"><b>At 16px:</b> {at16}</p>}
+    {risk && <p class="mk-txt mk-warn"><b>Risk:</b> {risk}</p>}
+  </figcaption>
+</figure>
+
+<style>
+  .mk {
+    margin: 0;
+    border: 1px solid var(--color-line);
+    background: var(--color-bg);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .mk-big {
+    display: grid;
+    place-items: center;
+    padding: 1.75rem 1rem 1.25rem;
+    color: var(--color-ink);
+  }
+  .mk-sizes {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1.125rem;
+    padding: 0 1rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-ink);
+  }
+  .mk-s { display: grid; justify-items: center; gap: 0.375rem; }
+  .mk-px {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-style: normal;
+    color: var(--color-muted);
+  }
+  .mk-cap { padding: 0.875rem 1rem 1.125rem; }
+  .mk-id {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .mk-id code { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-ink); }
+  .mk-kind,
+  .mk-rank,
+  .mk-score {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+    padding: 0.15rem 0.3rem;
+  }
+  .mk-rank { color: var(--color-accent); border-color: var(--color-accent); }
+  .mk-name {
+    margin: 0.5rem 0 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .mk-txt {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+  .mk-warn b { color: var(--color-ink); font-weight: 500; }
+</style>

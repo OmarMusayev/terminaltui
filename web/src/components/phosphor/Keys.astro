@@ -1,0 +1,52 @@
+---
+/**
+ * Key hints, drawn the way the framework draws them along the bottom of a real
+ * screen. Purely a visual echo: nothing on this page needs a keyboard, and the
+ * label next to each glyph is plain readable text, not a legend to decode.
+ */
+interface Props {
+  items: readonly { key: string; label: string }[];
+  class?: string;
+}
+const { items, class: className = "" } = Astro.props;
+---
+
+<p class={`keys ${className}`}>
+  {items.map((i) => (
+    <span class="keys-i">
+      <kbd class="keys-k">{i.key}</kbd>
+      <span class="keys-l">{i.label}</span>
+    </span>
+  ))}
+</p>
+
+<style>
+  .keys {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem 1rem;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-muted);
+  }
+  .keys-i {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+  }
+  .keys-k {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75em;
+    padding: 0.1875rem 0.3125rem;
+    border: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1;
+    color: var(--color-ink);
+  }
+</style>

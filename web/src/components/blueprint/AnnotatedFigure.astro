@@ -1,0 +1,193 @@
+---
+/**
+ * A real terminal capture with numbered callouts pinned to exact cells.
+ *
+ * The geometry is exact rather than eyeballed. TerminalFrame sizes its <pre> at
+ * `100cqi / (cols * ratio)`, and a monospace advance is `ratio` em wide, so one
+ * character cell is exactly `1cqi` wide and `line-height * cols * ratio` — 2cqi
+ * for the default 100 columns at 1.2 — tall. A marker at column C, row R
+ * therefore sits at `left: C * 1cqi; top: (R + 0.5) * 2cqi`, at every viewport
+ * width, with no JavaScript and no per-breakpoint fudging.
+ *
+ * Markers are decoration: the numbered key beside the figure is the real,
+ * always-present content, so nothing here is hover-only or hidden on a phone.
+ */
+import TerminalFrame from "@/components/shared/TerminalFrame.astro";
+
+export interface Callout {
+  /** Zero-indexed row of the captured grid. */
+  row: number;
+  /** Zero-indexed column the leader line starts from. */
+  col: number;
+  title: string;
+  body: string;
+}
+
+interface Props {
+  demo: string;
+  label?: string;
+  rows: number;
+  /** e.g. "FIG. 01" */
+  caption: string;
+  callouts: Callout[];
+  class?: string;
+}
+
+const { demo, label, rows, caption, callouts, class: className = "" } = Astro.props;
+---
+
+<div class={`afig ${className}`}>
+  <div class="afig-plate-col">
+    <div class="afig-plate">
+      <TerminalFrame demo={demo} label={label} rows={rows} />
+      {callouts.map((c, i) => (
+        <span class="mk" style={`--r:${c.row};--c:${c.col}`} aria-hidden="true">
+          <span class="mk-dot"></span>
+          <span class="mk-line"></span>
+          <span class="mk-num pixel tnum">{i + 1}</span>
+        </span>
+      ))}
+    </div>
+    <p class="afig-cap">{caption}</p>
+  </div>
+
+  <ol class="afig-key">
+    {callouts.map((c, i) => (
+      <li class="afig-item">
+        <span class="afig-n pixel tnum">{i + 1}</span>
+        <div>
+          <h3 class="afig-t">{c.title}</h3>
+          <p class="afig-b">{c.body}</p>
+        </div>
+      </li>
+    ))}
+  </ol>
+</div>
+
+<style>
+  .afig {
+    display: grid;
+    gap: 48px 32px;
+    /* Wide enough for dot + minimum leader + badge, so a marker anchored at
+       column 100 still fits in the margin instead of pushing the layout. */
+    --rail: 32px;
+  }
+
+  .afig-plate-col {
+    min-width: 0;
+    padding-right: var(--rail);
+  }
+
+  /* The query container the callout maths resolves against. Must be exactly
+     as wide as the frame inside it — no padding, no border. */
+  .afig-plate {
+    position: relative;
+    container-type: inline-size;
+    min-width: 0;
+  }
+
+  .afig-cap {
+    margin: 24px 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 62ch;
+  }
+
+  /* ── Callout markers ─────────────────────────────────────────────── */
+
+  .mk {
+    position: absolute;
+    left: calc(var(--c) * 1cqi);
+    right: calc(-1 * var(--rail));
+    /* The plate's top padding shifts row 0 down by that much. */
+    top: calc(var(--plate-pad, 0px) + (var(--r) + 0.5) * 2cqi);
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+  }
+  .mk-dot {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    background: var(--color-accent);
+    box-shadow: 0 0 0 1.5px var(--color-bg);
+  }
+  .mk-line {
+    flex: 1 1 auto;
+    height: 1px;
+    min-width: 6px;
+    background: var(--color-accent);
+    /* A background-coloured halo so the leader stays legible where it
+       crosses the terminal's own dark cells. */
+    box-shadow: 0 0 0 1px var(--color-bg);
+  }
+  .mk-num {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 3px;
+    font-size: var(--px-xs);
+    line-height: 1;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  /* ── Key ─────────────────────────────────────────────────────────── */
+
+  .afig-key {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 24px;
+    align-content: start;
+  }
+  .afig-item {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .afig-n {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    font-size: var(--px-xs);
+    line-height: 1;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+  .afig-t {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.4;
+  }
+  .afig-b {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+
+  @media (min-width: 60rem) {
+    .afig {
+      grid-template-columns: minmax(0, 1fr) 17rem;
+      --rail: 38px;
+    }
+    .afig-key { padding-top: 4px; }
+    .mk-num, .afig-n { width: 20px; height: 20px; }
+    .afig-item { grid-template-columns: 20px minmax(0, 1fr); }
+  }
+
+  @media (min-width: 90rem) {
+    .afig { grid-template-columns: minmax(0, 1fr) 20rem; }
+  }
+</style>

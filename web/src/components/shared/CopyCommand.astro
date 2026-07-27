@@ -1,0 +1,106 @@
+---
+/**
+ * A shell command with a copy button. The command itself is real text in the
+ * DOM so it can be selected, crawled and read by a screen reader.
+ */
+interface Props {
+  cmd: string;
+  /** Renders a leading $ that is not part of the copied text. */
+  prompt?: boolean;
+  class?: string;
+}
+const { cmd, prompt = true, class: className = "" } = Astro.props;
+---
+
+<div class={`cc ${className}`}>
+  {prompt && <span class="cc-prompt" aria-hidden="true">$</span>}
+  <code class="cc-cmd">{cmd}</code>
+  <button class="cc-btn" type="button" data-copy={cmd} aria-label={`Copy "${cmd}" to clipboard`}>
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" class="cc-i-copy">
+      <path fill="none" stroke="currentColor" stroke-width="1.5" d="M5.5 5.5v-3h8v8h-3M2.5 5.5h8v8h-8z"></path>
+    </svg>
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" class="cc-i-done">
+      <path fill="none" stroke="currentColor" stroke-width="2" d="M3 8.5l3.5 3.5L13 5"></path>
+    </svg>
+    <span class="cc-sr" data-copy-status role="status"></span>
+  </button>
+</div>
+
+<script>
+  document.addEventListener("click", async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-copy]");
+    if (!btn) return;
+    const text = btn.dataset.copy!;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard can be blocked (insecure context, denied permission).
+      // Fall back to a selection the user can copy manually.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch { /* nothing else to try */ }
+      ta.remove();
+    }
+    btn.classList.add("is-done");
+    const status = btn.querySelector("[data-copy-status]");
+    if (status) status.textContent = "Copied";
+    setTimeout(() => {
+      btn.classList.remove("is-done");
+      if (status) status.textContent = "";
+    }, 1600);
+  });
+</script>
+
+<style>
+  .cc {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: 0.75rem 0.75rem 0.75rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    min-width: 0;
+  }
+  .cc-prompt { color: var(--color-accent); flex: none; user-select: none; }
+  .cc-cmd {
+    color: var(--color-ink);
+    overflow-x: auto;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    scrollbar-width: none;
+  }
+  .cc-cmd::-webkit-scrollbar { display: none; }
+  .cc-btn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: -0.75rem -0.75rem -0.75rem 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .cc-btn:hover { color: var(--color-ink); background: var(--color-hover); }
+  .cc-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+  .cc-i-done { display: none; color: var(--color-accent); }
+  .cc-btn.is-done .cc-i-copy { display: none; }
+  .cc-btn.is-done .cc-i-done { display: block; }
+  .cc-sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+</style>

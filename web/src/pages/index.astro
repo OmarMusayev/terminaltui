@@ -1,0 +1,194 @@
+---
+/**
+ * The exploration hub. Not a design candidate itself — a workbench for
+ * comparing the five directions side by side, with live previews rather than
+ * screenshots so it stays honest as the pages change.
+ */
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import "@/styles/global.css";
+import { DIRECTIONS, baseFor } from "@/lib/site";
+import { product, stats } from "@/data/product";
+---
+
+<!doctype html>
+<html lang="en" data-dir="paper" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>terminaltui.dev — design exploration</title>
+    <meta name="description" content="Five art directions and a logo exploration for terminaltui.dev." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <div class="wrap hub">
+      <header class="hub-head">
+        <p class="pixel-eyebrow hub-eyebrow">terminaltui.dev</p>
+        <h1 class="hub-title pixel">Design exploration</h1>
+        <p class="hub-lede">
+          Five art directions for the site, each a real Astro + Tailwind build sharing one
+          content layer, one token contract and one blog implementation. Every terminal
+          screen you see in them is genuine output, captured by booting the demos inside
+          the framework's own headless PTY emulator.
+        </p>
+        <div class="hub-links">
+          <a class="hub-btn hub-btn-primary" href="/logo/">Logo exploration</a>
+          <a class="hub-btn" href={product.repo}>Repository</a>
+        </div>
+      </header>
+
+      <section class="hub-sec" aria-labelledby="dirs">
+        <h2 id="dirs" class="hub-h2">Directions</h2>
+        <ol class="hub-grid">
+          {DIRECTIONS.map((d, i) => (
+            <li class="card">
+              <div class="card-frame">
+                <iframe
+                  src={baseFor(d.key)}
+                  title={`Preview of the ${d.name} direction`}
+                  loading="lazy"
+                  tabindex="-1"
+                  scrolling="no"
+                ></iframe>
+              </div>
+              <div class="card-body">
+                <p class="card-n pixel-eyebrow">{String(i + 1).padStart(2, "0")}</p>
+                <h3 class="card-title pixel">{d.name}</h3>
+                <p class="card-blurb">{d.blurb}</p>
+                <p class="card-links">
+                  <a href={baseFor(d.key)}>Home</a>
+                  <a href={`${baseFor(d.key)}blog/`}>Blog</a>
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <footer class="hub-foot">
+        <p>
+          {product.name} v{product.version} · {stats.tests.toLocaleString("en-US")} tests ·
+          MIT · previews are live pages, not screenshots
+        </p>
+      </footer>
+    </div>
+
+    <style>
+      .hub { --wrap: 84rem; padding-block: clamp(3rem, 7vw, 5rem) 4rem; }
+      .hub-eyebrow { color: var(--color-accent); margin: 0 0 1rem; }
+      .hub-title { font-size: clamp(2rem, 6vw, var(--px-xl)); margin: 0; line-height: 1.1; }
+      .hub-lede {
+        margin: 1.25rem 0 0;
+        max-width: 60ch;
+        color: var(--color-muted);
+        font-size: 1.0625rem;
+        line-height: 1.6;
+      }
+      .hub-links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+      .hub-btn {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding-inline: 1.125rem;
+        border: 1px solid var(--color-line);
+        color: var(--color-ink);
+        text-decoration: none;
+        font-size: 0.9375rem;
+      }
+      .hub-btn:hover { border-color: var(--color-ink); }
+      .hub-btn-primary {
+        background: var(--color-accent);
+        border-color: var(--color-accent);
+        color: var(--color-on-accent);
+      }
+
+      .hub-sec { margin-top: clamp(3rem, 7vw, 5rem); }
+      .hub-h2 {
+        font-family: var(--font-display);
+        font-weight: 400;
+        font-size: var(--px-sm);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-muted);
+        margin: 0 0 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--color-line);
+      }
+
+      .hub-grid {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 2rem;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 48rem) { .hub-grid { grid-template-columns: 1fr 1fr; } }
+      @media (min-width: 75rem) { .hub-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+      .card { border: 1px solid var(--color-line); background: var(--color-surface); }
+      .card-frame {
+        /* A 1280x1600 viewport scaled to fit the card, so the preview shows the
+           real desktop layout rather than the mobile one. */
+        position: relative;
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        border-bottom: 1px solid var(--color-line);
+        background: var(--color-bg);
+      }
+      .card-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1280px;
+        height: 1600px;
+        border: 0;
+        transform-origin: 0 0;
+        pointer-events: none;
+        /* 1280 -> card width. Recomputed by the resize script below. */
+        transform: scale(var(--s, 0.3));
+      }
+      .card-body { padding: 1.25rem 1.25rem 1.5rem; }
+      .card-n { color: var(--color-accent); margin: 0 0 0.5rem; }
+      .card-title { font-size: var(--px-md); margin: 0; }
+      .card-blurb {
+        margin: 0.625rem 0 0;
+        color: var(--color-muted);
+        font-size: 0.9375rem;
+        line-height: 1.55;
+      }
+      .card-links { display: flex; gap: 1rem; margin: 1rem 0 0; }
+      .card-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        color: var(--color-ink);
+        font-size: 0.9375rem;
+        text-underline-offset: 3px;
+      }
+      .card-links a:hover { color: var(--color-accent); }
+
+      .hub-foot {
+        margin-top: 4rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--color-line);
+        color: var(--color-muted);
+        font-size: 0.8125rem;
+      }
+      .hub-foot p { margin: 0; }
+    </style>
+
+    <script>
+      // Scale each preview so a 1280px-wide render fits its card exactly.
+      const fit = () => {
+        for (const f of document.querySelectorAll<HTMLElement>(".card-frame")) {
+          f.style.setProperty("--s", String(f.clientWidth / 1280));
+        }
+      };
+      fit();
+      addEventListener("resize", fit);
+    </script>
+  </body>
+</html>

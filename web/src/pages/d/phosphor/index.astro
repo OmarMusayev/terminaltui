@@ -1,0 +1,892 @@
+---
+/**
+ * PHOSPHOR — terminal-native.
+ *
+ * The page is laid out the way a tiling window manager lays out a screen: every
+ * section is a pane with its title set into the top border, panes tile rather
+ * than stack, and a status line is pinned to the bottom edge. The chrome is
+ * near-monochrome on purpose — the captured terminal screens are full-colour
+ * and they are the only place colour is allowed to shout.
+ */
+import Shell from "@/layouts/Shell.astro";
+import StarButton from "@/components/shared/StarButton.astro";
+import CopyCommand from "@/components/shared/CopyCommand.astro";
+import PixelMark from "@/components/shared/PixelMark.astro";
+
+import Pane from "@/components/phosphor/Pane.astro";
+import Screen from "@/components/phosphor/Screen.astro";
+import Keys from "@/components/phosphor/Keys.astro";
+import StatusStrip from "@/components/phosphor/StatusStrip.astro";
+
+import { MARK } from "@/data/logo";
+import {
+  product,
+  stats,
+  cli,
+  comparison,
+  componentGroups,
+  themes,
+  demos,
+  roadmap,
+} from "@/data/product";
+import { allFrames } from "@/lib/frames";
+import { getCollection } from "astro:content";
+import { baseFor, url, formatDate, readingTime } from "@/lib/site";
+
+const base = baseFor("phosphor");
+
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+
+/** Counted, not claimed. */
+const captureCount = allFrames().length;
+
+/** The hero index, shaped like the nav a terminaltui home screen actually draws. */
+const index = [
+  { n: 1, href: "#routing", label: "File-based routing", meta: "pages/[slug].ts" },
+  { n: 2, href: "#ship", label: "Distribution", meta: "npx · ssh" },
+  { n: 3, href: "#images", label: "Images in the terminal", meta: "png · jpeg" },
+  { n: 4, href: "#box", label: "What is in the box", meta: `${stats.components} · ${stats.themes}` },
+  { n: 5, href: "#compare", label: "Against Ink and Bubble Tea", meta: "table" },
+  { n: 6, href: "#roadmap", label: "Shipped and not shipped", meta: "status" },
+];
+
+/** A pages/ directory and the routes it produces. Nothing is registered anywhere. */
+const tree = [
+  { file: "my-app/", route: "", dir: true, depth: 0 },
+  { file: "pages/", route: "", dir: true, depth: 1 },
+  { file: "index.ts", route: "/", dir: false, depth: 2 },
+  { file: "about.ts", route: "/about", dir: false, depth: 2 },
+  { file: "projects/", route: "", dir: true, depth: 2 },
+  { file: "index.ts", route: "/projects", dir: false, depth: 3 },
+  { file: "[slug].ts", route: "/projects/:slug", dir: false, depth: 3 },
+  { file: "api/", route: "", dir: true, depth: 1 },
+  { file: "stats.ts", route: "GET /api/stats", dir: false, depth: 2 },
+  { file: "config.ts", route: "", dir: false, depth: 1 },
+];
+const TREE_COL = 22;
+
+/** Pre-rendered so the <pre> below contains no accidental source whitespace. */
+const treeRows = tree.map((t) => {
+  const left = "  ".repeat(t.depth) + t.file;
+  const pad = " ".repeat(Math.max(1, TREE_COL - left.length));
+  return { left, right: t.route ? pad + "→ " + t.route : "", dir: t.dir };
+});
+
+const emulatorCode = `import { TUIEmulator } from "terminaltui/emulator";
+
+const app = await TUIEmulator.launch("./my-app");
+
+await app.press("Down");
+await app.press("Enter");
+await app.waitForText("Projects");
+
+expect(app.screen.cells()).toMatchSnapshot();`;
+
+const imageCall = `image("./cover.png", { width: 60 })`;
+
+const statusWord: Record<string, string> = {
+  shipped: "Shipped",
+  progress: "In progress",
+  planned: "Planned",
+};
+
+const heroKeys = [
+  { key: "↑↓", label: "navigate" },
+  { key: "⏎", label: "select" },
+  { key: "q", label: "quit" },
+  { key: ":", label: "command" },
+];
+---
+
+<Shell
+  dir="phosphor"
+  base={base}
+  defaultTheme="dark"
+  title="terminaltui — a standardized engine for terminal apps"
+  description={`Write a pages directory of TypeScript, get a navigable terminal app. File-based routing, ${stats.components} components, real images, npx and SSH distribution.`}
+  path={base}
+>
+  <div class="wrap ph-page">
+    {/* ── 1 · hero ─────────────────────────────────────────────────────── */}
+    <Pane index="1" label="terminaltui" meta={`v${product.version} · ${product.license}`} labelledby="ph-h1">
+      <div class="hero">
+        <div class="hero-say">
+          <p class="hero-mark">
+            <PixelMark grid={MARK} size={20} />
+            <span class="pixel">terminaltui</span>
+          </p>
+          <h1 class="hero-h1 pixel" id="ph-h1">{product.tagline}</h1>
+          <p class="hero-lede">{product.pitch}</p>
+          <div class="hero-do">
+            <CopyCommand cmd="npx terminaltui try" class="hero-cmd" />
+            <StarButton size="lg" class="hero-star" />
+          </div>
+          <Keys items={heroKeys} class="hero-keys" />
+        </div>
+
+        <nav class="idx" aria-label="On this page">
+          <p class="idx-h pixel-eyebrow">On this page</p>
+          <ul class="idx-l">
+            {index.map((i) => (
+              <li>
+                <a href={i.href} class="idx-a">
+                  <span class="idx-c" aria-hidden="true">❯</span>
+                  <span class="idx-t">{i.label}</span>
+                  <span class="idx-m" aria-hidden="true">{i.meta}</span>
+                  <span class="idx-n tnum" aria-hidden="true">[{i.n}]</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      <dl class="spec tnum">
+        <div class="spec-i"><dt>version</dt><dd>{product.version}</dd></div>
+        <div class="spec-i"><dt>tests</dt><dd>{stats.tests.toLocaleString("en-US")} / {stats.testSuites} suites</dd></div>
+        <div class="spec-i"><dt>runtime deps</dt><dd>{stats.runtimeDeps}</dd></div>
+        <div class="spec-i"><dt>components</dt><dd>{stats.components}</dd></div>
+        <div class="spec-i"><dt>themes</dt><dd>{stats.themes}</dd></div>
+        <div class="spec-i"><dt>demos</dt><dd>{stats.demos}</dd></div>
+        <div class="spec-i"><dt>published</dt><dd>23 Mar 2026</dd></div>
+      </dl>
+    </Pane>
+
+    {/* ── 2 · the capture. Tight gap: this belongs to the hero. ─────────── */}
+    <div class="row row-tight">
+      <Pane index="2" label="capture" meta="welcome/home · 100×32 · cyberpunk">
+        <Screen
+          demo="welcome"
+          label="home"
+          caption="The welcome demo, running. This is not a mockup or a video: the demo was booted inside the framework's own headless PTY emulator and the colored cell grid was dumped straight to HTML."
+        />
+      </Pane>
+    </div>
+
+    {/* ── 3 · routing. The differentiator, given the widest split. ──────── */}
+    <div class="row row-wide">
+      <Pane index="3" label="routing" meta="pages/ → screens" id="routing" labelledby="h-routing">
+        <div class="split split-tree">
+          <div class="tile">
+            <h2 class="h2" id="h-routing">A file in <code class="code">pages/</code> is a screen.</h2>
+            <p class="p">
+              The path is the route. Nothing to register, no router to configure, no switch
+              statement mapping keys to views. Dynamic segments are brackets.
+              An <code class="code">api/</code> directory serves GET handlers to the same app.
+            </p>
+            <p class="p">
+              This is the part nobody else does. Ink gives you components. Pastel routes CLI
+              subcommands. terminaltui routes screens.
+            </p>
+            <pre class="tree"><code>{treeRows.map((r) => (<span class={r.dir ? "tree-d" : "tree-f"}>{r.left}<span class="tree-a">{r.right}</span>{"\n"}</span>))}</code></pre>
+          </div>
+
+          <div class="tile tile-screen">
+            <Screen
+              demo="developer-portfolio"
+              label="projects"
+              caption="developer-portfolio demo. One file under pages/ produced this screen, its search input, its focus ring and its back navigation."
+            />
+          </div>
+        </div>
+      </Pane>
+    </div>
+
+    {/* ── 4 · distribution. Two tiles, then a command table. ────────────── */}
+    <div class="row row-tight">
+      <Pane index="4" label="distribution" meta="npm · ssh" id="ship" labelledby="h-ship">
+        <h2 class="h2" id="h-ship">Two ways to ship. Both are one command.</h2>
+
+        <div class="split split-even">
+          <div class="tile">
+            <h3 class="h3">Over npm</h3>
+            <CopyCommand cmd="npx your-app" />
+            <p class="p p-sm">
+              Publish the package and anyone runs it. No install step, no binary to download,
+              no runtime for them to have first.
+            </p>
+          </div>
+          <div class="tile">
+            <h3 class="h3">Over SSH</h3>
+            <CopyCommand cmd="terminaltui serve" />
+            <p class="p p-sm">
+              One process serves many sessions. Each client's TERM is read on connect, so
+              color depth is negotiated per connection rather than assumed.
+            </p>
+          </div>
+        </div>
+
+        <div class="tbl-scroll">
+          <table class="tbl tbl-cli">
+            <caption class="sr-only">The terminaltui command line</caption>
+            <tbody>
+              {cli.map((c) => (
+                <tr>
+                  <th scope="row" class={c.hero ? "cli-cmd cli-hero" : "cli-cmd"}>{c.cmd}</th>
+                  <td class="cli-desc">{c.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Pane>
+    </div>
+
+    {/* ── 5 · images | testing. A genuine two-pane row. ─────────────────── */}
+    <div class="row row-wide tile-row tile-row-75">
+      <Pane index="5" label="images" meta="png · jpeg · no native deps" id="images" labelledby="h-images">
+        <h2 class="h2" id="h-images">Photographs, in a grid that has none.</h2>
+        <p class="p">
+          On kitty and Ghostty the renderer writes true pixels through the kitty graphics
+          protocol. Everywhere else it paints colored character cells with block glyphs. Both
+          paths occupy the same number of rows, so nothing in a layout moves when the app
+          travels over SSH or into tmux.
+        </p>
+        <pre class="code-b"><code>{imageCall}</code></pre>
+        <p class="p p-sm">
+          Three runtime dependencies, all pure JavaScript: esbuild, jpeg-js, pngjs. No sharp,
+          no node-gyp, no prebuilt binaries to match to a platform.
+        </p>
+        <p class="p p-sm">
+          <a class="lnk" href={url(base, "blog/pixels-in-a-terminal-that-has-none/")}>
+            How the cell renderer picks a glyph
+          </a>
+        </p>
+      </Pane>
+
+      <Pane index="6" label="testing" meta="terminaltui/emulator" labelledby="h-test">
+        <h2 class="h2" id="h-test">Playwright, if the browser were a terminal.</h2>
+        <pre class="code-b code-b-tall"><code>{emulatorCode}</code></pre>
+        <p class="p p-sm">
+          Launch the app in a real PTY, send keys, assert on what is on screen. It is how the
+          framework's own {stats.tests.toLocaleString("en-US")} tests across {stats.testSuites} suites
+          run.
+        </p>
+        <p class="p p-sm">
+          It is also where every terminal screen on this page came from: {captureCount} captures
+          across {stats.demos} demos, dumped as colored cells and reprinted here as HTML.
+        </p>
+      </Pane>
+    </div>
+
+    {/* ── 6 · in the box. Three-way split, then a full-width screen. ────── */}
+    <div class="row row-tight">
+      <Pane index="7" label="in the box" meta={`${stats.components} components · ${stats.themes} themes`} id="box" labelledby="h-box">
+        <h2 class="h2" id="h-box">Designed before you start.</h2>
+
+        <div class="split split-three">
+          <div class="tile">
+            <h3 class="h3">Components</h3>
+            <dl class="cg">
+              {componentGroups.map((g) => (
+                <div class="cg-i">
+                  <dt class="cg-t">{g.group}</dt>
+                  <dd class="cg-d">{g.items.join("  ")}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div class="tile">
+            <h3 class="h3">Themes</h3>
+            <ul class="th">
+              {themes.map((t) => (
+                <li class="th-i">
+                  <span class="th-sw" aria-hidden="true">
+                    {t.swatch.map((c) => <span class="th-c" style={`background:${c}`}></span>)}
+                  </span>
+                  <span class="th-n">{t.name}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="tile">
+            <h3 class="h3">Also included</h3>
+            <ul class="also">
+              <li><span class="also-n tnum">12</span> column grid, with row and column primitives</li>
+              <li><span class="also-n tnum">{stats.asciiFonts}</span> ASCII banner fonts and {stats.asciiScenes} scenes</li>
+              <li><span class="also-n tnum">1</span> markdown renderer, for pages written as prose</li>
+              <li><span class="also-n tnum">1</span> API reference written for code generation, shipped in the package as claude/SKILL.md</li>
+            </ul>
+          </div>
+        </div>
+
+        <Screen
+          demo="welcome"
+          label="themes"
+          class="box-screen"
+          caption="Theme picker from the welcome demo. Switching theme repaints every component; no page knows which theme it is in."
+        />
+      </Pane>
+    </div>
+
+    {/* ── 7 · demos. Wide screen on the left, index on the right. ───────── */}
+    <div class="row row-tight">
+      <Pane index="8" label="demos" meta={`${stats.demos} shipped`} id="demos" labelledby="h-demos">
+        <div class="split split-demo">
+          <div class="tile tile-screen">
+            <h2 class="h2" id="h-demos">Eleven complete apps, in the package.</h2>
+            <Screen
+              demo="restaurant"
+              label="menu"
+              rows={26}
+              caption="restaurant demo, gruvbox theme: searchable tabs, a two-column card grid and per-item badges, all from one page file."
+            />
+          </div>
+
+          <div class="tile">
+            <p class="p p-sm">
+              Each demo is a full app you can read the source of. Run any of them without
+              installing anything.
+            </p>
+            <CopyCommand cmd="npx terminaltui demo restaurant" />
+            <ul class="dm">
+              {demos.map((d) => (
+                <li class="dm-i">
+                  <span class="dm-k">{d.key}</span>
+                  <span class="dm-t">{d.theme}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </Pane>
+    </div>
+
+    {/* ── 8 · comparison. Full width, given air above it. ───────────────── */}
+    <div class="row row-wide">
+      <Pane index="9" label="comparison" meta="checked 26 Jul 2026" id="compare" labelledby="h-compare">
+        <h2 class="h2" id="h-compare">Where it sits.</h2>
+        <div class="tbl-scroll">
+          <table class="tbl tbl-cmp">
+            <caption class="sr-only">terminaltui compared with Ink, Pastel and Bubble Tea</caption>
+            <thead>
+              <tr>
+                <td class="cmp-corner"></td>
+                {comparison.columns.map((c, i) => (
+                  <th scope="col" class={i === 0 ? "cmp-h cmp-us" : "cmp-h"}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.rows.map((r) => (
+                <tr>
+                  <th scope="row" class="cmp-lab">{r.label}</th>
+                  {r.values.map((v, i) => (
+                    <td class={i === 0 ? "cmp-v cmp-us" : "cmp-v"}>
+                      {v === true && <span class="yes">Yes</span>}
+                      {v === false && <span class="no">No</span>}
+                      {typeof v === "string" && <span>{v}</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="p p-sm caveat">{comparison.caveat}</p>
+        <div class="cta-inline">
+          <StarButton size="md" label="Star the repo" />
+        </div>
+      </Pane>
+    </div>
+
+    {/* ── 9 · roadmap | writing. Second tiled row, split the other way. ─── */}
+    <div class="row row-normal tile-row tile-row-64">
+      <Pane index="10" label="roadmap" meta="status is load-bearing" id="roadmap" labelledby="h-road">
+        <h2 class="h2" id="h-road">What is shipped, and what is not.</h2>
+        <ul class="rm">
+          {roadmap.map((r) => (
+            <li class="rm-i">
+              <span class={`rm-s rm-s-${r.status}`}>{statusWord[r.status]}</span>
+              <span class="rm-b">
+                <span class="rm-t">{r.title}</span>
+                {r.status !== "planned" && <span class="rm-d">{r.body}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Pane>
+
+      <Pane index="11" label="writing" meta="engineering notes" labelledby="h-write">
+        <h2 class="h2" id="h-write">Notes from the engine room.</h2>
+        <ul class="wr">
+          {posts.map((p) => (
+            <li class="wr-i">
+              <a class="wr-a" href={url(base, `blog/${p.id}/`)}>
+                <span class="wr-m tnum">
+                  <time datetime={p.data.date.toISOString()}>{formatDate(p.data.date)}</time>
+                  <span aria-hidden="true"> · </span>
+                  <span>{readingTime(p.body ?? "")} min</span>
+                </span>
+                <span class="wr-t">{p.data.title}</span>
+                <span class="wr-d">{p.data.description}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p class="p p-sm">
+          <a class="lnk" href={url(base, "blog/")}>All posts</a>
+        </p>
+      </Pane>
+    </div>
+
+    {/* ── 10 · close. The one pane allowed to be mostly empty. ──────────── */}
+    <div class="row row-wide">
+      <Pane index="12" label="end" meta={product.repo.replace("https://", "")} labelledby="h-end">
+        <div class="end">
+          <div class="end-say">
+            <h2 class="h2 h2-big pixel" id="h-end">It is early. That is the honest picture.</h2>
+            <p class="p end-p">
+              The framework is finished enough to build with and small enough that what you file
+              gets read. If the shape is right for what you are making, star it. That is the
+              signal I use to decide what to build next.
+            </p>
+            <div class="end-do">
+              <StarButton size="lg" />
+              <CopyCommand cmd="npx terminaltui try" class="end-cmd" />
+            </div>
+          </div>
+
+          <dl class="end-facts tnum">
+            <div class="end-f"><dt>stars</dt><dd data-star-count>{stats.stars}</dd></div>
+            <div class="end-f"><dt>downloads, last month</dt><dd>{stats.downloadsMonth.toLocaleString("en-US")}</dd></div>
+            <div class="end-f"><dt>first published</dt><dd>23 Mar 2026</dd></div>
+            <div class="end-f"><dt>license</dt><dd>{product.license}</dd></div>
+            <div class="end-f"><dt>node</dt><dd>{product.node}</dd></div>
+            <div class="end-f"><dt>runtime deps</dt><dd>{stats.runtimeDeps}</dd></div>
+          </dl>
+        </div>
+      </Pane>
+    </div>
+  </div>
+
+  <StatusStrip />
+</Shell>
+
+<style>
+  /* ── workspace ───────────────────────────────────────────────────────── */
+  .ph-page {
+    --wrap: 84rem;
+    padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(2rem, 4vw, 3rem);
+  }
+
+  /* Rhythm is deliberate: some rows sit right against the one above, some
+     are given real air. Uniform spacing is what makes a page feel generated. */
+  .row { min-width: 0; }
+  .row-tight { margin-top: clamp(0.75rem, 1.4vw, 1.125rem); }
+  .row-normal { margin-top: clamp(2.5rem, 5vw, 4rem); }
+  .row-wide { margin-top: clamp(4rem, 8vw, 7rem); }
+
+  /* Two panes side by side. Below 64rem they stack, still tiled. */
+  .tile-row { display: grid; gap: clamp(0.75rem, 1.4vw, 1.125rem); }
+  @media (min-width: 64rem) {
+    .tile-row-75 { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+    .tile-row-64 { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); }
+  }
+
+  /* ── splits inside a pane ────────────────────────────────────────────── */
+  .split { display: grid; gap: clamp(1.5rem, 3vw, 2.25rem); min-width: 0; }
+  .tile { min-width: 0; }
+  @media (min-width: 48rem) {
+    .split-even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  /* The captures need real width before they sit beside anything, so these two
+     splits hold off until there is enough room for the terminal to stay legible. */
+  @media (min-width: 72rem) {
+    .split-tree { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); }
+    .split-demo { grid-template-columns: minmax(0, 1fr) minmax(0, 16rem); }
+  }
+  @media (min-width: 72rem) {
+    .split-three { grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.85fr) minmax(0, 1fr); }
+  }
+  @media (min-width: 48rem) and (max-width: 71.99rem) {
+    .split-three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* ── type ────────────────────────────────────────────────────────────── */
+  .h2 {
+    font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+    line-height: 1.25;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 1rem;
+    max-width: 30ch;
+    text-wrap: balance;
+  }
+  .h2-big {
+    font-size: clamp(1.5rem, 4.4vw, var(--px-lg));
+    line-height: 1.2;
+    letter-spacing: 0;
+    max-width: 22ch;
+    font-weight: 400;
+  }
+  .h3 {
+    font-family: var(--font-display);
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+    font-size: var(--px-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin: 0 0 0.875rem;
+    font-weight: 400;
+  }
+  .p {
+    margin: 0 0 1rem;
+    max-width: 62ch;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--color-ink);
+  }
+  /* Secondary paragraphs step down in colour and measure, never below 16px. */
+  .p-sm { color: var(--color-muted); max-width: 54ch; }
+  .p:last-child { margin-bottom: 0; }
+  .code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--color-accent);
+  }
+  .lnk {
+    color: var(--color-accent);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .lnk:hover { border-bottom-color: var(--color-accent); }
+
+  /* ── 1 · hero ────────────────────────────────────────────────────────── */
+  .hero { display: grid; gap: clamp(2rem, 4vw, 3rem); min-width: 0; }
+  @media (min-width: 62rem) {
+    .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 25rem); align-items: start; }
+  }
+  .hero-mark {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1.25rem;
+    font-size: var(--px-xs);
+    letter-spacing: 0.1em;
+    color: var(--color-muted);
+  }
+  .hero-h1 {
+    font-size: clamp(1.5rem, 4.6vw, var(--px-xl));
+    line-height: 1.12;
+    letter-spacing: 0.005em;
+    margin: 0;
+    max-width: 17ch;
+  }
+  .hero-lede {
+    margin: 1.25rem 0 0;
+    max-width: 54ch;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--color-muted);
+  }
+  .hero-do {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+  }
+  .hero-cmd { flex: 1 1 17rem; min-width: 0; }
+  .hero-keys { margin-top: 1.25rem; }
+
+  .idx { border: 1px solid var(--color-line); background: var(--color-surface); padding: 0.875rem 0 0.5rem; }
+  .idx-h { color: var(--color-muted); margin: 0 0 0.5rem; padding-inline: 1rem; }
+  .idx-l { list-style: none; margin: 0; padding: 0; }
+  .idx-a {
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 0 0.5rem;
+    min-height: 44px;
+    padding: 0.375rem 1rem;
+    text-decoration: none;
+    color: var(--color-ink);
+    font-size: 0.875rem;
+    border-left: 2px solid transparent;
+  }
+  .idx-a:hover,
+  .idx-a:focus-visible { background: var(--color-hover); border-left-color: var(--color-accent); }
+  .idx-c { grid-area: 1 / 1; color: var(--color-accent); font-family: var(--font-mono); font-size: 0.75rem; }
+  .idx-t { grid-area: 1 / 2; min-width: 0; }
+  .idx-m {
+    grid-area: 2 / 2;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-muted);
+  }
+  .idx-n {
+    grid-area: 1 / 3 / span 2 / auto;
+    align-self: center;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .spec {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 clamp(1.25rem, 3vw, 2.5rem);
+    margin: clamp(2rem, 4vw, 2.75rem) 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+  .spec-i { display: flex; align-items: baseline; gap: 0.5rem; padding-block: 0.25rem; }
+  .spec dt { color: var(--color-muted); }
+  .spec dd { margin: 0; color: var(--color-ink); }
+
+  /* ── 3 · routing ─────────────────────────────────────────────────────── */
+  .tree {
+    margin: 1.5rem 0 0;
+    padding: 1rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.7;
+    white-space: pre;
+    tab-size: 2;
+  }
+  .tree-d { color: var(--color-muted); }
+  .tree-f { color: var(--color-ink); }
+  .tree-a { color: var(--color-accent); }
+
+  /* ── 4 · distribution ────────────────────────────────────────────────── */
+  @media (max-width: 47.99rem) {
+    .split-even .tile + .tile { border-top: 1px solid var(--color-line); padding-top: 1.5rem; }
+  }
+  .split-even .p { margin: 0.875rem 0 0; }
+
+  .tbl-scroll {
+    margin-top: clamp(1.75rem, 3vw, 2.5rem);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    border-top: 1px solid var(--color-line);
+  }
+  .tbl { border-collapse: collapse; width: 100%; text-align: left; }
+  .tbl-cli { min-width: 34rem; }
+  .cli-cmd,
+  .cli-desc {
+    padding: 0.75rem 1rem 0.75rem 0;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: baseline;
+    font-weight: 400;
+  }
+  .cli-cmd {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-ink);
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 1.5rem;
+  }
+  .cli-hero { color: var(--color-accent); }
+  .cli-desc { color: var(--color-muted); }
+  .tbl tr:last-child .cli-cmd,
+  .tbl tr:last-child .cli-desc { border-bottom: 0; }
+
+  /* ── 5 · images | testing ────────────────────────────────────────────── */
+  .code-b {
+    margin: 0 0 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--color-ink);
+    white-space: pre;
+  }
+  .code-b-tall { margin-bottom: 1.5rem; }
+
+  /* ── 6 · in the box ──────────────────────────────────────────────────── */
+  .cg { margin: 0; }
+  .cg-i + .cg-i { margin-top: 0.875rem; }
+  .cg-t {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .cg-d {
+    margin: 0.25rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.75;
+    color: var(--color-ink);
+    word-break: break-word;
+  }
+
+  .th { list-style: none; margin: 0; padding: 0; }
+  .th-i {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding-block: 0.3125rem;
+  }
+  .th-sw { display: inline-flex; flex: none; }
+  .th-c { width: 10px; height: 14px; display: block; }
+  .th-n { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-ink); }
+
+  .also { list-style: none; margin: 0; padding: 0; line-height: 1.6; color: var(--color-muted); }
+  .also li { padding-block: 0.4375rem; }
+  .also li + li { border-top: 1px solid var(--color-line); }
+  .also-n {
+    font-family: var(--font-mono);
+    color: var(--color-ink);
+    margin-right: 0.5rem;
+  }
+  .box-screen { margin-top: clamp(2rem, 4vw, 2.75rem); }
+
+  /* ── 7 · demos ───────────────────────────────────────────────────────── */
+  .split-demo .p { margin-bottom: 0.875rem; }
+  .dm { list-style: none; margin: 1.25rem 0 0; padding: 0; }
+  .dm-i {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-block: 0.375rem;
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+  .dm-k { color: var(--color-ink); }
+  .dm-t { color: var(--color-muted); }
+
+  /* ── 8 · comparison ──────────────────────────────────────────────────── */
+  .tbl-cmp { min-width: 46rem; font-size: 0.875rem; }
+  .cmp-corner { border-bottom: 1px solid var(--color-line); }
+  .cmp-h {
+    padding: 0 1rem 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+    font-size: var(--px-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 400;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  .cmp-lab {
+    padding: 0.75rem 1.5rem 0.75rem 0;
+    border-bottom: 1px solid var(--color-line);
+    font-weight: 400;
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+    vertical-align: top;
+    white-space: nowrap;
+  }
+  .cmp-v {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: top;
+    color: var(--color-ink);
+  }
+  .cmp-us { background: var(--color-hover); }
+  th.cmp-us { color: var(--color-accent); }
+  .yes { color: var(--color-accent); }
+  .no { color: var(--color-muted); }
+  .caveat { margin-top: 1.25rem; max-width: 68ch; }
+  .cta-inline { margin-top: 1.5rem; }
+
+  /* ── 9 · roadmap | writing ───────────────────────────────────────────── */
+  .rm { list-style: none; margin: 0; padding: 0; }
+  .rm-i {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.375rem;
+    padding-block: 0.875rem;
+    border-top: 1px solid var(--color-line);
+  }
+  @media (min-width: 30rem) {
+    .rm-i { grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0 1rem; align-items: start; }
+  }
+  .rm-s {
+    justify-self: start;
+    border: 1px solid var(--color-line);
+    padding: 0.1875rem 0.4375rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  .rm-s-shipped { color: var(--color-accent); border-color: color-mix(in srgb, var(--color-accent) 45%, transparent); }
+  .rm-s-progress { color: var(--color-ink); border-color: var(--color-ink); }
+  .rm-b { display: block; min-width: 0; }
+  .rm-t { display: block; line-height: 1.5; color: var(--color-ink); }
+  .rm-d { display: block; margin-top: 0.25rem; line-height: 1.6; color: var(--color-muted); }
+
+  .wr { list-style: none; margin: 0; padding: 0; }
+  .wr-i { border-top: 1px solid var(--color-line); }
+  .wr-a {
+    display: block;
+    padding-block: 0.875rem;
+    min-height: 44px;
+    text-decoration: none;
+    color: var(--color-ink);
+  }
+  .wr-m {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-muted);
+    margin-bottom: 0.25rem;
+  }
+  .wr-t { display: block; line-height: 1.45; }
+  .wr-d {
+    display: block;
+    margin-top: 0.375rem;
+    max-width: 48ch;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .wr-a:hover .wr-t { color: var(--color-accent); }
+
+  /* ── 10 · close ──────────────────────────────────────────────────────── */
+  .end {
+    display: grid;
+    gap: clamp(2rem, 4vw, 3rem);
+    padding-block: clamp(1.5rem, 5vw, 3.5rem);
+  }
+  @media (min-width: 62rem) {
+    .end { grid-template-columns: minmax(0, 1fr) minmax(0, 19rem); align-items: start; }
+  }
+  .end-p { margin-top: 1.5rem; max-width: 54ch; color: var(--color-muted); }
+  .end-do {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+  .end-cmd { flex: 0 1 18rem; min-width: 0; }
+
+  .end-facts { margin: 0; font-family: var(--font-mono); font-size: 0.8125rem; }
+  .end-f {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.5rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .end-f:last-child { border-bottom: 1px solid var(--color-line); }
+  .end-facts dt { color: var(--color-muted); }
+  .end-facts dd { margin: 0; color: var(--color-ink); }
+</style>

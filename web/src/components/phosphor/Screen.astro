@@ -1,0 +1,50 @@
+---
+/**
+ * A captured terminal screen, given a real terminal's backdrop.
+ *
+ * The captures carry their own foreground colors and no background, so they
+ * need something dark behind them in either theme. Dark theme uses the page
+ * background; light theme borrows --color-ink, which in this direction is a
+ * near-black. No new colors are introduced either way.
+ *
+ * The caption lives outside the dark box so it keeps page-level contrast.
+ */
+import TerminalFrame from "@/components/shared/TerminalFrame.astro";
+
+interface Props {
+  demo: string;
+  label?: string;
+  rows?: number;
+  caption?: string;
+  class?: string;
+}
+const { demo, label, rows, caption, class: className = "" } = Astro.props;
+---
+
+<div class={`sc ${className}`}>
+  <div class="sc-box">
+    <TerminalFrame demo={demo} label={label} rows={rows} />
+  </div>
+  {caption && <p class="sc-cap">{caption}</p>}
+</div>
+
+<style>
+  .sc { min-width: 0; }
+  .sc-box {
+    background: var(--color-bg);
+    border: 1px solid var(--color-line);
+    padding: clamp(0.5rem, 1vw, 0.875rem);
+    min-width: 0;
+  }
+  :global([data-theme="light"]) .sc-box {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+  .sc-cap {
+    margin: 0.75rem 0 0;
+    max-width: 62ch;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+</style>

@@ -1,0 +1,1008 @@
+---
+/**
+ * BLUEPRINT — the technical-datasheet direction.
+ *
+ * The argument: this audience reads specifications for a living. So the page is
+ * built like a component datasheet — an identification block, numbered figures
+ * with annotated callouts, labelled value tables instead of adjectives, and a
+ * comparison matrix as the centrepiece rather than a footnote. Everything sits
+ * on a 24px dotted substrate; every number is tabular.
+ */
+import Shell from "@/layouts/Shell.astro";
+import TerminalFrame from "@/components/shared/TerminalFrame.astro";
+import StarButton from "@/components/shared/StarButton.astro";
+import CopyCommand from "@/components/shared/CopyCommand.astro";
+import AnnotatedFigure from "@/components/blueprint/AnnotatedFigure.astro";
+import { product, stats, comparison, componentGroups, themes, roadmap } from "@/data/product";
+import { getCollection } from "astro:content";
+import { allFrames } from "@/lib/frames";
+import { baseFor, url, formatDate, readingTime } from "@/lib/site";
+
+const base = baseFor("blueprint");
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+
+/** Derived, not asserted: how many real captures this site actually carries. */
+const captureCount = allFrames().length;
+
+const identification: [string, string][] = [
+  ["Version", product.version],
+  ["License", product.license],
+  ["Runtime", "Node " + product.node + ", ESM"],
+  ["Runtime dependencies", String(stats.runtimeDeps) + " — esbuild, jpeg-js, pngjs"],
+  ["Components", String(stats.components)],
+  ["Themes", String(stats.themes)],
+  ["Tests", stats.tests.toLocaleString("en-US") + " across " + stats.testSuites + " suites"],
+  ["Demos", String(stats.demos)],
+  ["First published", product.firstPublished],
+];
+
+/** Row/column are indices into the captured cell grid, so the markers land exactly. */
+type Callout = { row: number; col: number; title: string; body: string };
+
+const anatomy: Callout[] = [
+  {
+    row: 3,
+    col: 94,
+    title: "ASCII banner",
+    body: "Rendered by the framework, not pasted in. 14 bitmap fonts and 15 scenes ship in the box.",
+  },
+  {
+    row: 10,
+    col: 100,
+    title: "Layout resolves to the terminal",
+    body: "The 12-column grid measures the real window. This capture is 100 columns wide; at 80 the same page reflows.",
+  },
+  {
+    row: 12,
+    col: 26,
+    title: "Focused route",
+    body: "The caret and the highlight are runtime state. The page file does not track which row is selected.",
+  },
+  {
+    row: 17,
+    col: 27,
+    title: "One entry per file",
+    body: "Six menu rows, six files under pages/. Adding a screen means adding a file.",
+  },
+  {
+    row: 21,
+    col: 32,
+    title: "Global key bar",
+    body: "Arrow keys move, return selects, q quits, colon opens the command line. Bound once by the runtime.",
+  },
+];
+
+const routes: [string, string, string][] = [
+  ["pages/index.ts", "/", "Screen"],
+  ["pages/about.ts", "/about", "Screen"],
+  ["pages/projects/index.ts", "/projects", "Screen"],
+  ["pages/projects/[slug].ts", "/projects/:slug", "Dynamic screen"],
+  ["api/stats.ts", "GET /api/stats", "Endpoint"],
+];
+
+const tiers: [string, string, string][] = [
+  ["kitty, Ghostty", "kitty graphics protocol", "True pixels"],
+  ["Apple Terminal, tmux, ssh", "Coloured cells, block glyphs", "Same row count"],
+];
+
+/** Status comes straight from the data; nothing planned is ever dressed as shipped. */
+const STATUS: Record<string, { label: string; cls: string }> = {
+  shipped: { label: "Shipped", cls: "ship" },
+  progress: { label: "In progress", cls: "prog" },
+  planned: { label: "Planned", cls: "plan" },
+};
+
+const testCode = `import { TUIEmulator } from "terminaltui/emulator";
+
+const app = await TUIEmulator.launch("./app");
+await app.press("down");
+await app.waitForText("Projects");
+const grid = app.screen.cells();`;
+---
+
+<Shell
+  dir="blueprint"
+  base={base}
+  defaultTheme="light"
+  title="terminaltui — a standardized engine for terminal apps"
+  description="A TypeScript framework for terminal apps: file-based routing for screens, 42 components, 10 themes, images in-terminal, and distribution over npx or SSH."
+  path={base}
+>
+  <div class="bp">
+    <!-- ── COVER ─────────────────────────────────────────────────────── -->
+    <section class="wrap sec sec-cover" aria-labelledby="cover-h">
+      <div class="cover">
+        <div class="cover-main">
+          <p class="pixel-eyebrow rule-eyebrow">
+            Datasheet · {product.name} · v<span class="tnum">{product.version}</span>
+          </p>
+          <h1 id="cover-h" class="cover-name pixel">terminaltui</h1>
+          <p class="cover-line">A standardized engine for terminal apps.</p>
+          <p class="cover-body">
+            Write a <code>pages</code> directory of TypeScript. Get a navigable terminal
+            application you can ship with <code>npx</code> or host over SSH. Routing,
+            layout, navigation, state and theming are already decided.
+          </p>
+          <div class="cover-act">
+            <CopyCommand cmd="npx terminaltui try" class="cover-cmd" />
+            <StarButton size="lg" />
+          </div>
+          <p class="cover-note">
+            A five-page tour. No install, no config; it runs in the terminal you already
+            have open.
+          </p>
+        </div>
+
+        <div class="cover-id">
+          <p class="pixel-eyebrow tbl-cap">Table 01 — Identification</p>
+          <dl class="idl">
+            {identification.map(([k, v]) => (
+              <div class="idl-row">
+                <dt>{k}</dt>
+                <dd class="tnum">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FIG 01 — ANATOMY ──────────────────────────────────────────── -->
+    <section class="wrap sec sec-fig" aria-labelledby="anatomy-h">
+      <header class="sec-head">
+        <p class="pixel-eyebrow rule-eyebrow">Fig. 01</p>
+        <h2 id="anatomy-h" class="sec-h">Anatomy of a screen</h2>
+      </header>
+      <AnnotatedFigure
+        demo="welcome"
+        label="home"
+        rows={22}
+        caption="Fig. 01 — the welcome tour, 100 × 22 cells, cyberpunk theme. A real capture, not a mock-up: every glyph and colour below came out of a PTY."
+        callouts={anatomy}
+      />
+    </section>
+
+    <!-- ── §01 ROUTING ───────────────────────────────────────────────── -->
+    <section class="wrap sec sec-route" aria-labelledby="route-h">
+      <div class="split">
+        <div class="split-a">
+          <p class="pixel-eyebrow rule-eyebrow">§ 01 — Routing</p>
+          <h2 id="route-h" class="sec-h">Screens are files</h2>
+          <p class="body">
+            The <code>pages</code> directory is the routing table. Nothing registers a
+            route and nothing imports a router. A file at a path renders at that path,
+            with parameters and API endpoints following the same rule.
+          </p>
+          <p class="pixel-eyebrow tbl-cap">Table 02 — Route resolution</p>
+          <div class="tw">
+            <table class="tbl tbl-route">
+              <thead>
+                <tr><th scope="col">Source file</th><th scope="col">Route</th><th scope="col">Kind</th></tr>
+              </thead>
+              <tbody>
+                {routes.map(([f, r, k]) => (
+                  <tr>
+                    <td><code>{f}</code></td>
+                    <td><code>{r}</code></td>
+                    <td class="td-muted">{k}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="body body-tight">
+            This is the Next.js bargain, applied to the terminal.
+          </p>
+        </div>
+
+        <div class="split-b">
+          <TerminalFrame
+            demo="developer-portfolio"
+            label="projects"
+            rows={32}
+            caption="Fig. 02 — a list screen from the developer-portfolio demo. Search field, two-column card grid, scroll indicator and key bar are components; none of it is drawn by hand."
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ── §02 DISTRIBUTION ──────────────────────────────────────────── -->
+    <section class="wrap sec sec-dist" aria-labelledby="dist-h">
+      <header class="sec-head">
+        <p class="pixel-eyebrow rule-eyebrow">§ 02 — Distribution</p>
+        <h2 id="dist-h" class="sec-h">Two ways to ship, both trivial</h2>
+      </header>
+
+      <div class="modes">
+        <div class="mode">
+          <p class="mode-key pixel">A</p>
+          <h3 class="mode-h">Over npm</h3>
+          <CopyCommand cmd="npx your-app" />
+          <p class="body body-sm">
+            <code>terminaltui build</code> bundles the project for publish. Anyone with
+            Node runs it without installing anything. No binary, no Electron, no browser.
+          </p>
+          <dl class="idl idl-sm">
+            <div class="idl-row"><dt>Transport</dt><dd>npm registry</dd></div>
+            <div class="idl-row"><dt>Client install</dt><dd>None</dd></div>
+            <div class="idl-row"><dt>Requires</dt><dd class="tnum">Node {product.node}</dd></div>
+          </dl>
+        </div>
+
+        <div class="mode">
+          <p class="mode-key pixel">B</p>
+          <h3 class="mode-h">Over SSH</h3>
+          <CopyCommand cmd="terminaltui serve" />
+          <p class="body body-sm">
+            One process, many sessions. The runtime reads each client's <code>TERM</code>{" "}
+            and picks a colour depth to match, so the app looks right whether the visitor
+            arrives from Ghostty or from a login shell on a box in a rack.
+          </p>
+          <dl class="idl idl-sm">
+            <div class="idl-row"><dt>Transport</dt><dd>SSH</dd></div>
+            <div class="idl-row"><dt>Client install</dt><dd>None</dd></div>
+            <div class="idl-row"><dt>Requires</dt><dd>An ssh client</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="dist-fig">
+        <TerminalFrame
+          demo="server-dashboard"
+          label="home"
+          rows={20}
+          caption="Fig. 03 — server-dashboard, 100 × 20 cells. The same page over npx and over ssh; only the negotiated colour depth differs."
+        />
+      </div>
+    </section>
+
+    <!-- ── §03 IMAGES ────────────────────────────────────────────────── -->
+    <section class="wrap sec sec-img" aria-labelledby="img-h">
+      <div class="split split-narrow">
+        <div class="split-a">
+          <p class="pixel-eyebrow rule-eyebrow">§ 03 — Raster output</p>
+          <h2 id="img-h" class="sec-h">Images, with no native dependency</h2>
+          <p class="body">
+            PNG and JPEG decode in pure JavaScript: <code>jpeg-js</code> and <code>pngjs</code>,
+            two of the framework's three runtime dependencies. No <code>sharp</code>, no{" "}
+            <code>node-gyp</code>, nothing to compile on install.
+          </p>
+          <div class="code code-one">
+            <code>image("./cover.png", &#123; width: 60 &#125;)</code>
+          </div>
+        </div>
+        <div class="split-b">
+          <p class="pixel-eyebrow tbl-cap">Table 03 — Output tiers</p>
+          <div class="tw">
+            <table class="tbl">
+              <thead>
+                <tr><th scope="col">Terminal</th><th scope="col">Method</th><th scope="col">Result</th></tr>
+              </thead>
+              <tbody>
+                {tiers.map(([t, m, r]) => (
+                  <tr>
+                    <td>{t}</td>
+                    <td class="td-muted">{m}</td>
+                    <td>{r}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="body body-sm body-tight">
+            Both tiers occupy the same number of rows, so a layout does not shift when the
+            terminal changes underneath it. Video is in progress, not shipped.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── §04 INVENTORY ─────────────────────────────────────────────── -->
+    <section class="wrap sec sec-box" aria-labelledby="box-h">
+      <header class="sec-head">
+        <p class="pixel-eyebrow rule-eyebrow">§ 04 — Inventory</p>
+        <h2 id="box-h" class="sec-h">What is in the box</h2>
+      </header>
+
+      <p class="inv-lead">
+        The full authoring API, read off the package's export list rather than the docs.
+        Nothing below is a plugin.
+      </p>
+      <div class="inv">
+        {componentGroups.map((g) => (
+          <div class="inv-row">
+            <p class="inv-name">
+              {g.group} <span class="inv-n tnum">{g.items.length}</span>
+            </p>
+            <p class="inv-items">{g.items.join("  ·  ")}</p>
+          </div>
+        ))}
+        <div class="inv-row inv-total">
+          <p class="inv-name">Total <span class="inv-n tnum">{stats.components}</span></p>
+          <p class="inv-items">
+            plus a 12-column grid, ASCII art with {stats.asciiFonts} fonts and{" "}
+            {stats.asciiScenes} scenes, and image rendering
+          </p>
+        </div>
+      </div>
+
+      <div class="themes">
+        <div class="themes-list">
+          <p class="pixel-eyebrow tbl-cap">Table 04 — Themes, as shipped</p>
+          <ul class="sw">
+            {themes.map((t) => (
+              <li class="sw-row">
+                <span class="sw-name">{t.name}</span>
+                <span class="sw-chips">
+                  {t.swatch.map((c) => <span class="sw-chip" style={`background:${c}`}></span>)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p class="body body-sm body-tight">
+            Set one line of config and every component follows. The captures on this page
+            are running cyberpunk, gruvbox, hacker, nord and rosePine.
+          </p>
+        </div>
+        <div class="themes-fig">
+          <TerminalFrame
+            demo="welcome"
+            label="themes"
+            rows={30}
+            caption="Fig. 04 — the theme browser, drawn with the same card, grid and divider components as everything else."
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ── §05 COMPARISON ────────────────────────────────────────────── -->
+    <section class="wrap sec sec-cmp" aria-labelledby="cmp-h">
+      <header class="sec-head">
+        <p class="pixel-eyebrow rule-eyebrow">Table 05 — Comparison</p>
+        <h2 id="cmp-h" class="sec-h">Against the alternatives</h2>
+      </header>
+
+      <p class="tw-hint">Scroll the table sideways to see every column.</p>
+      <div class="tw tw-cmp">
+        <table class="tbl tbl-cmp">
+          <caption class="sr-only">
+            terminaltui compared with Ink, Pastel and Bubble Tea
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" class="cmp-corner"></th>
+              {comparison.columns.map((c, i) => (
+                <th scope="col" class={i === 0 ? "cmp-us" : ""}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {comparison.rows.map((row) => (
+              <tr>
+                <th scope="row">{row.label}</th>
+                {row.values.map((v, i) => (
+                  <td class={i === 0 ? "cmp-us" : ""}>
+                    {v === true ? <span class="yes">Yes</span>
+                      : v === false ? <span class="no">No</span>
+                      : <span>{v}</span>}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cmp-foot">
+        <p class="cmp-caveat">{comparison.caveat}</p>
+        <StarButton size="lg" label="Star on GitHub" />
+      </div>
+    </section>
+
+    <!-- ── §06 TESTING ───────────────────────────────────────────────── -->
+    <section class="wrap sec sec-test" aria-labelledby="test-h">
+      <p class="pixel-eyebrow rule-eyebrow">§ 05 — Verification</p>
+      <h2 id="test-h" class="statement pixel">
+        Every figure on this page was captured by the framework's own test harness.
+      </h2>
+      <div class="test-grid">
+        <p class="body">
+          <code>terminaltui/emulator</code> boots an app in a real PTY, sends keypresses
+          and hands back the screen as cells. It is the same tool the project tests
+          itself with.
+        </p>
+        <div class="code">
+          <pre><code>{testCode}</code></pre>
+        </div>
+      </div>
+      <dl class="idl idl-inline">
+        <div class="idl-row"><dt>Tests</dt><dd class="tnum">{stats.tests.toLocaleString("en-US")}</dd></div>
+        <div class="idl-row"><dt>Suites</dt><dd class="tnum">{stats.testSuites}</dd></div>
+        <div class="idl-row"><dt>Captures on this site</dt><dd class="tnum">{captureCount}</dd></div>
+        <div class="idl-row"><dt>Demos exercised</dt><dd class="tnum">{stats.demos}</dd></div>
+      </dl>
+    </section>
+
+    <!-- ── §07 ROADMAP ───────────────────────────────────────────────── -->
+    <section class="wrap sec sec-road" aria-labelledby="road-h">
+      <header class="sec-head">
+        <p class="pixel-eyebrow rule-eyebrow">§ 06 — Revision plan</p>
+        <h2 id="road-h" class="sec-h">Shipped, in progress, planned</h2>
+      </header>
+      <ul class="road">
+        {roadmap.map((r) => (
+          <li class="road-row">
+            <span class={`chip chip-${STATUS[r.status].cls}`}>{STATUS[r.status].label}</span>
+            <span class="road-t">{r.title}</span>
+            <span class="road-b">{r.body}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <!-- ── §08 WRITING ───────────────────────────────────────────────── -->
+    <section class="wrap sec sec-read" aria-labelledby="read-h">
+      <header class="sec-head">
+        <p class="pixel-eyebrow rule-eyebrow">§ 07 — Notes</p>
+        <h2 id="read-h" class="sec-h">Engineering write-ups</h2>
+      </header>
+      <ol class="notes">
+        {posts.map((p, i) => (
+          <li>
+            <a class="note" href={url(base, `blog/${p.id}/`)}>
+              <span class="note-n pixel tnum">{String(i + 1).padStart(2, "0")}</span>
+              <span class="note-body">
+                <span class="note-t">{p.data.title}</span>
+                <span class="note-d">{p.data.description}</span>
+              </span>
+              <span class="note-m tnum">
+                {formatDate(p.data.date)} · {readingTime(p.body ?? "")} min
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <!-- ── CLOSE ─────────────────────────────────────────────────────── -->
+    <section class="wrap sec sec-end" aria-labelledby="end-h">
+      <h2 id="end-h" class="end-h pixel">Read the source</h2>
+      <p class="body end-b">
+        It is MIT licensed and young — first published {product.firstPublished}. The
+        honest way to evaluate it is to run the tour, then read the code.
+      </p>
+      <div class="end-act">
+        <CopyCommand cmd="npx terminaltui try" class="end-cmd" />
+        <StarButton size="lg" />
+      </div>
+      <p class="colophon">
+        Every figure on this page is a real terminal capture. Every number comes from the
+        repository, the npm registry or the GitHub API, verified{" "}
+        <span class="tnum">2026-07-26</span>. Star count is fetched live and falls back to{" "}
+        <span class="tnum">{stats.stars}</span>.
+      </p>
+    </section>
+  </div>
+</Shell>
+
+<style>
+  /* ── Substrate ────────────────────────────────────────────────────── */
+
+  .bp {
+    --u: 24px;
+    /* The captures carry no background of their own and fall back to a light
+       grey foreground, so they need a dark plate to sit on. Derived from
+       tokens: the ink colour in light, the raised surface in dark. */
+    --plate: var(--color-ink);
+    --plate-pad: 14px;
+    position: relative;
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-line) 78%, var(--color-bg)) 1px,
+      transparent 1.4px
+    );
+    background-size: var(--u) var(--u);
+    background-position: 0 0;
+  }
+  /* Fade the grid out at the bottom so the footer joins cleanly. */
+  .bp::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 96px;
+    background: linear-gradient(to bottom, transparent, var(--color-bg));
+    pointer-events: none;
+  }
+
+  :global([data-theme="dark"]) .bp { --plate: var(--color-surface); }
+
+  /* padding-block only: any inline padding or border would make the <pre>
+     wider than its container and introduce a scrollbar. */
+  .bp :global(.tf-scroll) {
+    background: var(--plate);
+    padding-block: var(--plate-pad);
+  }
+
+  /* The shared copy button ships at 32px; on this page it is a primary target,
+     so it is enlarged to 44px without changing the row's optical height. */
+  .bp :global(.cc-btn) {
+    width: 44px;
+    height: 44px;
+    margin: -10px -10px -10px 0;
+  }
+
+  .sec { position: relative; padding-block: 72px; }
+  .sec-cover { padding-block: 48px 96px; }
+  .sec-fig { padding-block: 0 96px; }
+  .sec-route { padding-block: 72px; border-top: 1px solid var(--color-line); }
+  .sec-dist { padding-block: 96px; }
+  .sec-img { padding-block: 48px 96px; }
+  .sec-box { padding-block: 72px; border-top: 1px solid var(--color-line); }
+  .sec-cmp { padding-block: 96px 72px; }
+  .sec-test { padding-block: 120px 96px; border-top: 1px solid var(--color-line); }
+  .sec-road { padding-block: 48px 72px; }
+  .sec-read { padding-block: 72px; }
+  .sec-end { padding-block: 96px 120px; border-top: 1px solid var(--color-line); }
+
+  /* ── Shared type ──────────────────────────────────────────────────── */
+
+  .rule-eyebrow {
+    color: var(--color-accent);
+    margin: 0 0 20px;
+    padding-top: 8px;
+    border-top: 2px solid var(--color-accent);
+    display: block;
+  }
+  .tbl-cap {
+    color: var(--color-muted);
+    margin: 32px 0 10px;
+  }
+  .sec-head { margin-bottom: 40px; max-width: 46ch; }
+  .sec-h {
+    font-size: clamp(1.5rem, 3.4vw, 2.125rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .body {
+    margin: 20px 0 0;
+    max-width: 62ch;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--color-muted);
+  }
+  .body-sm { font-size: 1rem; }
+  .body-tight { max-width: 58ch; }
+  .body code, .cover-body code, .idl code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--color-ink);
+  }
+
+  /* ── Cover ────────────────────────────────────────────────────────── */
+
+  .cover { display: grid; gap: 56px; }
+  .cover-main { min-width: 0; }
+  .cover-name {
+    font-size: clamp(2.25rem, 9vw, var(--px-2xl));
+    line-height: 1;
+    margin: 0;
+    letter-spacing: 0.005em;
+  }
+  .cover-line {
+    margin: 24px 0 0;
+    font-size: clamp(1.125rem, 2.6vw, 1.5rem);
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    max-width: 24ch;
+  }
+  .cover-body {
+    margin: 20px 0 0;
+    max-width: 56ch;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--color-muted);
+  }
+  .cover-act {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .cover-cmd { flex: 1 1 17rem; min-width: 0; }
+  .cover-note {
+    margin: 16px 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 46ch;
+  }
+
+  .cover-id { min-width: 0; }
+  .cover-id .tbl-cap { margin-top: 0; }
+
+  /* ── Label / value list ───────────────────────────────────────────── */
+
+  .idl { margin: 0; padding: 0; border-top: 1px solid var(--color-line); }
+  .idl-row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 40%) minmax(0, 1fr);
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .idl dt {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+  .idl dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+  .idl-sm { margin-top: 20px; }
+  .idl-inline {
+    margin-top: 48px;
+    display: grid;
+    gap: 0 32px;
+    max-width: 44rem;
+  }
+
+  /* ── Tables ───────────────────────────────────────────────────────── */
+
+  .tw { overflow-x: auto; overscroll-behavior-x: contain; }
+  /* Only shown where the matrix is genuinely wider than the screen. */
+  .tw-hint {
+    margin: -16px 0 16px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+  @media (min-width: 50rem) { .tw-hint { display: none; } }
+  .tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .tbl th, .tbl td {
+    text-align: left;
+    padding: 10px 16px 10px 0;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: top;
+  }
+  .tbl thead th {
+    font-family: var(--font-display);
+    font-size: var(--px-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 400;
+    color: var(--color-muted);
+    border-bottom: 1px solid var(--color-ink);
+    padding-bottom: 8px;
+    white-space: nowrap;
+  }
+  .tbl code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+  .td-muted { color: var(--color-muted); }
+  .tbl-route { min-width: 30rem; }
+
+  /* ── Splits ───────────────────────────────────────────────────────── */
+
+  .split { display: grid; gap: 48px; align-items: start; }
+  .split-a, .split-b { min-width: 0; }
+
+  /* ── Distribution ─────────────────────────────────────────────────── */
+
+  .modes { display: grid; gap: 40px; }
+  .mode {
+    min-width: 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-line);
+  }
+  .mode-key {
+    margin: 0;
+    font-size: var(--px-lg);
+    line-height: 1;
+    color: var(--color-accent);
+  }
+  .mode-h {
+    margin: 12px 0 20px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .mode { display: flex; flex-direction: column; }
+  .mode .body { margin-top: 20px; }
+  /* Both columns are the same height, so pinning the value tables to the
+     bottom lines their rules up across the split. */
+  .mode .idl-sm { margin-top: auto; padding-top: 20px; }
+  .dist-fig { margin-top: 72px; }
+
+  /* ── Inventory ────────────────────────────────────────────────────── */
+
+  .inv-lead {
+    margin: -16px 0 32px;
+    max-width: 46ch;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--color-muted);
+  }
+  .inv { border-top: 1px solid var(--color-ink); }
+  .inv-row {
+    display: grid;
+    gap: 4px 24px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .inv-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--px-sm);
+    letter-spacing: 0.04em;
+  }
+  .inv-n { color: var(--color-accent); }
+  .inv-total { border-bottom-color: var(--color-ink); }
+  .inv-items {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.9;
+    color: var(--color-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .themes { display: grid; gap: 48px; margin-top: 56px; align-items: start; }
+  .themes-list, .themes-fig { min-width: 0; }
+  .themes-list .tbl-cap { margin-top: 0; }
+  .sw { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-line); }
+  .sw-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .sw-name {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-ink);
+  }
+  .sw-chips { display: flex; gap: 3px; flex: none; }
+  .sw-chip {
+    width: 22px;
+    height: 12px;
+    display: block;
+  }
+
+  /* ── Comparison ───────────────────────────────────────────────────── */
+
+  .tbl-cmp { min-width: 44rem; }
+  .tbl-cmp th[scope="row"] {
+    font-weight: 500;
+    color: var(--color-ink);
+    padding-right: 24px;
+    font-size: 0.8125rem;
+  }
+  .tbl-cmp td { color: var(--color-muted); }
+  .tbl-cmp thead th.cmp-us { color: var(--color-accent); }
+  .cmp-corner { border-bottom-color: var(--color-ink); }
+  .tbl-cmp .cmp-us {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .tbl-cmp thead th.cmp-us { background: var(--color-surface); }
+  .yes { color: var(--color-accent); font-weight: 600; }
+  .no { color: var(--color-muted); }
+
+  .cmp-foot {
+    display: grid;
+    gap: 24px;
+    margin-top: 32px;
+    align-items: start;
+  }
+  .cmp-caveat {
+    margin: 0;
+    max-width: 56ch;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--color-muted);
+    border-left: 2px solid var(--color-line);
+    padding-left: 16px;
+  }
+  .cmp-foot :global(.sb) { justify-self: start; }
+
+  /* ── Verification ─────────────────────────────────────────────────── */
+
+  .statement {
+    margin: 0;
+    font-size: clamp(1.375rem, 4vw, var(--px-lg));
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    max-width: 22ch;
+    font-weight: 400;
+  }
+  .test-grid { display: grid; gap: 32px; margin-top: 40px; align-items: start; }
+  .code {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: 16px;
+    overflow-x: auto;
+    min-width: 0;
+  }
+  .code pre { margin: 0; }
+  .code code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--color-ink);
+    white-space: pre;
+  }
+  .code-one { margin-top: 24px; }
+  .code-one code { white-space: nowrap; }
+
+  /* ── Roadmap ──────────────────────────────────────────────────────── */
+
+  .road { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-ink); }
+  .road-row {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 4px 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--color-line);
+    align-items: baseline;
+  }
+  .chip {
+    grid-row: span 2;
+    align-self: start;
+    font-family: var(--font-display);
+    font-size: var(--px-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    justify-self: start;
+    border: 1px solid var(--color-line);
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  .chip-ship { border-color: var(--color-accent); color: var(--color-accent); }
+  .chip-prog { border-color: var(--color-ink); color: var(--color-ink); }
+  .road-t { font-size: 1rem; font-weight: 600; letter-spacing: -0.005em; }
+  .road-b {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 62ch;
+  }
+
+  /* ── Notes ────────────────────────────────────────────────────────── */
+
+  .notes { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-line); }
+  .notes li { border-bottom: 1px solid var(--color-line); }
+  .note {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 4px 16px;
+    padding: 20px 0;
+    min-height: 44px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .note-n { font-size: var(--px-sm); color: var(--color-accent); line-height: 1.4; }
+  .note-body { display: block; min-width: 0; }
+  .note-t {
+    display: block;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+  }
+  .note-d {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    max-width: 62ch;
+  }
+  .note-m {
+    grid-column: 2;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    margin-top: 10px;
+  }
+  .note:hover .note-t { text-decoration: underline; text-underline-offset: 4px; }
+
+  /* ── Close ────────────────────────────────────────────────────────── */
+
+  .end-h {
+    margin: 0;
+    font-size: clamp(1.75rem, 6vw, var(--px-xl));
+    line-height: 1.1;
+  }
+  .end-b { margin-top: 20px; }
+  .end-act {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .end-cmd { flex: 1 1 17rem; min-width: 0; }
+  .colophon {
+    margin: 48px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.7;
+    color: var(--color-muted);
+    max-width: 68ch;
+  }
+
+  /* ── Breakpoints ──────────────────────────────────────────────────── */
+
+  @media (min-width: 48rem) {
+    .modes {
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+    }
+    .idl-inline { grid-template-columns: 1fr 1fr; }
+    .road-row {
+      grid-template-columns: 7.5rem 18rem minmax(0, 1fr);
+      gap: 20px;
+    }
+    .chip { grid-row: auto; }
+    .note {
+      grid-template-columns: 2.5rem minmax(0, 1fr) 10rem;
+      align-items: baseline;
+    }
+    .note-m { grid-column: 3; margin-top: 0; text-align: right; }
+  }
+
+  @media (min-width: 60rem) {
+    .sec { padding-block: 96px; }
+    .sec-cover { padding-block: 72px 120px; }
+    .sec-fig { padding-block: 0 120px; }
+    .sec-test { padding-block: 144px 120px; }
+    .sec-road { padding-block: 72px 96px; }
+    .sec-end { padding-block: 120px 144px; }
+
+    .cover {
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 72px;
+      align-items: start;
+    }
+    .split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 56px; }
+    .split-narrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .themes { grid-template-columns: minmax(0, 21rem) minmax(0, 1fr); gap: 56px; }
+    .test-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 48px; }
+    .test-grid .body { margin-top: 0; }
+    .cmp-foot {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 40px;
+      align-items: center;
+    }
+    .idl-inline { grid-template-columns: repeat(4, 1fr); }
+    .idl-inline .idl-row { grid-template-columns: 1fr; gap: 2px; }
+    .idl-inline dd { font-size: 1.25rem; }
+  }
+</style>

@@ -1,0 +1,736 @@
+---
+/**
+ * GALLERY — the museum direction.
+ *
+ * The argument: the captured terminal screens are the only thing on this site
+ * that no competitor can fake, so they are hung as works and everything else is
+ * wall text. Sections are enormously spaced and almost wordless, and then the
+ * page ends in one dense index that catches every fact the air left out. That
+ * contrast — vast rooms, then a specification card by the door — is the whole
+ * composition. Amber appears once, on the closing star button.
+ */
+import Shell from "@/layouts/Shell.astro";
+import StarButton from "@/components/shared/StarButton.astro";
+import CopyCommand from "@/components/shared/CopyCommand.astro";
+import Exhibit from "@/components/gallery/Exhibit.astro";
+import {
+  product,
+  stats,
+  comparison,
+  cli,
+  roadmap,
+} from "@/data/product";
+import { getCollection } from "astro:content";
+import { baseFor, url, formatDate } from "@/lib/site";
+
+const base = baseFor("gallery");
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 2);
+
+/** The routing tree, with the screen each file produces. */
+const tree = `my-app/
+├── config.ts         theme + settings
+├── pages/
+│   ├── home.ts       first screen
+│   ├── about.ts      /about
+│   └── projects/
+│       ├── index.ts  /projects
+│       └── [slug].ts /projects/vektor
+└── api/
+    └── stats.ts      GET /api/stats`;
+
+const emulatorSnippet = `import { TUIEmulator } from "terminaltui/emulator";
+
+const emu = await TUIEmulator.launch({
+  command: "npx terminaltui dev",
+  cols: 100,
+  rows: 32,
+});
+
+await emu.waitForBoot();
+await emu.press("down");
+await emu.press("enter");
+emu.assert.currentPage("projects");`;
+
+/** The index. Every value traces back to src/data/product.ts. */
+const spec: [string, string][] = [
+  ["Version", product.version],
+  ["License", `${product.license}, Node ${product.node}, ESM only`],
+  ["Runtime dependencies", `${stats.runtimeDeps} — esbuild, jpeg-js, pngjs`],
+  ["Native build steps", "None. No sharp, no node-gyp"],
+  ["Components", `${stats.components}, across display, input, layout and dynamic`],
+  ["Themes", `${stats.themes}, plus a 12-column grid`],
+  ["ASCII", `${stats.asciiFonts} banner fonts, ${stats.asciiScenes} scenes`],
+  ["Demos in the package", `${stats.demos}, runnable with terminaltui demo`],
+  ["Tests", `${stats.tests.toLocaleString("en-US")} across ${stats.testSuites} suites`],
+  ["Idle repaint", "Nothing on screen changed, nothing written"],
+  ["AI scaffolding", "claude/SKILL.md ships inside the package"],
+  ["Downloads", `${stats.downloadsMonth} last month`],
+  ["First published", "23 March 2026"],
+];
+
+const statusLabel: Record<string, string> = {
+  shipped: "Shipped",
+  progress: "In progress",
+  planned: "Planned",
+};
+
+function cellText(v: string | boolean): string {
+  if (v === true) return "Yes";
+  if (v === false) return "No";
+  return v;
+}
+---
+
+<Shell
+  dir="gallery"
+  base={base}
+  defaultTheme="dark"
+  title="terminaltui — a standardized engine for terminal apps"
+  description="Real captured screens from terminaltui: a TypeScript framework where a pages directory becomes a terminal app you ship with npx or host over SSH."
+  path={base}
+>
+  <div class="gx">
+    {/* ── Entrance ─────────────────────────────────────────────────────── */}
+    <section class="gx-entrance" aria-labelledby="gx-h1">
+      <div class="wrap">
+        <p class="pixel-eyebrow gx-eyebrow">
+          terminaltui · v{product.version} · {product.license}
+        </p>
+        <h1 id="gx-h1" class="pixel gx-h1">A standardized engine for terminal apps.</h1>
+        <p class="gx-lede">{product.pitch}</p>
+        <div class="gx-actions">
+          <CopyCommand cmd="npx terminaltui try" class="gx-cc" />
+          <StarButton size="lg" />
+        </div>
+      </div>
+
+      <div class="wrap gx-first">
+        <Exhibit
+          n="Exhibit I"
+          title="Welcome Tour"
+          demo="welcome"
+          label="home"
+          theme="cyberpunk"
+          cmd="npx terminaltui try"
+          note="Six pages, one keyboard model, no configuration. This is the first screen npx prints on a machine with nothing installed."
+        />
+      </div>
+    </section>
+
+    {/* ── The mechanism. The one dense, technical room. ─────────────────── */}
+    <section class="gx-mech" aria-labelledby="gx-mech-h">
+      <div class="wrap">
+        <h2 id="gx-mech-h" class="gx-h2 pixel">A directory decides the shape</h2>
+        <div class="gx-mech-grid">
+          <div class="gx-mech-text">
+            <p class="gx-body">
+              A file under <code>pages/</code> is a screen. Nest a folder and you nest a
+              route. <code>[slug].ts</code> is dynamic. A file under <code>api/</code> is a
+              GET endpoint. Navigation, back, breadcrumbs and focus order all follow from
+              the tree, so there is no architecture left to choose.
+            </p>
+            <div class="gx-scroll">
+              <pre class="gx-tree"><code>{tree}</code></pre>
+            </div>
+            <p class="gx-fine">
+              The screen on the right is <code>pages/projects/index.ts</code> from the
+              developer-portfolio demo, running.
+            </p>
+          </div>
+
+          <Exhibit
+            class="gx-mech-ex"
+            n="Exhibit II"
+            title="Developer Portfolio"
+            demo="developer-portfolio"
+            label="projects"
+            theme="cyberpunk"
+            cmd="npx terminaltui demo developer-portfolio"
+          />
+        </div>
+      </div>
+    </section>
+
+    {/* ── Distribution. Wall text only. ────────────────────────────────── */}
+    <section class="gx-ship" aria-labelledby="gx-ship-h">
+      <div class="wrap">
+        <h2 id="gx-ship-h" class="gx-statement pixel">Two ways to ship.<br />Both take a line.</h2>
+
+        <div class="gx-ship-grid">
+          <div class="gx-ship-item">
+            <h3 class="gx-h3 pixel-eyebrow">Over npm</h3>
+            <p class="gx-body">
+              Publish the package. Anyone runs it with npx. No install, no binary, no
+              Electron.
+            </p>
+            <div class="gx-ship-cmd"><CopyCommand cmd="npx your-app" class="gx-cc" /></div>
+          </div>
+          <div class="gx-ship-item">
+            <h3 class="gx-h3 pixel-eyebrow">Over SSH</h3>
+            <p class="gx-body">
+              One server, many sessions. The client's TERM is read on connect and colour
+              depth is negotiated per session.
+            </p>
+            <div class="gx-ship-cmd"><CopyCommand cmd="terminaltui serve" class="gx-cc" /></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* ── Exhibit III, offset. Carries "what is in the box". ───────────── */}
+    <section class="gx-room" aria-label="Exhibit III, Restaurant">
+      <div class="wrap">
+        <Exhibit
+          variant="offset"
+          n="Exhibit III"
+          title="Restaurant"
+          demo="restaurant"
+          label="menu"
+          theme="gruvbox"
+          cmd="npx terminaltui demo restaurant"
+          note={`Nothing here was styled by hand. ${stats.components} components, a twelve-column grid, tabs, search and a theme name in the config file.`}
+        />
+      </div>
+    </section>
+
+    {/* ── Images. Wall text and one line of code. ──────────────────────── */}
+    <section class="gx-img" aria-labelledby="gx-img-h">
+      <div class="wrap gx-narrow">
+        <h2 id="gx-img-h" class="gx-h2 pixel">Photographs, in a grid of characters</h2>
+        <p class="gx-body">
+          Real PNG and JPEG. On kitty and Ghostty the renderer draws true pixels through
+          the kitty graphics protocol. Everywhere else it paints coloured cells with block
+          glyphs, at the same row count, so the same picture survives tmux, SSH and Apple
+          Terminal.
+        </p>
+        <div class="gx-scroll">
+          <pre class="gx-code"><code>image("./cover.png", &#123; width: 60 &#125;)</code></pre>
+        </div>
+        <p class="gx-fine">
+          Three runtime dependencies and no native build. Video is in progress, not
+          shipped.
+        </p>
+      </div>
+    </section>
+
+    {/* ── Exhibit IV. Evidence for the ten themes. ─────────────────────── */}
+    <section class="gx-room" aria-label="Exhibit IV, Themes">
+      <div class="wrap">
+        <Exhibit
+          n="Exhibit IV"
+          title="Themes"
+          demo="welcome"
+          label="themes"
+          theme="cyberpunk"
+          cmd="npx terminaltui try"
+          note={`${stats.themes} themes ship in the package. Every colour in these four exhibits came out of a terminal, not a stylesheet.`}
+        />
+      </div>
+    </section>
+
+    {/* ── Provenance. The emulator, framed as the exhibits' origin. ────── */}
+    <section class="gx-prov" aria-labelledby="gx-prov-h">
+      <div class="wrap">
+        <h2 id="gx-prov-h" class="gx-h2 pixel">Provenance</h2>
+        <div class="gx-prov-grid">
+          <div>
+            <p class="gx-body">
+              Every exhibit above is a real screen. Each demo was booted inside
+              terminaltui's own headless emulator, driven with keystrokes, and dumped cell
+              by cell. Nothing was drawn in a design tool.
+            </p>
+            <p class="gx-body">
+              That emulator is how you test what you build: launch the app in a real PTY,
+              press keys, assert on what is on screen. The framework's own
+              {" "}{stats.tests.toLocaleString("en-US")} tests run through it.
+            </p>
+          </div>
+          <div class="gx-scroll">
+            <pre class="gx-code"><code>{emulatorSnippet}</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* ── The index: the dense room. Everything the air left unsaid. ──── */}
+    <section class="gx-index" aria-labelledby="gx-index-h">
+      <div class="wrap">
+        <header class="gx-index-head">
+          <p class="pixel-eyebrow gx-eyebrow">The index</p>
+          <h2 id="gx-index-h" class="gx-h2 pixel">Everything else, briefly</h2>
+        </header>
+
+        <div class="gx-index-body">
+          {/* Comparison */}
+          <section class="gx-block" aria-labelledby="gx-cmp-h">
+            <h3 id="gx-cmp-h" class="gx-h3 pixel-eyebrow">Against the alternatives</h3>
+            <div class="gx-scroll gx-table-wrap">
+              <table class="gx-table">
+                <caption class="sr-only">
+                  terminaltui compared with Ink, Pastel and Bubble Tea
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col"><span class="sr-only">Feature</span></th>
+                    {comparison.columns.map((c, i) => (
+                      <th scope="col" class={i === 0 ? "is-us" : ""}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparison.rows.map((r) => (
+                    <tr>
+                      <th scope="row">{r.label}</th>
+                      {r.values.map((v, i) => (
+                        <td class={i === 0 ? "is-us" : ""}>{cellText(v)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p class="gx-caveat">{comparison.caveat}</p>
+          </section>
+
+          {/* Specification */}
+          <section class="gx-block" aria-labelledby="gx-spec-h">
+            <h3 id="gx-spec-h" class="gx-h3 pixel-eyebrow">Specification</h3>
+            <dl class="gx-spec">
+              {spec.map(([k, v]) => (
+                <div class="gx-spec-row">
+                  <dt>{k}</dt>
+                  <dd class="tnum">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {/* CLI */}
+          <section class="gx-block" aria-labelledby="gx-cli-h">
+            <h3 id="gx-cli-h" class="gx-h3 pixel-eyebrow">Commands</h3>
+            <dl class="gx-cli">
+              {cli.map((c) => (
+                <div class="gx-cli-row">
+                  <dt><code>{c.cmd}</code></dt>
+                  <dd>{c.desc}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {/* Roadmap */}
+          <section class="gx-block" aria-labelledby="gx-road-h">
+            <h3 id="gx-road-h" class="gx-h3 pixel-eyebrow">Forthcoming</h3>
+            <dl class="gx-road">
+              {roadmap.map((r) => (
+                <div class={`gx-road-row is-${r.status}`}>
+                  <dt>
+                    <span class="gx-status pixel-eyebrow">{statusLabel[r.status]}</span>
+                    <span class="gx-road-title">{r.title}</span>
+                  </dt>
+                  <dd>{r.body}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {/* Writing */}
+          <section class="gx-block" aria-labelledby="gx-writing-h">
+            <h3 id="gx-writing-h" class="gx-h3 pixel-eyebrow">Writing</h3>
+            <ul class="gx-posts">
+              {posts.map((p) => (
+                <li>
+                  <a href={url(base, `blog/${p.id}/`)} class="gx-post">
+                    <span class="gx-post-date tnum">{formatDate(p.data.date)}</span>
+                    <span class="gx-post-title">{p.data.title}</span>
+                    <span class="gx-post-desc">{p.data.description}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p class="gx-fine">
+              <a href={url(base, "blog/")} class="gx-link">All writing</a>
+            </p>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    {/* ── Exit. The only amber on the page. ────────────────────────────── */}
+    <section class="gx-close" aria-labelledby="gx-close-h">
+      <div class="wrap gx-narrow">
+        <h2 id="gx-close-h" class="gx-statement pixel">Star it if the shape is right.</h2>
+        <p class="gx-body">
+          It is young: first published in March 2026, and the count on that button is the
+          real one, fetched live. Stars are how it reaches the next person.
+        </p>
+        <div class="gx-actions">
+          <StarButton size="lg" class="gx-amber" />
+          <CopyCommand cmd="npx terminaltui try" class="gx-cc" />
+        </div>
+      </div>
+    </section>
+  </div>
+</Shell>
+
+<style>
+  /* ─────────────────────────────────────────────────────────────────────
+     The gallery runs wider than the house default so the works can be hung
+     large, and the prose columns are pulled back in individually.
+     ───────────────────────────────────────────────────────────────────── */
+  .gx { --wrap: 82rem; }
+  .gx-narrow { --wrap: 58rem; }
+
+  .gx-entrance { padding-top: clamp(3rem, 9vw, 7rem); }
+  .gx-mech,
+  .gx-ship,
+  .gx-room,
+  .gx-img,
+  .gx-prov { margin-top: var(--section-y); }
+
+  .gx-eyebrow { color: var(--color-muted); margin: 0; }
+
+  .gx-h1 {
+    margin: clamp(1.5rem, 4vw, 2.5rem) 0 0;
+    font-size: clamp(var(--px-md), 5.4vw, var(--px-2xl));
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    max-width: 19ch;
+    text-wrap: balance;
+  }
+  .gx-lede {
+    margin: clamp(1.25rem, 3vw, 2rem) 0 0;
+    max-width: 46ch;
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+
+  .gx-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: clamp(1.75rem, 4vw, 2.75rem);
+  }
+  .gx-cc { max-width: 100%; }
+  @media (min-width: 30rem) {
+    .gx-cc { min-width: 17rem; }
+  }
+
+  /* The first work hangs closer to the title wall than the other rooms. */
+  .gx-first { margin-top: clamp(3.5rem, 9vw, 7rem); }
+
+  /* ── Headings ─────────────────────────────────────────────────────── */
+  .gx-h2 {
+    margin: 0;
+    font-size: clamp(var(--px-md), 3.2vw, var(--px-lg));
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    max-width: 22ch;
+    color: var(--color-ink);
+  }
+  .gx-h3 {
+    margin: 0 0 1rem;
+    color: var(--color-muted);
+    font-weight: 400;
+  }
+  .gx-statement {
+    margin: 0;
+    font-size: clamp(var(--px-md), 4.4vw, var(--px-xl));
+    line-height: 1.18;
+    letter-spacing: -0.005em;
+    max-width: 20ch;
+    color: var(--color-ink);
+  }
+
+  /* ── Body copy ────────────────────────────────────────────────────── */
+  .gx-body {
+    margin: 1.5rem 0 0;
+    max-width: 58ch;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--color-muted);
+  }
+  .gx-body code {
+    font-family: var(--font-mono);
+    font-size: 0.9375em;
+    color: var(--color-ink);
+  }
+  .gx-fine {
+    margin: 1.25rem 0 0;
+    max-width: 54ch;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .gx-fine code { font-family: var(--font-mono); font-size: 0.9375em; }
+  /* Inline links get a real touch target rather than a 17px hit strip. */
+  .gx-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-ink);
+    text-underline-offset: 4px;
+  }
+  .gx-link:hover { text-decoration-thickness: 2px; }
+
+  /* Any wide, unwrappable thing scrolls inside its own box, never the page. */
+  .gx-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .gx-tree,
+  .gx-code {
+    margin: 1.75rem 0 0;
+    padding: 1.25rem 1.25rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--color-ink);
+    white-space: pre;
+    width: max-content;
+    min-width: 100%;
+  }
+  .gx-code { font-size: 0.8125rem; line-height: 1.65; }
+
+  /* ── The mechanism room ───────────────────────────────────────────── */
+  .gx-mech-grid {
+    display: grid;
+    /* minmax(0, …) everywhere: an auto track would size to the file tree's
+       max-content and push the page sideways on a phone. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(2.5rem, 6vw, 4.5rem);
+    margin-top: clamp(2rem, 5vw, 3rem);
+  }
+  .gx-mech-grid > * { min-width: 0; }
+  @media (min-width: 64rem) {
+    .gx-mech-grid { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); align-items: start; }
+    .gx-mech-text { position: sticky; top: 6rem; }
+  }
+  .gx-mech-text > .gx-body:first-child { margin-top: 0; }
+
+  /* ── Distribution ─────────────────────────────────────────────────── */
+  .gx-ship-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(2.5rem, 5vw, 4rem);
+    margin-top: clamp(3rem, 7vw, 5rem);
+    max-width: 62rem;
+  }
+  .gx-ship-grid > * { min-width: 0; }
+  @media (min-width: 48rem) {
+    .gx-ship-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .gx-ship-item { min-width: 0; }
+  .gx-ship-item .gx-body { margin-top: 0; max-width: 34ch; }
+  .gx-ship-cmd { margin-top: 1.5rem; }
+
+  /* ── Provenance ───────────────────────────────────────────────────── */
+  .gx-prov-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    margin-top: clamp(2rem, 5vw, 3rem);
+    align-items: start;
+  }
+  .gx-prov-grid > * { min-width: 0; }
+  @media (min-width: 64rem) {
+    .gx-prov-grid { grid-template-columns: minmax(0, 27rem) minmax(0, 1fr); }
+  }
+  .gx-prov-grid .gx-body:first-child { margin-top: 0; }
+  .gx-prov-grid .gx-code { margin-top: 0; }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     THE INDEX
+     The counterweight. Everything above is air; this is a specification
+     card by the door — tight internal spacing, hairlines, small type.
+     ───────────────────────────────────────────────────────────────────── */
+  .gx-index {
+    margin-top: var(--section-y);
+    padding-top: clamp(3rem, 6vw, 4.5rem);
+    border-top: 1px solid var(--color-line);
+  }
+  .gx-index-head .gx-h2 { margin-top: 0.75rem; }
+  .gx-index-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3rem;
+    margin-top: 3rem;
+  }
+  .gx-index-body > * { min-width: 0; }
+  @media (min-width: 64rem) {
+    .gx-index-body {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: clamp(3rem, 6vw, 5rem);
+      row-gap: 3.5rem;
+    }
+    /* The table is the widest thing here and gets the full measure. */
+    .gx-index-body > .gx-block:first-child { grid-column: 1 / -1; }
+  }
+  .gx-block { min-width: 0; }
+
+  /* Comparison table */
+  .gx-table-wrap { border: 1px solid var(--color-line); }
+  .gx-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 46rem;
+    font-size: 0.875rem;
+  }
+  .gx-table th,
+  .gx-table td {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: top;
+    color: var(--color-muted);
+    font-weight: 400;
+  }
+  .gx-table thead th {
+    font-family: var(--font-display);
+    font-size: var(--px-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    -webkit-font-smoothing: none;
+    color: var(--color-muted);
+    border-bottom-color: var(--color-ink);
+  }
+  .gx-table tbody th { color: var(--color-ink); }
+  .gx-table tbody tr:last-child th,
+  .gx-table tbody tr:last-child td { border-bottom: 0; }
+  .gx-table .is-us { color: var(--color-ink); }
+  .gx-table thead .is-us { color: var(--color-ink); }
+  .gx-caveat {
+    margin: 1.25rem 0 0;
+    max-width: 60ch;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+
+  /* Specification list */
+  .gx-spec,
+  .gx-cli,
+  .gx-road { margin: 0; }
+  .gx-spec-row,
+  .gx-cli-row,
+  .gx-road-row {
+    display: grid;
+    gap: 0.25rem 1.25rem;
+    padding: 0.625rem 0;
+    border-top: 1px solid var(--color-line);
+  }
+  .gx-spec-row:first-child,
+  .gx-cli-row:first-child,
+  .gx-road-row:first-child { border-top: 0; padding-top: 0; }
+
+  @media (min-width: 30rem) {
+    .gx-spec-row { grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); }
+    .gx-cli-row { grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); }
+  }
+  .gx-spec-row dt,
+  .gx-cli-row dt,
+  .gx-road-row dt {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 0.875rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .gx-spec-row dd,
+  .gx-cli-row dd,
+  .gx-road-row dd {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    min-width: 0;
+  }
+  .gx-cli-row dt code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+
+  /* Roadmap. The status is the first thing read, and it is never dressed up. */
+  .gx-road-row dt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.625rem;
+  }
+  .gx-status {
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+    padding: 0.125rem 0.375rem;
+    line-height: 1.4;
+  }
+  .gx-road-row.is-shipped .gx-status {
+    color: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+  .gx-road-title { color: var(--color-ink); }
+  .gx-road-row.is-planned .gx-road-title { color: var(--color-muted); }
+
+  /* Writing */
+  .gx-posts { list-style: none; margin: 0; padding: 0; }
+  .gx-posts li { border-top: 1px solid var(--color-line); }
+  .gx-posts li:first-child { border-top: 0; }
+  .gx-post {
+    display: grid;
+    gap: 0.375rem;
+    padding: 1rem 0;
+    text-decoration: none;
+    min-height: 44px;
+  }
+  .gx-post-date {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+  .gx-post-title {
+    color: var(--color-ink);
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  .gx-post-desc {
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    max-width: 54ch;
+  }
+  .gx-post:hover .gx-post-title { text-decoration: underline; text-underline-offset: 4px; }
+
+  /* ── Exit ─────────────────────────────────────────────────────────── */
+  .gx-close {
+    margin-top: var(--section-y);
+    padding-top: clamp(3rem, 6vw, 4.5rem);
+    border-top: 1px solid var(--color-line);
+  }
+  .gx-close .gx-body { max-width: 48ch; }
+
+  /* The single amber object on the page. */
+  .gx-close :global(.sb.gx-amber) {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-on-accent);
+    font-weight: 600;
+  }
+  .gx-close :global(.sb.gx-amber .sb-count) {
+    color: var(--color-on-accent);
+    border-left-color: color-mix(in srgb, var(--color-on-accent) 35%, transparent);
+  }
+  .gx-close :global(.sb.gx-amber:hover) {
+    background: color-mix(in srgb, var(--color-accent) 88%, var(--color-ink));
+    border-color: color-mix(in srgb, var(--color-accent) 88%, var(--color-ink));
+  }
+</style>

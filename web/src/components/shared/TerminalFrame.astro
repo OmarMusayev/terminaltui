@@ -1,0 +1,79 @@
+---
+/**
+ * Renders a real captured terminal screen at whatever width it is given.
+ *
+ * The trick is container query units: a monospace glyph is a fixed fraction of
+ * the font size, so `font-size: calc(100cqi / (cols * ratio))` makes the frame
+ * exactly fill its container at any viewport. No JavaScript, no media queries,
+ * and structurally impossible to overflow — which is what broke the old site
+ * at 360px.
+ */
+import { getFrame, cropFrame, type Frame } from "@/lib/frames";
+
+interface Props {
+  demo: string;
+  label?: string;
+  /** Show only the first N rows. */
+  rows?: number;
+  /** Advance-width of one glyph in em. JetBrains Mono is 0.6. */
+  ratio?: number;
+  /** Never render smaller than this; the frame scrolls sideways instead. */
+  minFontSize?: string;
+  class?: string;
+  caption?: string;
+}
+
+const {
+  demo,
+  label,
+  rows,
+  ratio = 0.6,
+  minFontSize = "0px",
+  class: className = "",
+  caption,
+} = Astro.props;
+
+let frame: Frame | null = getFrame(demo, label);
+if (frame && rows) frame = cropFrame(frame, rows);
+const cols = frame?.cols ?? 100;
+---
+
+{
+  frame && (
+    <figure class={`tf ${className}`} style={`--tf-cols:${cols};--tf-ratio:${ratio};--tf-min:${minFontSize}`}>
+      <div class="tf-scroll">
+        <pre class="tf-pre" aria-label={`Real terminal output from the ${demo} demo`} set:html={frame.html} />
+      </div>
+      {caption && <figcaption class="tf-cap">{caption}</figcaption>}
+    </figure>
+  )
+}
+
+<style>
+  .tf {
+    container-type: inline-size;
+    margin: 0;
+    min-width: 0;
+  }
+  .tf-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .tf-pre {
+    /* Fill the container exactly: cols * ratio * font-size = container width. */
+    font-size: max(var(--tf-min), calc(100cqi / (var(--tf-cols) * var(--tf-ratio))));
+    font-family: var(--font-mono, ui-monospace, monospace);
+    line-height: 1.2;
+    margin: 0;
+    white-space: pre;
+    tab-size: 8;
+    /* The capture already carries its own colors on every span. */
+    color: #d8d8d2;
+  }
+  .tf-cap {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    margin-top: 0.75rem;
+    color: var(--color-muted, #6b6b66);
+  }
+</style>

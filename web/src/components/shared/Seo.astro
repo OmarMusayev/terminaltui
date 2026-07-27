@@ -1,0 +1,118 @@
+---
+/**
+ * Every <head> concern in one place: canonical, Open Graph, Twitter, and the
+ * JSON-LD graph. Structured data is emitted as a single @graph rather than a
+ * pile of separate script tags so the entities can reference each other.
+ */
+import { product, stats, faq } from "@/data/product";
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path only, e.g. "/blog/". Joined onto the site origin. */
+  path?: string;
+  ogImage?: string;
+  type?: "website" | "article";
+  /** Extra JSON-LD nodes merged into the @graph. */
+  schema?: Record<string, unknown>[];
+  /** Set on blog posts. */
+  article?: { published: string; updated?: string; tags?: string[] };
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  path = "/",
+  ogImage = "/og.png",
+  type = "website",
+  schema = [],
+  article,
+  noindex = false,
+} = Astro.props;
+
+const origin = Astro.site?.origin ?? product.site;
+const canonical = new URL(path, origin).href;
+const ogUrl = new URL(ogImage, origin).href;
+
+const graph: Record<string, unknown>[] = [
+  {
+    "@type": "WebSite",
+    "@id": `${origin}/#website`,
+    url: origin + "/",
+    name: product.name,
+    description: product.pitch,
+    publisher: { "@id": `${origin}/#person` },
+  },
+  {
+    "@type": "Person",
+    "@id": `${origin}/#person`,
+    name: product.author.name,
+    url: product.author.url,
+  },
+  {
+    "@type": "SoftwareApplication",
+    "@id": `${origin}/#software`,
+    name: product.name,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "macOS, Linux, Windows",
+    softwareVersion: product.version,
+    description: product.pitch,
+    url: origin + "/",
+    downloadUrl: product.npm,
+    codeRepository: product.repo,
+    license: "https://opensource.org/licenses/MIT",
+    author: { "@id": `${origin}/#person` },
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    ...(stats.stars > 0
+      ? {
+          interactionStatistic: {
+            "@type": "InteractionCounter",
+            interactionType: "https://schema.org/LikeAction",
+            userInteractionCount: stats.stars,
+          },
+        }
+      : {}),
+  },
+  ...schema,
+];
+
+// A home page is "/" on the real site and "/d/<direction>/" while the five
+// candidates are previewable side by side. Both should carry the FAQ entities.
+const isHome = path === "/" || /^\/d\/[^/]+\/$/.test(path);
+if (isHome) {
+  graph.push({
+    "@type": "FAQPage",
+    "@id": `${origin}/#faq`,
+    mainEntity: faq.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  });
+}
+
+const jsonld = { "@context": "https://schema.org", "@graph": graph };
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<meta property="og:type" content={type} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogUrl} />
+<meta property="og:site_name" content={product.name} />
+{article && <meta property="article:published_time" content={article.published} />}
+{article?.updated && <meta property="article:modified_time" content={article.updated} />}
+{article?.tags?.map((t) => <meta property="article:tag" content={t} />)}
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogUrl} />
+
+<script type="application/ld+json" set:html={JSON.stringify(jsonld)} />

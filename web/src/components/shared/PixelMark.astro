@@ -1,0 +1,62 @@
+---
+/**
+ * Renders a 16x16 pixel grid as SVG.
+ *
+ *   '.' transparent · '#' ink (currentColor) · '+' accent
+ *
+ * Horizontal runs are merged into single rects, so a mark is typically a dozen
+ * elements rather than 256. Integer coordinates on a 16-unit viewBox means it
+ * stays crisp at 16px, 32px, and on a sticker.
+ */
+interface Props {
+  grid: readonly string[];
+  size?: number;
+  accent?: string;
+  title?: string;
+  class?: string;
+}
+const { grid, size = 24, accent = "var(--color-accent)", title, class: className = "" } = Astro.props;
+
+type Rect = { x: number; y: number; w: number; fill: "ink" | "accent" };
+
+/** Merge horizontal runs of identical channel into one rect per run. */
+function toRects(rows: readonly string[]): Rect[] {
+  const out: Rect[] = [];
+  rows.forEach((row, y) => {
+    let x = 0;
+    while (x < row.length) {
+      const ch = row[x];
+      if (ch !== "#" && ch !== "+") { x++; continue; }
+      let w = 1;
+      while (x + w < row.length && row[x + w] === ch) w++;
+      out.push({ x, y, w, fill: ch === "+" ? "accent" : "ink" });
+      x += w;
+    }
+  });
+  return out;
+}
+
+const rects = toRects(grid);
+---
+
+<svg
+  viewBox="0 0 16 16"
+  width={size}
+  height={size}
+  class={className}
+  shape-rendering="crispEdges"
+  role={title ? "img" : "presentation"}
+  aria-hidden={title ? undefined : "true"}
+  aria-label={title}
+>
+  {title && <title>{title}</title>}
+  {rects.map((r) => (
+    <rect
+      x={r.x}
+      y={r.y}
+      width={r.w}
+      height={1}
+      fill={r.fill === "accent" ? accent : "currentColor"}
+    />
+  ))}
+</svg>

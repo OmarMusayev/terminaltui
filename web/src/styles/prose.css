@@ -1,0 +1,187 @@
+/**
+ * Long-form typography.
+ *
+ * The whole job: 18px at 1.65, a measure that never exceeds ~68 characters,
+ * and vertical rhythm that makes the hierarchy obvious without a single rule
+ * or box. Everything here reads from the direction's tokens, so one stylesheet
+ * typesets a post correctly in all five art directions.
+ */
+
+.prose {
+  font-size: 1.125rem;
+  line-height: 1.65;
+  color: var(--color-ink);
+  /* min() so the measure never exceeds the viewport: 68ch is about 610px, which
+     is wider than a phone, and a bare max-width would not shrink below it. */
+  max-width: min(100%, var(--measure));
+  min-width: 0;
+}
+/* Long URLs and identifiers must break rather than widen the column. */
+.prose p,
+.prose li { overflow-wrap: break-word; }
+
+.prose > * + * { margin-top: 1.25em; }
+
+.prose p { margin: 0; text-wrap: pretty; }
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  text-wrap: balance;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  scroll-margin-top: 6rem;
+}
+.prose h2 { font-size: var(--px-md); margin-top: 2.5em; }
+.prose h3 { font-size: var(--px-sm); margin-top: 2em; }
+.prose h4 { font-size: var(--px-sm); margin-top: 1.75em; color: var(--color-muted); }
+
+/* An editorial direction sets headings in its serif instead. */
+[data-dir="editorial"] .prose h2,
+[data-dir="editorial"] .prose h3 {
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  font-smooth: always;
+  letter-spacing: -0.01em;
+}
+[data-dir="editorial"] .prose h2 { font-size: 2rem; }
+[data-dir="editorial"] .prose h3 { font-size: 1.5rem; }
+
+.prose a {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--color-line);
+  transition: text-decoration-color 0.12s ease, color 0.12s ease;
+}
+.prose a:hover {
+  color: var(--color-accent);
+  text-decoration-color: var(--color-accent);
+}
+
+.prose strong { font-weight: 600; }
+.prose em { font-style: italic; }
+
+.prose ul,
+.prose ol { padding-left: 1.25em; margin-block: 1.25em; }
+.prose li + li { margin-top: 0.5em; }
+.prose li::marker { color: var(--color-muted); }
+
+.prose blockquote {
+  margin-inline: 0;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-muted);
+  font-style: normal;
+}
+
+/**
+ * Inline code: literal backticks, no background pill.
+ *
+ * A row of grey lozenges through a paragraph is heavier than the block code it
+ * refers to, and it fights line-height. Backticks are how code looks in a
+ * terminal, cost one rule, and never collide with anything.
+ */
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  word-break: break-word;
+}
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: "`";
+  color: var(--color-muted);
+}
+
+/* Code blocks break the measure — they need the room. */
+.prose pre {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  padding: 1.125rem 1.25rem;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-block: 1.75em;
+  max-width: min(100%, 46rem);
+  tab-size: 2;
+  /* A recessed panel in the page's own colour family, not a dark slab. */
+  background: var(--color-surface) !important;
+}
+
+/**
+ * github-light sets comments at #6A737D, which lands at 4.13:1 on our warmest
+ * code surface — under the 4.5 threshold, and comments are exactly the part of
+ * a sample a reader most needs. Darkened to 5.09:1 worst case. Targeted by the
+ * emitted colour because Shiki writes token colours inline.
+ */
+.prose [style*="color:#6A737D"] { color: #5b6570 !important; }
+[data-theme="dark"] .prose [style*="color:#6A737D"] { color: var(--shiki-dark) !important; }
+
+/**
+ * Shiki dual-theme. Astro emits both palettes as custom properties; this picks
+ * the right one so code follows the page rather than fighting it.
+ */
+[data-theme="dark"] .prose .astro-code,
+[data-theme="dark"] .prose .astro-code span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+.prose pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+
+.prose figure { margin: 2em 0; max-width: min(100%, 52rem); }
+.prose figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  margin-block: 3em;
+}
+
+/* Tables scroll inside their own container rather than widening the page. */
+.prose .table-scroll {
+  overflow-x: auto;
+  margin-block: 1.75em;
+  max-width: min(100%, 52rem);
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+.prose th,
+.prose td {
+  text-align: left;
+  padding: 0.625rem 1rem 0.625rem 0;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: top;
+}
+.prose th {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.prose > :first-child { margin-top: 0; }

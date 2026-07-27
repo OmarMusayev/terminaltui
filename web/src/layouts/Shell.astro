@@ -1,0 +1,106 @@
+---
+/**
+ * The page shell every direction shares: <head>, theme plumbing, skip link,
+ * nav, footer. Directions differ in the body, not in the chrome contract.
+ */
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import "@fontsource/instrument-serif";
+import "@/styles/global.css";
+
+import Seo from "@/components/shared/Seo.astro";
+import Nav from "@/components/shared/Nav.astro";
+import Footer from "@/components/shared/Footer.astro";
+
+export type Direction = "paper" | "phosphor" | "blueprint" | "editorial" | "gallery";
+
+interface Props {
+  dir: Direction;
+  title: string;
+  description: string;
+  path?: string;
+  /** Which theme this direction looks best in on first paint. */
+  defaultTheme?: "light" | "dark";
+  active?: string;
+  type?: "website" | "article";
+  schema?: Record<string, unknown>[];
+  article?: { published: string; updated?: string; tags?: string[] };
+  /** Suppress the shared nav when a direction supplies its own. */
+  bareNav?: boolean;
+  /** Root for internal links, e.g. "/d/paper/". */
+  base?: string;
+  class?: string;
+}
+
+const {
+  dir,
+  title,
+  description,
+  path = "/",
+  defaultTheme = "light",
+  active,
+  type = "website",
+  schema = [],
+  article,
+  bareNav = false,
+  base = "/",
+  class: className = "",
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-dir={dir} data-theme={defaultTheme}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/DepartureMono-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="alternate" type="application/rss+xml" title="terminaltui blog" href="/rss.xml" />
+    <Seo {title} {description} {path} {type} {schema} {article} />
+
+    {/* Resolve the theme before first paint so there is never a flash. */}
+    <script is:inline define:vars={{ defaultTheme }}>
+      (() => {
+        try {
+          const stored = localStorage.getItem("tt-theme");
+          if (stored === "light" || stored === "dark") {
+            document.documentElement.dataset.theme = stored;
+            return;
+          }
+        } catch {}
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        document.documentElement.dataset.theme = mq.matches ? "dark" : defaultTheme;
+      })();
+    </script>
+  </head>
+
+  <body class={className}>
+    <a class="skip-link" href="#main">Skip to content</a>
+    {!bareNav && <Nav {active} {base} />}
+    <main id="main">
+      <slot />
+    </main>
+    <Footer {base} />
+
+    <script>
+      // Theme toggle. Persists a deliberate choice; otherwise follows the OS.
+      document.addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest("[data-theme-toggle]");
+        if (!btn) return;
+        const root = document.documentElement;
+        const next = root.dataset.theme === "dark" ? "light" : "dark";
+        root.dataset.theme = next;
+        try { localStorage.setItem("tt-theme", next); } catch {}
+        for (const b of document.querySelectorAll("[data-theme-toggle]")) {
+          b.setAttribute("aria-label", next === "dark" ? "Switch to light theme" : "Switch to dark theme");
+        }
+      });
+    </script>
+  </body>
+</html>

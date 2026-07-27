@@ -1,0 +1,72 @@
+---
+/**
+ * The page's structural unit: a narrow label column carrying a set numeral and
+ * a kicker, beside a wide content column. Below 56rem the label collapses onto
+ * one line above the content — the same information, no left rail.
+ *
+ * There is no box here. The only structure is alignment and, optionally, a
+ * hairline above the section.
+ */
+interface Props {
+  n: string;
+  kicker: string;
+  id?: string;
+  /** Vertical air. Deliberately varied section to section. */
+  space?: "tight" | "normal" | "loose" | "vast";
+  rule?: boolean;
+  class?: string;
+}
+const { n, kicker, id, space = "normal", rule = true, class: className = "" } = Astro.props;
+---
+
+<section id={id} class={`ps ps-${space} ${rule ? "ps-rule" : ""} ${className}`}>
+  <div class="wrap ps-grid">
+    <div class="ps-label">
+      <span class="ps-n pixel">{n}</span>
+      <span class="ps-k pixel-eyebrow">{kicker}</span>
+    </div>
+    <div class="ps-body"><slot /></div>
+  </div>
+</section>
+
+<style>
+  .ps { --wrap: 72rem; }
+  .ps-rule { border-top: 1px solid var(--color-line); }
+
+  /* Rhythm is set here and nowhere else. Never the same gap twice in a row. */
+  .ps-tight  { padding-block: clamp(2.5rem, 5vw, 3.5rem); }
+  .ps-normal { padding-block: clamp(3.5rem, 8vw, 6rem); }
+  .ps-loose  { padding-block: clamp(5rem, 12vw, 9rem); }
+  .ps-vast   { padding-block: clamp(6rem, 18vw, 14rem); }
+
+  .ps-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.75rem; }
+
+  .ps-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    color: var(--color-muted);
+  }
+  .ps-n {
+    font-size: var(--px-sm);
+    color: var(--color-ink);
+    letter-spacing: 0.06em;
+  }
+  .ps-k { color: var(--color-muted); }
+  .ps-body { min-width: 0; }
+
+  @media (min-width: 56rem) {
+    .ps-grid {
+      grid-template-columns: 7.5rem minmax(0, 1fr);
+      gap: 0 3rem;
+      align-items: start;
+    }
+    .ps-label {
+      display: block;
+      /* Optical alignment: the numeral sits on the first line of the heading. */
+      padding-top: 0.35em;
+    }
+    .ps-n { display: block; font-size: var(--px-md); line-height: 1; }
+    .ps-k { display: block; margin-top: 0.75rem; }
+  }
+</style>

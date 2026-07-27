@@ -1,0 +1,116 @@
+---
+/**
+ * Documentation index. The pages are the repository's own markdown; this page
+ * only provides the running order and the one-line summaries.
+ */
+import Shell from "@/layouts/Shell.astro";
+import CopyCommand from "@/components/shared/CopyCommand.astro";
+import { DIRECTION_KEYS, getDirection, baseFor, url } from "@/lib/site";
+import { docSections } from "@/data/docs";
+import { product } from "@/data/product";
+
+export async function getStaticPaths() {
+  return DIRECTION_KEYS.map((dir) => ({ params: { dir } }));
+}
+
+const { dir } = Astro.params;
+const direction = getDirection(dir!);
+const base = baseFor(dir!);
+---
+
+<Shell
+  dir={direction.key}
+  base={base}
+  active="Docs"
+  defaultTheme={direction.defaultTheme}
+  title="Documentation — terminaltui"
+  description="Routing, components, layouts, state, themes, images, SSH hosting and testing. The complete reference for building terminal applications with terminaltui."
+  path={url(base, "docs/")}
+>
+  <div class="wrap dc">
+    <header class="dc-head">
+      <p class="pixel-eyebrow dc-eyebrow">Documentation</p>
+      <h1 class="dc-title pixel">Everything, in order</h1>
+      <p class="dc-lede">
+        If you have thirty seconds, run the tour. If you have an afternoon, start at
+        Getting started and read straight down — the sequence below is the order the
+        concepts actually build on each other.
+      </p>
+      <CopyCommand cmd="npx terminaltui try" class="dc-cmd" />
+    </header>
+
+    {docSections.map((s, si) => (
+      <section class="dc-sec" aria-labelledby={`s-${si}`}>
+        <div class="dc-sec-label">
+          <p class="dc-n pixel-eyebrow">{String(si + 1).padStart(2, "0")}</p>
+          <h2 id={`s-${si}`} class="dc-sec-h">{s.title}</h2>
+        </div>
+        <ol class="dc-list">
+          {s.items.map((it) => (
+            <li class="dc-item">
+              <a href={url(base, `docs/${it.slug}/`)} class="dc-link">
+                <span class="dc-link-t">{it.label}</span>
+                <span class="dc-link-b">{it.blurb}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))}
+
+    <footer class="dc-foot">
+      <p>
+        These pages are rendered from the repository's own <code>/docs</code> directory, so
+        the site and the package can never drift apart. Found a mistake?
+        <a href={`${product.repo}/tree/main/docs`} rel="noopener">Edit them on GitHub</a>.
+      </p>
+    </footer>
+  </div>
+</Shell>
+
+<style>
+  .dc { --wrap: 68rem; padding-block: clamp(3rem, 7vw, 5rem) 2rem; }
+  .dc-eyebrow { color: var(--color-accent); margin: 0 0 1rem; }
+  .dc-title { font-size: clamp(1.75rem, 5vw, var(--px-lg)); margin: 0; line-height: 1.15; }
+  .dc-lede {
+    margin: 1.25rem 0 1.75rem;
+    max-width: 56ch;
+    color: var(--color-muted);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+  .dc-cmd { max-width: 24rem; }
+  .dc-head { padding-bottom: 2.5rem; border-bottom: 1px solid var(--color-line); }
+
+  .dc-sec {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding-block: 2.5rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+  @media (min-width: 52rem) {
+    .dc-sec { grid-template-columns: 14rem minmax(0, 1fr); gap: 2.5rem; }
+  }
+  .dc-n { color: var(--color-accent); margin: 0 0 0.4rem; }
+  .dc-sec-h { font-size: 1.0625rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+
+  .dc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+  .dc-link {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.7rem 0.75rem 0.7rem 0;
+    min-height: 44px;
+    text-decoration: none;
+    color: inherit;
+    align-content: center;
+  }
+  .dc-link-t { font-weight: 500; }
+  .dc-link-b { color: var(--color-muted); font-size: 0.9375rem; line-height: 1.5; }
+  .dc-link:hover .dc-link-t { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+  .dc-foot { padding-block: 2.5rem; color: var(--color-muted); font-size: 0.9375rem; max-width: 60ch; line-height: 1.6; }
+  .dc-foot p { margin: 0; }
+  .dc-foot code { font-family: var(--font-mono); font-size: 0.9em; }
+  .dc-foot a { color: var(--color-accent); }
+</style>

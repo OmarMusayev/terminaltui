@@ -1,0 +1,174 @@
+---
+/**
+ * A captured terminal screen presented as an exhibit: the work on a matted
+ * stage, and a museum label beneath or beside it.
+ *
+ * The label is the only place on this page where the airy sections are allowed
+ * to state facts, so it carries real metadata — which page of which demo, which
+ * theme, the capture geometry, and the command that reproduces it.
+ *
+ * The stage is deliberately dark in both site themes. The captures carry their
+ * own foreground colors and no background; on a light wall they would be
+ * illegible, so in light mode the stage is filled with --color-ink, which for
+ * this direction is a near-black. No new colour is introduced either way.
+ */
+import TerminalFrame from "@/components/shared/TerminalFrame.astro";
+import { getFrame } from "@/lib/frames";
+
+interface Props {
+  /** Roman numeral, e.g. "Exhibit II". Rendered as the label's first line. */
+  n: string;
+  title: string;
+  demo: string;
+  label: string;
+  theme: string;
+  cmd: string;
+  note?: string;
+  /** "full" puts the label under the work; "offset" puts it in a left column. */
+  variant?: "full" | "offset";
+  class?: string;
+}
+
+const {
+  n,
+  title,
+  demo,
+  label,
+  theme,
+  cmd,
+  note,
+  variant = "full",
+  class: className = "",
+} = Astro.props;
+
+const frame = getFrame(demo, label);
+const geometry = frame ? `${frame.cols} × ${frame.rows} cells` : "";
+---
+
+<figure class={`ex ex-${variant} ${className}`}>
+  <div class="ex-stage">
+    <TerminalFrame demo={demo} label={label} />
+  </div>
+
+  <figcaption class="ex-plaque">
+    <p class="ex-n pixel-eyebrow">{n}</p>
+    <p class="ex-title pixel">{title}</p>
+
+    <dl class="ex-meta">
+      <div class="ex-row">
+        <dt>Page</dt>
+        <dd><code>{label}</code></dd>
+      </div>
+      <div class="ex-row">
+        <dt>Theme</dt>
+        <dd><code>{theme}</code></dd>
+      </div>
+      <div class="ex-row">
+        <dt>Capture</dt>
+        <dd class="tnum">{geometry}, headless PTY</dd>
+      </div>
+      <div class="ex-row">
+        <dt>Run</dt>
+        <dd><code>{cmd}</code></dd>
+      </div>
+    </dl>
+
+    {note && <p class="ex-note">{note}</p>}
+  </figcaption>
+</figure>
+
+<style>
+  .ex {
+    margin: 0;
+    min-width: 0;
+  }
+
+  /* The matted plate. Padding is the mat; the hairline is the frame. */
+  .ex-stage {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    padding: clamp(0.625rem, 2.2vw, 1.75rem);
+    min-width: 0;
+  }
+  :global([data-theme="light"]) .ex-stage {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+
+  /* ── The label ─────────────────────────────────────────────────────────
+     Small, quiet, ragged-right, never wider than a real museum card. */
+  .ex-plaque {
+    margin-top: 1.5rem;
+    max-width: 34ch;
+    color: var(--color-muted);
+  }
+  .ex-n {
+    margin: 0;
+    color: var(--color-muted);
+  }
+  .ex-title {
+    margin: 0.5rem 0 0;
+    font-size: var(--px-sm);
+    line-height: 1.3;
+    color: var(--color-ink);
+    letter-spacing: 0.02em;
+  }
+
+  .ex-meta {
+    margin: 1rem 0 0;
+    display: grid;
+    gap: 0.3125rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .ex-row {
+    display: grid;
+    grid-template-columns: 4.75rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+  .ex-row dt {
+    font-family: var(--font-display);
+    font-size: var(--px-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    -webkit-font-smoothing: none;
+  }
+  .ex-row dd {
+    margin: 0;
+    color: var(--color-ink);
+    min-width: 0;
+    /* break-word, not anywhere: a command should split between words before it
+       splits inside one. */
+    overflow-wrap: break-word;
+  }
+  .ex-row code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+  }
+
+  .ex-note {
+    margin: 1.125rem 0 0;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+
+  /* ── Offset variant ───────────────────────────────────────────────────
+     Label to the left, work to the right, so the run of exhibits does not
+     settle into a single repeating rhythm. */
+  @media (min-width: 64rem) {
+    .ex-offset {
+      display: grid;
+      grid-template-columns: 15rem minmax(0, 1fr);
+      gap: clamp(2rem, 4vw, 3.5rem);
+      align-items: start;
+    }
+    .ex-offset .ex-stage { order: 2; }
+    .ex-offset .ex-plaque {
+      order: 1;
+      margin-top: 0;
+      max-width: none;
+    }
+  }
+</style>

@@ -87,17 +87,19 @@ for (const [fontName] of Object.entries(fonts)) {
 const BLOCK_LETTERFORMS: Record<string, string[]> = {
   // A descending V between the stems, not a high crossbar.
   M: ["█▄ ▄█", "█▀▄▀█", "█   █", "█   █"],
-  // Converging strokes ending in a one-column point, not a flat base — with the
-  // point CONNECTED (sharing a column with the row above it, so the join is a
-  // shared edge rather than a corner touch, which renders as a detached speck)
-  // and the stems at FULL height until they meet. Both halves of that matter,
-  // and an earlier fix traded one for the other: joining at `▀█▀` connected the
-  // point but cut the stems off after two rows, leaving V squat beside the
-  // full-height letters next to it. Joining at `█▄█` gets both.
-  V: ["█ █", "█ █", "█▄█", " ▀"],
-  // Two V's sharing a centre stem, not a bar with straight legs — and by the
-  // same rule as V, the two feet attached rather than floating under it.
-  W: ["█   █", "█   █", "█▄█▄█", " ▀ ▀ "],
+  // Strokes that MOVE INWARD as they descend, on half-columns (▌/▐), ending in
+  // a point. The half-column grid is the whole letter: on whole cells a stroke
+  // cannot step by less than a full column, and a full-column step per row puts
+  // consecutive rows corner-to-corner, which renders as a detached speck rather
+  // than a join. Three earlier forms failed on that trade — `  ▀  ` under
+  // ` █ █ ` was the speck; `▀█▀` fixed the join by cutting the stems to
+  // half height; `█▄█` connected everything by keeping the stems PARALLEL,
+  // which at size reads as a U with a stub and is the failure this pin exists
+  // to catch. What must hold: the gap between the strokes narrows on every row.
+  V: ["█   █", "▐▌ ▐▌", " ▐█▌", "  ▀"],
+  // Two V's sharing their middle column — same construction, and the letter
+  // where the whole-cell forms failed worst, stacking the fault twice.
+  W: ["█   █   █", "▐▌ ▐█▌ ▐▌", " ▐█▌ ▐█▌", "  ▀   ▀"],
 };
 
 for (const [letter, art] of Object.entries(BLOCK_LETTERFORMS)) {

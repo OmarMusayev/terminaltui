@@ -1,0 +1,90 @@
+---
+title: "A question you cannot un-ask"
+description: "How terminaltui works out what your terminal can do, and why the detection ladder is built as a denylist that writes zero bytes."
+date: 2026-07-24
+tags: ["terminals", "compatibility"]
+frame: { demo: "mac-monitor", label: "cpu" }
+---
+
+To draw an image well you need to know what the terminal can do. There is a standard way
+to find out: write an escape sequence that asks, and read the reply.
+
+The problem is what happens when you ask a terminal that does not know the question.
+
+Apple Terminal, faced with an unrecognized graphics query, does not stay silent and does
+not reply. It **prints the body of the escape onto the screen** — a spray of punctuation
+across whatever the user was looking at. And there is no timeout that undoes it. Once
+the bytes are on the wire, the damage is done; waiting 300ms to conclude "no reply" does
+not remove the garbage that is already sitting in the scrollback.
+
+So capability detection here is not "ask, then handle the failure". It has to be
+*"establish that asking is safe, and only then ask"*.
+
+## The ladder
+
+Which path a terminal gets is decided once per session, in this order. The design rule
+is that **the default answer is no pixels**: detection is a positive allowlist, and
+every step that could be wrong fails toward cells.
+
+1. **Overrides.** `TERMINALTUI_GRAPHICS=off` wins over everything, checked first, before
+   any other logic can run.
+
+2. **The hard denylist — zero bytes written.** Apple Terminal. Any multiplexer. `TERM`
+   unset or `dumb`. CI. stdin and stdout not both TTYs. Every one of these is decided
+   from the environment alone, and none of them writes anything to the terminal.
+
+3. **The positive allowlist.** `TERM` containing `kitty`, or `KITTY_WINDOW_ID` set →
+   pixels. Ghostty → pixels. WezTerm → **cells, decisively**. Konsole → cells.
+
+4. **Everything else** → cells, and *only* this state permits a probe.
+
+The important property is that the probe is gated by the denylist rather than recovered
+from afterwards. Apple Terminal, tmux, screen, CI, non-TTY stdio and every SSH session
+are provably sent zero bytes — not "sent bytes and then handled gracefully", but never
+written to at all.
+
+## Why WezTerm gets refused
+
+WezTerm implements the kitty graphics protocol. It still gets cells.
+
+The protocol is not one feature. terminaltui needs the *Unicode placeholder* variant
+specifically — the one where the image is anchored to cells the framework can measure,
+clip and diff. WezTerm, Konsole, Contour, Rio and Warp implement the graphics protocol
+without placeholders. A positive answer to "do you do graphics?" does not answer the
+question we are actually asking.
+
+This is why the probe sends `XTVERSION` alongside the graphics query. A terminal that
+names itself kitty 0.28 or newer, or Ghostty, gets pixels. Any other name, or none, is
+treated as transmit-only — which this framework treats as cells.
+
+The probe also carries a primary device-attributes query as a sentinel. Essentially every
+terminal answers that one, so the common case settles in single-digit milliseconds rather
+than burning the full 300ms deadline: when the sentinel comes back and the graphics query
+has not, the answer is no.
+
+## Over SSH, the server knows nothing
+
+There is a subtler version of the same mistake, and we shipped it for a while.
+
+A `serve` session runs a daemon on one machine and a person's terminal on another. When
+that session negotiates its rendering tier, every environment variable available to the
+process — `TERM`, `TMUX`, `COLORTERM` — describes **the server**, which is not the thing
+anyone is looking at.
+
+The function that derives capabilities takes a remote `TERM` for exactly this reason, and
+production was calling it without one. The visible consequence: a daemon started inside
+tmux downgraded *every connected client* to half blocks, because the server was
+multiplexed and the clients inherited that judgement.
+
+The client's `TERM` — the one it sends in its pty-req — is now published per render pass,
+the same way color depth is. And no probe is ever sent over SSH at all. The server has no
+business writing speculative escapes into someone else's terminal.
+
+## The general shape
+
+Almost every rule here is the same rule: **when you cannot verify, choose the option whose
+failure is invisible.**
+
+Under-reporting a terminal's capability costs a slightly coarser image. Over-reporting it
+costs a screen full of garbage that the user has to clear by hand. Those are not
+symmetric, so the tie does not go to the optimist.

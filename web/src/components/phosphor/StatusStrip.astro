@@ -1,0 +1,85 @@
+---
+/**
+ * The status line. Pinned to the bottom edge the way tmux and i3 pin theirs,
+ * and carrying the same four things a maintainer would put there: what version
+ * you are looking at, what it needs, what it costs, how many people starred it.
+ *
+ * The star figure shares the id the star buttons use, so the one GitHub request
+ * the page makes updates this too. Everything here also appears in readable
+ * body text elsewhere on the page; this strip is a summary, never the only copy
+ * of a fact.
+ */
+import { product, STAR_FALLBACK, stats } from "@/data/product";
+---
+
+<div class="st" role="complementary" aria-label="Package status">
+  <div class="wrap st-in">
+    <span class="st-g st-brand">
+      <span class="st-key">terminaltui</span>
+      <span class="st-v tnum">v{product.version}</span>
+    </span>
+
+    <span class="st-g st-mid">
+      <span>{product.license}</span>
+      <span class="st-sep" aria-hidden="true">·</span>
+      <span class="tnum">node {product.node}</span>
+      <span class="st-sep" aria-hidden="true">·</span>
+      <span class="tnum">{stats.runtimeDeps} runtime deps</span>
+    </span>
+
+    <span class="st-g st-end">
+      <span class="st-star" aria-hidden="true">★</span>
+      <span class="tnum" data-star-count>{STAR_FALLBACK}</span>
+      <span class="st-word">stars</span>
+    </span>
+  </div>
+</div>
+
+<style>
+  .st {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    height: 30px;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.03em;
+    color: var(--color-muted);
+  }
+  .st-in {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .st-g { display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0; }
+  .st-brand { flex: none; }
+  .st-key {
+    color: var(--color-on-accent);
+    background: var(--color-accent);
+    padding: 0.125rem 0.4375rem;
+  }
+  .st-v { color: var(--color-ink); }
+  .st-mid { display: none; }
+  .st-end { margin-left: auto; flex: none; }
+  .st-star { color: var(--color-accent); }
+  .st-word { display: none; }
+  .st-sep { opacity: 0.5; }
+
+  @media (min-width: 34rem) {
+    .st-word { display: inline; }
+  }
+  @media (min-width: 56rem) {
+    .st-mid { display: inline-flex; }
+  }
+
+  /* Keep the last line of the page clear of the strip. */
+  :global(body:has(.ph-page)) { padding-bottom: 34px; }
+</style>

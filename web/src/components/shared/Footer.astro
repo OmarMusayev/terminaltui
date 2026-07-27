@@ -1,0 +1,114 @@
+---
+import { product, stats } from "@/data/product";
+import PixelMark from "./PixelMark.astro";
+import { MARK } from "@/data/logo";
+import { url } from "@/lib/site";
+
+interface Props { base?: string }
+const { base = "/" } = Astro.props;
+
+const cols = [
+  {
+    title: "Start",
+    links: [
+      { href: url(base, "docs/"), label: "Documentation" },
+      { href: url(base, "docs/getting-started/"), label: "Getting started" },
+      { href: url(base, "demos/"), label: "Demos" },
+      { href: url(base, "blog/"), label: "Blog" },
+    ],
+  },
+  {
+    title: "Project",
+    links: [
+      { href: product.repo, label: "GitHub" },
+      { href: product.npm, label: "npm" },
+      { href: product.repo + "/blob/main/CHANGELOG.md", label: "Changelog" },
+      { href: product.repo + "/blob/main/LICENSE", label: "MIT License" },
+    ],
+  },
+];
+const year = 2026;
+---
+
+<footer class="ft">
+  <div class="wrap ft-in">
+    <div class="ft-brand">
+      <a href={base} class="ft-mark" aria-label={`${product.name} home`}>
+        <PixelMark grid={MARK} size={20} />
+        <span class="pixel ft-word">terminaltui</span>
+      </a>
+      <p class="ft-blurb">{product.tagline} MIT licensed, Node {product.node}.</p>
+    </div>
+
+    {cols.map((c) => (
+      <nav class="ft-col" aria-label={c.title}>
+        <h2 class="ft-h pixel-eyebrow">{c.title}</h2>
+        <ul class="ft-list">
+          {c.links.map((l) => (
+            <li><a href={l.href} class="ft-link">{l.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    ))}
+  </div>
+
+  <div class="wrap ft-base">
+    <p>&copy; {year} {product.author.name}</p>
+    <p class="tnum">v{product.version} · {stats.tests.toLocaleString("en-US")} tests</p>
+  </div>
+</footer>
+
+<style>
+  .ft {
+    border-top: 1px solid var(--color-line);
+    margin-top: var(--section-y);
+    padding-top: 3rem;
+    padding-bottom: 2rem;
+    font-size: 0.9375rem;
+  }
+  .ft-in {
+    display: grid;
+    gap: 2.5rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 48rem) {
+    .ft-in { grid-template-columns: 2fr 1fr 1fr; gap: 3rem; }
+  }
+  .ft-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+  .ft-word { font-size: var(--px-xs); }
+  .ft-blurb {
+    margin: 0.75rem 0 0;
+    color: var(--color-muted);
+    max-width: 34ch;
+    line-height: 1.6;
+  }
+  .ft-h { color: var(--color-muted); margin: 0 0 0.875rem; }
+  .ft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.125rem; }
+  .ft-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+  .ft-link:hover { color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; }
+  .ft-base {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-line);
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+  }
+  .ft-base p { margin: 0; }
+</style>

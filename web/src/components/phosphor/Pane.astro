@@ -1,0 +1,80 @@
+---
+/**
+ * A pane: a 1px bordered region whose title sits *in* the top border, the way a
+ * tiling window manager labels a window. The index + name go top-left, an
+ * optional technical meta string top-right (suppressed below 60rem, where there
+ * is no room for it and it is never the only place a fact appears).
+ *
+ * Panes tile. Two side by side, one full width, a three-way split — the page
+ * grid decides; this component only knows how to be one window.
+ */
+interface Props {
+  index: string;
+  label: string;
+  meta?: string;
+  id?: string;
+  class?: string;
+  /** Landmark role for the section, when the pane is a real content region. */
+  labelledby?: string;
+}
+const { index, label, meta, id, class: className = "", labelledby } = Astro.props;
+---
+
+<section class={`pane ${className}`} id={id} aria-labelledby={labelledby}>
+  <div class="pane-tab" aria-hidden="true">
+    <span class="pane-tab-i">{index}</span>
+    <span class="pane-tab-l">{label}</span>
+  </div>
+  {meta && <div class="pane-meta" aria-hidden="true">{meta}</div>}
+  <div class="pane-body"><slot /></div>
+</section>
+
+<style>
+  .pane {
+    position: relative;
+    border: 1px solid var(--color-line);
+    background: var(--color-bg);
+    min-width: 0;
+    scroll-margin-top: 5.5rem;
+  }
+  .pane-tab,
+  .pane-meta {
+    position: absolute;
+    top: 0;
+    transform: translateY(-50%);
+    background: var(--color-bg);
+    white-space: nowrap;
+    line-height: 1;
+    padding-inline: 0.5rem;
+  }
+  .pane-tab {
+    left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+    font-size: var(--px-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .pane-tab-i { color: var(--color-accent); }
+  .pane-tab-l { color: var(--color-ink); }
+  .pane-meta {
+    right: 0.75rem;
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+  }
+  @media (min-width: 60rem) {
+    .pane-meta { display: block; }
+  }
+
+  .pane-body {
+    padding: clamp(1.5rem, 2.6vw, 2.25rem) clamp(1rem, 2.4vw, 2rem) clamp(1.25rem, 2.4vw, 2rem);
+    min-width: 0;
+  }
+</style>
