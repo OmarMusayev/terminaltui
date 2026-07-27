@@ -232,7 +232,11 @@ export function renderVideo(
     } else {
       player = playerFor(deps.rt, deps.blockKey, source, block);
       player.renderSeq = deps.renderSeq ?? player.renderSeq;
-      player.pageId = deps.pageId ?? player.pageId;
+      // Assigned only when the caller SUPPLIED one. `??` would be wrong here:
+      // the home page's id is legitimately `null`, and `null ?? old` keeps the
+      // old value — so a video on the home page would never be paused when the
+      // viewer navigated away from it.
+      if (deps.pageId !== undefined) player.pageId = deps.pageId;
       rows = frameRowsFor(player, block, opts, geom, ctx);
     }
   } catch (e) {
