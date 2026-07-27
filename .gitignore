@@ -23,3 +23,11 @@ TEST_RESULTS.md
 *-PROMPT.md
 LAYOUT-AUDIT.md
 .DS_Store
+
+# Capture scratch. The VHS tapes in devnotes/ are committed and regenerate the
+# screenshots on demand, so the PNGs themselves are 4 MB of derivable binary.
+devnotes/screenshots/
+devnotes/frames.json
+devnotes/capture.log
+# Exported static sites from build experiments.
+site-*.html
