@@ -19,6 +19,7 @@ export default defineConfig({
       { label: "## Themes", page: "themes" },
       { label: "~~ Live Data", page: "live-data" },
       { label: "++ Get Started", page: "get-started" },
+      { label: "[] Images", page: "images" },
     ],
   },
 });
