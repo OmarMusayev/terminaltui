@@ -70,7 +70,25 @@ interface Theme {
 }
 ```
 
-All colors are hex strings (e.g., `"#ff79c6"`). The terminal's 256-color palette is used for rendering, so colors are mapped to the nearest available value automatically.
+All colors are hex strings (e.g., `"#ff79c6"`). You always write the exact color you mean; the framework maps it down to whatever the viewer's terminal can actually display.
+
+## Color depth
+
+Detected once at startup, in this order:
+
+1. **`NO_COLOR`** (any value) — no color at all. The [published standard](https://no-color.org/), and it outranks everything below.
+2. **`TERMINALTUI_COLOR`** — an explicit override: `truecolor`/`24bit`, `256`, `16`, or `none`. Unrecognized values are ignored rather than obeyed.
+3. **Apple Terminal** — sniffed from its build number, because Terminal.app is the one major terminal that gained 24-bit color without ever setting `COLORTERM`. Build **470+** (macOS 26 Tahoe) gets truecolor; earlier builds get 256, since they parse a `38;2` triple but snap it to their own palette — strictly worse than quantizing here, where we control the rounding.
+4. **`COLORTERM=truecolor`/`24bit`**, then a list of known-truecolor terminals, then `TERM`.
+
+The override is worth knowing about for two reasons: it is the escape hatch if that version sniff is ever wrong for your machine, and it is the only way to *preview* a lower depth on a terminal that reports a higher one.
+
+```bash
+TERMINALTUI_COLOR=256 terminaltui dev    # see what a 256-color viewer sees
+TERMINALTUI_COLOR=16 terminaltui dev     # and a 16-color one
+```
+
+Themes are designed against truecolor and degrade automatically; see [docs/images.md](images.md#256-color-output) for what the 256-color palette can and cannot express, which matters far more for photographs than for UI chrome.
 
 ## Border Styles
 

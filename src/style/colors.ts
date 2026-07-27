@@ -1,3 +1,6 @@
+import type { RGB } from "../image/types.js";
+import { ANSI16_TABLE, xterm256Index, xterm256Rgb } from "./xterm-palette.js";
+
 export type ColorMode = "truecolor" | "256" | "16" | "none";
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -15,11 +18,41 @@ export function rgbToHex(r: number, g: number, b: number): string {
 }
 
 /**
+ * The Terminal.app build that first renders 24-bit colour faithfully.
+ *
+ * Terminal.app is the one significant terminal that gained truecolour without
+ * ever setting COLORTERM, so there is no capability signal to read and the
+ * depth has to be sniffed from `TERM_PROGRAM_VERSION` (its CFBundleVersion).
+ * macOS 26 Tahoe ships build 470; every earlier build parses an SGR `38;2`
+ * triple but snaps it to its own 256-colour palette, which is strictly worse
+ * than quantizing here — we lose control of the rounding and gain nothing.
+ *
+ * Announced at WWDC 2025 and confirmed in termstandard/colors#69. Verified
+ * directly against build 470.2 on macOS 26: a 60-step ramp spanning the
+ * xterm cube's 0→95 gap came out perfectly smooth, where a 256-snapping build
+ * renders that same ramp as three hard bands.
+ */
+const APPLE_TRUECOLOR_BUILD = 470;
+
+/**
+ * Apple Terminal's colour depth for a given `TERM_PROGRAM_VERSION`.
+ *
+ * An absent or unparseable version resolves to "256" — the safe end of the
+ * guess, since over-reporting paints every themed component with codes the
+ * terminal will mangle, while under-reporting merely quantizes.
+ */
+function appleTerminalColorMode(version: string | undefined): ColorMode {
+  const build = parseInt(version ?? "", 10);
+  return Number.isNaN(build) || build < APPLE_TRUECOLOR_BUILD ? "256" : "truecolor";
+}
+
+/**
  * Detect terminal color support from the environment (NO_COLOR / TERM_PROGRAM /
  * COLORTERM / TERM). This is the single canonical capability sniffer —
  * detectTerminal() in helpers/detect-terminal.ts delegates its colorDepth to
  * this function (adding a non-TTY → "none" gate on top).
- * Priority: NO_COLOR → Apple Terminal cap → COLORTERM → known terminals → TERM → fallback
+ * Priority: NO_COLOR → TERMINALTUI_COLOR → Apple Terminal build → COLORTERM →
+ * known terminals → TERM → fallback
  */
 export function detectColorSupport(): ColorMode {
   const env = process.env;
@@ -27,8 +60,21 @@ export function detectColorSupport(): ColorMode {
   // NO_COLOR standard: https://no-color.org/
   if (env.NO_COLOR !== undefined) return "none";
 
-  // Apple Terminal — ALWAYS cap at 256-color, never truecolor
-  if (env.TERM_PROGRAM === "Apple_Terminal") return "256";
+  // Explicit override, mirroring TERMINALTUI_GRAPHICS. Every branch below this
+  // is a heuristic — and the Apple one is a version sniff, which is the kind of
+  // guess that has to come with a way out. Also the only way to view the
+  // 256-colour path on a terminal that now reports truecolour.
+  const forced = env.TERMINALTUI_COLOR?.trim().toLowerCase();
+  if (forced === "truecolor" || forced === "24bit") return "truecolor";
+  if (forced === "256" || forced === "16" || forced === "none") {
+    return forced === "256" ? "256" : forced === "16" ? "16" : "none";
+  }
+
+  // Apple Terminal: version-sniffed, never declared. See the note on
+  // APPLE_TRUECOLOR_BUILD for why this cannot read COLORTERM like the rest.
+  if (env.TERM_PROGRAM === "Apple_Terminal") {
+    return appleTerminalColorMode(env.TERM_PROGRAM_VERSION);
+  }
 
   // Reliable truecolor detection
   if (
@@ -80,48 +126,67 @@ export function getColorMode(): ColorMode {
   return colorMode;
 }
 
-// Convert RGB to closest ANSI 256-color index
-export function rgbTo256(r: number, g: number, b: number): number {
-  // Check if it's close to a grayscale value (232-255)
-  if (r === g && g === b) {
-    if (r < 8) return 16;
-    if (r > 248) return 231;
-    return Math.round((r - 8) / 247 * 24) + 232;
-  }
-  // Map to 6x6x6 color cube (indices 16-231)
-  const ri = Math.round(r / 255 * 5);
-  const gi = Math.round(g / 255 * 5);
-  const bi = Math.round(b / 255 * 5);
-  return 16 + 36 * ri + 6 * gi + bi;
+/**
+ * Coerces an arbitrary number to a valid 8-bit channel.
+ *
+ * Load-bearing, not defensive dressing: resampled channel means arrive
+ * fractional, and a fractional index into the palette's per-byte LUTs reads
+ * `undefined`, which then poisons the result with NaN. Written so NaN falls
+ * to 0. (`xterm256Index` clamps too; this keeps the guarantee local to every
+ * caller of the emitters below.)
+ */
+function clamp8(v: number): number {
+  return v > 0 ? (v < 255 ? Math.round(v) : 255) : 0;
 }
 
-// Map RGB to nearest ANSI 16-color code (30-37, 90-97 for bright)
-const ansi16Table: Array<{ r: number; g: number; b: number; code: number }> = [
-  { r: 0, g: 0, b: 0, code: 30 },       // black
-  { r: 170, g: 0, b: 0, code: 31 },     // red
-  { r: 0, g: 170, b: 0, code: 32 },     // green
-  { r: 170, g: 170, b: 0, code: 33 },   // yellow
-  { r: 0, g: 0, b: 170, code: 34 },     // blue
-  { r: 170, g: 0, b: 170, code: 35 },   // magenta
-  { r: 0, g: 170, b: 170, code: 36 },   // cyan
-  { r: 170, g: 170, b: 170, code: 37 }, // white
-  { r: 85, g: 85, b: 85, code: 90 },    // bright black
-  { r: 255, g: 85, b: 85, code: 91 },   // bright red
-  { r: 85, g: 255, b: 85, code: 92 },   // bright green
-  { r: 255, g: 255, b: 85, code: 93 },  // bright yellow
-  { r: 85, g: 85, b: 255, code: 94 },   // bright blue
-  { r: 255, g: 85, b: 255, code: 95 },  // bright magenta
-  { r: 85, g: 255, b: 255, code: 96 },  // bright cyan
-  { r: 255, g: 255, b: 255, code: 97 }, // bright white
-];
+/**
+ * Maps RGB to the nearest ANSI 256-color index, considering the 6x6x6 cube
+ * (16-231) and the 24-step grey ramp (232-255) as one 240-entry palette.
+ *
+ * The search itself lives in style/xterm-palette.ts, which `image/quantize.ts`
+ * also uses. That is not tidiness: the emitter paints what this returns while
+ * `dither.ts` diffuses its error against what the image path returns, so any
+ * divergence makes the ditherer correct toward a colour that is never drawn.
+ * The two used to be independent implementations and disagreed on 878,094 of
+ * 16,777,216 colours at one point. One search, one table, no contract.
+ */
+export function rgbTo256(r: number, g: number, b: number): number {
+  return xterm256Index(clamp8(r), clamp8(g), clamp8(b));
+}
 
-function rgbTo16(r: number, g: number, b: number): number {
+/**
+ * Inverse of rgbTo256 for the 240 image-safe indices (16-255). Lets callers
+ * doing quantized-error glyph fitting score a candidate against the colour the
+ * terminal will actually paint. Indices 0-15 return black — they are
+ * theme-defined and have no fixed RGB.
+ */
+export function ansi256ToRgb(index: number): RGB {
+  return xterm256Rgb(index);
+}
+
+// The 16 ANSI colours come from style/xterm-palette.ts so the emitter and the
+// image quantizer assume the same values. The SEARCH below stays here and stays
+// plain-RGB: UI chrome matches on RGB distance, pixels match in DIN99d
+// (image/quantize.ts), and that difference is deliberate.
+const ansi16Table = ANSI16_TABLE;
+
+/**
+ * Maps RGB to the nearest ANSI 16-color FOREGROUND code (30-37, 90-97).
+ * Background codes are this value plus 10.
+ *
+ * Exported so the image engine can reach the same table the rest of the
+ * framework uses instead of shipping a second, divergent palette.
+ */
+export function rgbTo16(r: number, g: number, b: number): number {
+  const cr = clamp8(r);
+  const cg = clamp8(g);
+  const cb = clamp8(b);
   let best = 30;
   let bestDist = Infinity;
   for (const entry of ansi16Table) {
-    const dr = r - entry.r;
-    const dg = g - entry.g;
-    const db = b - entry.b;
+    const dr = cr - entry.r;
+    const dg = cg - entry.g;
+    const db = cb - entry.b;
     const dist = dr * dr + dg * dg + db * db;
     if (dist < bestDist) {
       bestDist = dist;
@@ -129,6 +194,12 @@ function rgbTo16(r: number, g: number, b: number): number {
     }
   }
   return best;
+}
+
+/** Inverse of rgbTo16: the reference RGB behind an ANSI 16-color code. */
+export function ansi16ToRgb(code: number): RGB {
+  const entry = ansi16Table.find(e => e.code === code || e.code + 10 === code);
+  return entry ? { r: entry.r, g: entry.g, b: entry.b } : { r: 0, g: 0, b: 0 };
 }
 
 /** Generates an ANSI foreground color escape sequence from a hex color. */
@@ -148,21 +219,50 @@ export function fgColorRgb(r: number, g: number, b: number): string {
   if (colorMode === "256") {
     return `\x1b[38;5;${rgbTo256(r, g, b)}m`;
   }
-  return `\x1b[38;2;${r};${g};${b}m`;
+  return `\x1b[38;2;${clamp8(r)};${clamp8(g)};${clamp8(b)}m`;
 }
 
 export function bgColor(hex: string): string {
-  if (colorMode === "none") return "";
   const rgb = hexToRgb(hex);
   if (!rgb) return "";
+  return bgColorRgb(rgb.r, rgb.g, rgb.b);
+}
+
+/** Same as bgColor but takes RGB directly. Honors colorMode (256-color fallback for Apple Terminal). */
+export function bgColorRgb(r: number, g: number, b: number): string {
+  if (colorMode === "none") return "";
   if (colorMode === "16") {
     // bg codes are fg + 10
-    return `\x1b[${rgbTo16(rgb.r, rgb.g, rgb.b) + 10}m`;
+    return `\x1b[${rgbTo16(r, g, b) + 10}m`;
   }
   if (colorMode === "256") {
-    return `\x1b[48;5;${rgbTo256(rgb.r, rgb.g, rgb.b)}m`;
+    return `\x1b[48;5;${rgbTo256(r, g, b)}m`;
   }
-  return `\x1b[48;2;${rgb.r};${rgb.g};${rgb.b}m`;
+  return `\x1b[48;2;${clamp8(r)};${clamp8(g)};${clamp8(b)}m`;
+}
+
+/**
+ * Emits ONE combined SGR carrying both the foreground and the background of a
+ * cell, e.g. `\x1b[38;2;r;g;b;48;2;r;g;bm`.
+ *
+ * Per-cell image output pays for escapes twice over: bytes on the wire (the
+ * combined form measured ~5% smaller) and, more importantly, one CSI parse per
+ * cell instead of two on the receiving terminal. Callers still owe a trailing
+ * `reset` at end of row — a background emitted here leaks into the focus gutter
+ * and the centring pad otherwise.
+ */
+export function cellColorRgb(fg: RGB, bg: RGB): string {
+  if (colorMode === "none") return "";
+  if (colorMode === "16") {
+    return `\x1b[${rgbTo16(fg.r, fg.g, fg.b)};${rgbTo16(bg.r, bg.g, bg.b) + 10}m`;
+  }
+  if (colorMode === "256") {
+    return `\x1b[38;5;${rgbTo256(fg.r, fg.g, fg.b)};48;5;${rgbTo256(bg.r, bg.g, bg.b)}m`;
+  }
+  return (
+    `\x1b[38;2;${clamp8(fg.r)};${clamp8(fg.g)};${clamp8(fg.b)}` +
+    `;48;2;${clamp8(bg.r)};${clamp8(bg.g)};${clamp8(bg.b)}m`
+  );
 }
 
 export function interpolateColor(from: string, to: string, t: number): string {
@@ -221,3 +321,8 @@ export let dim = colorMode === "none" ? "" : "\x1b[2m";
 export let italic = colorMode === "none" ? "" : "\x1b[3m";
 export let underline = colorMode === "none" ? "" : "\x1b[4m";
 export let inverse = colorMode === "none" ? "" : "\x1b[7m";
+
+// A less generic name for `reset`, for modules that already have a local
+// `reset` in scope. Re-exporting the binding (rather than copying its value)
+// keeps it live, so setColorMode() still updates it.
+export { reset as sgrReset };
