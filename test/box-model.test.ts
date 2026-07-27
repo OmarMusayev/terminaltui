@@ -194,7 +194,7 @@ const expectedContent80: Record<string, number> = {
   spacer: 80,
   timeline: 74,
   gallery: 80,
-  image: 78,
+  image: 80,
   markdown: 80,
   menu: 80,
   accordion: 76,

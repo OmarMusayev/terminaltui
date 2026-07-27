@@ -7,6 +7,7 @@
  *   - runtime-pages.ts  (navigation, focus)
  *   - runtime-forms.ts  (forms, actions)
  */
+import { dirname } from "node:path";
 import type {
   Site, SiteConfig, PageConfig, ContentBlock, DynamicBlock, FormBlock,
 } from "../config/types.js";
@@ -33,20 +34,28 @@ import { setApiBaseUrl } from "../api/resolve.js";
 import { destroyAllFetchers } from "../data/fetcher.js";
 import { createInputState, type InputFieldState } from "../data/types.js";
 import { stringWidth } from "../components/base.js";
+import { setImageProjectDir, setGraphicsSink, setImageTermType } from "../components/Image.js";
+import {
+  detectGraphics, getGraphicsCapability, probeGraphics, setGraphicsCapability,
+  type GraphicsCapability,
+} from "../image/capability.js";
+import { encodeDelete, imageIdColor } from "../image/kitty.js";
+import { onKittyEvicted } from "../image/cache.js";
 import { getInputDefault } from "../components/Form.js";
 import type { RenderContext } from "../components/base.js";
 import type { FocusItem, FormResult } from "./runtime-types.js";
 import type { TerminalIO } from "./terminal-io.js";
 import { ProcessTerminalIO } from "./terminal-io.js";
-import type { RuntimeInternal, PageLayoutCache, FrameState } from "./runtime-internal.js";
+import { createGraphicsState } from "./runtime-internal.js";
+import type { RuntimeInternal, PageLayoutCache, FrameState, GraphicsState } from "./runtime-internal.js";
 import type { FileRouter } from "../router/resolver.js";
 
 import { runtimeContext, type RuntimeRef } from "./runtime-context.js";
 
 // Delegated modules
 import { handleCommandMode, handleNavigationMode, handleEditMode } from "./runtime-input.js";
-import { renderMain, renderBlock as _renderBlock, renderContentBlocks as _renderContentBlocks, resolveDynamic } from "./runtime-render.js";
-import { isBlockFocusable as _isBlockFocusable, INPUT_TYPES, TEXT_ENTRY_TYPES } from "./block-taxonomy.js";
+import { renderMain, renderBlock as _renderBlock, renderContentBlocks as _renderContentBlocks, resolveDynamic, isBlockFocusable as _isBlockFocusable } from "./runtime-render.js";
+import { INPUT_TYPES, TEXT_ENTRY_TYPES } from "./block-taxonomy.js";
 import { contentWidth } from "./layout-constants.js";
 import { navigateToPage as _navigateToPage, enterPage as _enterPage, getCurrentPage as _getCurrentPage, getPageContent as _getPageContent, resolvePageTitle as _resolvePageTitle, resolvePageLoading as _resolvePageLoading, collectFocusItems as _collectFocusItems, pageFocusNext as _pageFocusNext, pageFocusPrev as _pageFocusPrev, initializePageContent as _initializePageContent, registerForms as _registerForms, showFeedback as _showFeedback, executeCommand as _executeCommand } from "./runtime-pages.js";
 import { handlePageSelect as _handlePageSelect, validateInput as _validateInput, resetFormFields as _resetFormFields } from "./runtime-forms.js";
@@ -59,6 +68,10 @@ export class TUIRuntime implements RuntimeInternal {
   /** @internal */ borderStyle: BorderStyle;
   /** @internal File router when running file-based projects. */
   fileRouter: FileRouter | null = null;
+  /** @internal Absolute project root — relative asset paths resolve against
+   *  this rather than process.cwd(). Assigned by the entry point that knows
+   *  the project (runFileBasedSite, serve); undefined for bare embedders. */
+  projectDir: string | undefined = undefined;
   /** @internal Focused block exposed to nested layout renderers. */
   currentFocusedBlock: ContentBlock | undefined = undefined;
   /** @internal */ scrollOffset = 0;
@@ -94,6 +107,24 @@ export class TUIRuntime implements RuntimeInternal {
   layoutCache: PageLayoutCache = { contentRef: null, columns: 0, rows: 0, volatile: false };
   /** @internal Line-diff renderer's previous-frame buffer — one per terminal stream (SSH sessions isolated). */
   frameState: FrameState = { rows: [], columns: 0, rowCount: 0, cursorShown: false, valid: false };
+  /** @internal Kitty graphics bookkeeping — one per terminal stream, same isolation rule. */
+  graphics: GraphicsState = createGraphicsState();
+  /**
+   * @internal This session's graphics verdict, settled once at start.
+   *
+   * Held on the instance and re-published before every frame for the same
+   * reason `_colorMode` is: capability.ts's session slot is module-level, so in
+   * a serve process a kitty client and an Apple Terminal client would otherwise
+   * take turns overwriting it and each would occasionally render the other's
+   * tier. Null until `start()` settles it, which is what keeps a bare
+   * `new TUIRuntime(...).render()` (unit tests, embedders) from clobbering a
+   * value it never established.
+   */
+  private graphicsCapability: GraphicsCapability | null = null;
+  /** @internal Unsubscribe from cache-eviction notices; installed at start, dropped at cleanup. */
+  private graphicsUnsubscribe: (() => void) | null = null;
+  /** @internal True while the post-transmit repaint is running (re-entry guard). */
+  private graphicsRepainting = false;
   /** @internal */ apiServer: ApiServer | null = null;
   /** @internal */ apiBaseUrl: string | null = null;
   /** @internal */ focusRects: FocusRect[] = [];
@@ -147,10 +178,200 @@ export class TUIRuntime implements RuntimeInternal {
    * redraw. Every code path that writes to the terminal without going
    * through writeToTerminal (onError fallbacks, exit message, restore)
    * must call this.
+   *
+   * KITTY IMAGES ARE NOT RETIRED HERE, and that is a deliberate reversal.
+   * This method used to queue a delete for every live image on the theory that
+   * after an out-of-band paint we no longer know what the terminal is showing.
+   * Only half of that is true: an `\x1b[2J` erases the placeholder CELLS, not
+   * the pixels — those live in the terminal's own image store, keyed by id —
+   * and a full redraw re-emits the cells, which is sufficient. Verified on
+   * kitty 0.46: after a full clear, re-emitting the identical placement rows
+   * brings the picture back with no re-transmission at all.
+   *
+   * Retiring them cost a re-send of every on-screen image on EVERY SIGWINCH,
+   * because the resize handler calls this per event. Measured on a 110x60
+   * terminal with a 99-column image: 1963 KiB and 15 ms of synchronous work per
+   * resize event, 19.17 MiB across a ten-event window drag, with the geometry —
+   * and therefore the image id — never changing. Over SSH that stalls the
+   * channel for seconds and the app looks hung.
    * @internal
    */
   invalidateFrame(): void {
     this.frameState.valid = false;
+  }
+
+  /**
+   * Record that a kitty image appears in the frame being composed.
+   *
+   * Called from `renderImage()` for every kitty-tier block on every frame, so
+   * the steady-state path is deliberately two set operations and nothing else:
+   * no encoding, no writing, no allocation. `transmit` is a thunk that is
+   * passed every time and INVOKED almost never — that is what keeps "exactly
+   * one transmission per (image, size, terminal)" a property enforced in ONE
+   * place instead of a rule every caller has to remember, and it is why a
+   * megabyte of base64 is never built on a frame that does not need it.
+   *
+   * The thunk is not invoked HERE either, even on the first placement: this
+   * runs while the page is being composed in full, before it is sliced to the
+   * viewport, so a block that scrolls off the bottom reaches this line exactly
+   * like one the viewer can see. `graphicsCommit()` invokes the thunks that
+   * survived the slice. See {@link GraphicsState.intent}.
+   *
+   * @returns False when this id is known-dead — its thunk threw on an earlier
+   *   frame, so the source stopped being decodable. The caller MUST then demote
+   *   to the cell tiers; leaving placement cells on screen for pixels that will
+   *   never arrive is the one failure mode the kitty path is not allowed to
+   *   have, and it used to be permanent (every frame retried the dead decode
+   *   behind a grid of tofu).
+   * @internal
+   */
+  graphicsPlace(id: number, transmit: () => string): boolean {
+    const g = this.graphics;
+    if (g.failed.has(id)) return false;
+    g.placed.add(id);
+    if (!g.sent.has(id)) g.intent.set(id, transmit);
+    return true;
+  }
+
+  /**
+   * Resolve this frame's placement intents against the frame that was actually
+   * composed, and queue the transmissions the viewer can see.
+   *
+   * Called from `writeToTerminal` with the composed rows, before any byte goes
+   * out. An image's placement rows all carry `imageIdColor(id)`, a literal
+   * 24-bit SGR unique to the id, so "is this image on screen" is one exact
+   * substring test per un-transmitted image — and there are none of those on a
+   * steady-state frame, which is why this costs nothing in the common case.
+   *
+   * A thunk that throws marks the id dead and invalidates the frame, so the
+   * very next paint re-runs `renderImage`, gets `false` from `graphicsPlace`
+   * and draws cells. One frame can therefore carry placement cells for pixels
+   * that never arrived; before this the condition was permanent.
+   * @internal
+   */
+  graphicsCommit(frameRows: readonly string[]): void {
+    const g = this.graphics;
+    if (g.intent.size === 0) return;
+    let onScreen: string | null = null;
+    for (const [id, transmit] of g.intent) {
+      // `inFlight` means the bytes are already queued from an earlier frame
+      // whose write failed. Building a second copy would put the same image on
+      // the wire twice; the queued one is retried by `drainGraphics`.
+      if (g.sent.has(id) || g.inFlight.includes(id)) continue;
+      onScreen ??= frameRows.join("\n");
+      if (!onScreen.includes(imageIdColor(id))) continue;
+      try {
+        g.queue.push(transmit());
+      } catch {
+        // The source stopped decoding between the cache entry being built and
+        // now. Demote permanently rather than retrying a known-dead decode.
+        g.failed.add(id);
+        this.frameState.valid = false;
+        continue;
+      }
+      g.inFlight.push(id);
+      g.pendingTransmit = true;
+    }
+    g.intent.clear();
+  }
+
+  /**
+   * Settle this frame's graphics: delete what left the screen, write what is
+   * owed, and repaint if pixels arrived after the cells that reference them.
+   *
+   * Runs AFTER `renderMain()` — i.e. after `writeToTerminal()` has put the
+   * frame on screen — because the payload must go down the unfiltered
+   * `writeOutput()` pipe and never through the row composer, where `cutToWidth`
+   * would shred base64 at the first `m` and the C0 strip would eat the escape.
+   *
+   * THE REPAINT. A placeholder cell references an image by id; a terminal that
+   * meets the cell before the transmission has nothing to draw there. kitty and
+   * Ghostty both mark the screen dirty when an image arrives and would repaint
+   * on their own, but neither behaviour is written down as a guarantee, and
+   * "the first frame after an image appears is blank" is a bug that would only
+   * show up on hardware nobody here has. So when a transmission actually went
+   * out, the frame is invalidated and composed once more, which re-emits the
+   * placeholder rows with the pixels already in place. It costs one extra frame
+   * composition per image per size — never on a steady-state frame, because
+   * nothing is queued then.
+   */
+  private settleGraphics(): void {
+    if (this.drainGraphics() && !this.graphicsRepainting) {
+      this.graphicsRepainting = true;
+      try {
+        this.invalidateFrame();
+        renderMain(this);
+        this.drainGraphics();
+      } finally {
+        this.graphicsRepainting = false;
+      }
+    }
+  }
+
+  /**
+   * One sweep-and-write pass.
+   * @returns True when a transmission was written, i.e. the placeholder rows on
+   *   screen were composed before the pixels they reference existed.
+   */
+  private drainGraphics(): boolean {
+    const g = this.graphics;
+
+    // Anything on screen last frame and absent from this one has left: a page
+    // navigation, a resize that re-keyed the image, a block that stopped
+    // rendering. Free the terminal's copy — nothing else ever will.
+    for (const id of g.lastPlaced) {
+      if (g.placed.has(id)) continue;
+      if (g.sent.delete(id)) g.queue.push(encodeDelete(id));
+    }
+    // Swap the two sets and reuse the emptied one, so a steady-state frame
+    // allocates nothing here.
+    const recycled = g.lastPlaced;
+    g.lastPlaced = g.placed;
+    recycled.clear();
+    g.placed = recycled;
+
+    const wrote = g.pendingTransmit;
+    g.pendingTransmit = false;
+    if (g.queue.length === 0) return false;
+
+    // An id counts as DELIVERED only once its bytes have left the process. The
+    // bookkeeping used to run at queue time, so a throwing `writeOutput` left
+    // the id recorded as sent forever while its placeholder rows sat on screen
+    // over nothing. Clearing the queue after the write has the same shape: a
+    // failed write simply retries everything on the next frame.
+    this.writeOutput(g.queue.join(""));
+    g.queue.length = 0;
+    for (const id of g.inFlight) g.sent.add(id);
+    g.inFlight.length = 0;
+    return wrote;
+  }
+
+  /**
+   * Free a kitty image the render cache has dropped. A SAFETY NET, not the
+   * primary path — the per-frame sweep in `drainGraphics()` already deletes
+   * every image that stops being placed, and an evicted entry stops being
+   * placed by construction (its id is gone, so the next frame allocates a new
+   * one). This exists so that a future caller who bypasses the sweep still
+   * cannot leak pixels into the terminal's 320 MB quota.
+   *
+   * Two guards, both load-bearing:
+   *
+   * - An id that is placed in the frame being composed, or in the frame on
+   *   screen, is LEFT ALONE. Eviction fires synchronously from `setKittyImage`,
+   *   i.e. in the middle of a render, so a page with two images can evict the
+   *   first one's entry after its placeholder rows are already composed —
+   *   deleting there would blank a rectangle the user is looking at. The sweep
+   *   removes it one frame later, when it is genuinely gone.
+   * - The cache is process-wide and this runtime may never have transmitted the
+   *   id. `sent.delete()` returning false is the normal case in a serve process
+   *   with several sessions, and is what keeps one client from deleting
+   *   another client's pixels.
+   */
+  private onGraphicsEvicted(id: number): void {
+    const g = this.graphics;
+    if (g.placed.has(id) || g.lastPlaced.has(id)) return;
+    if (!g.sent.delete(id)) return;
+    g.queue.push(encodeDelete(id));
   }
 
   private detectRemoteColorMode(): import("../style/colors.js").ColorMode {
@@ -210,6 +431,15 @@ export class TUIRuntime implements RuntimeInternal {
     }
     setColorMode(this._colorMode);
 
+    // Publish the project root BEFORE the first layout pass. The flex engine
+    // sizes an image block by reading its header, and it reaches the file
+    // through the same module-level root the renderer uses. Setting it only
+    // from renderImage() would leave frame 1's estimator resolving relative
+    // paths against the shell's cwd — it would reserve the square placeholder
+    // geometry, and runtime-render.ts's layout cache would keep that stale
+    // rect until content identity or the terminal size changed.
+    setImageProjectDir(this.projectDir);
+
     // Legacy callbacks for code paths outside an AsyncLocalStorage scope
     // (cross-package fetcher.ts; unit tests). Inside an active runtime,
     // currentRuntime() is consulted first so these clobbers don't matter.
@@ -231,6 +461,32 @@ export class TUIRuntime implements RuntimeInternal {
     }
 
     this.setupTerminal();
+
+    // Graphics capability, in the ONE window where asking is safe: after
+    // setupTerminal() (raw mode is needed to read a reply un-line-buffered, and
+    // terminal setup belongs to that method) and before _input.start() (once
+    // InputManager has attached its listener, every reply byte reaches the key
+    // handler too — input.ts swallows them correctly today, but a probe that
+    // depends on that is a probe waiting to break).
+    //
+    // probeGraphics() is safe to call unconditionally on the local path: it
+    // re-runs the env ladder first and writes ZERO bytes unless the environment
+    // is a local interactive TTY that names no terminal it recognises. Apple
+    // Terminal, tmux, CI and piped stdio all return immediately.
+    if (this.terminalIO instanceof ProcessTerminalIO) {
+      this.graphicsCapability = await probeGraphics(this.terminalIO);
+    } else {
+      // A serve session: the client's pty-req TERM is the ONLY evidence, and an
+      // env sniff here would describe the SERVER's shell. Synchronous, emits
+      // nothing, and an absent termType resolves to "denied" — cells, never
+      // escape bytes aimed at a terminal that cannot read them.
+      this.graphicsCapability = detectGraphics({ termType: this.terminalIO.termType ?? "" });
+      setGraphicsCapability(this.graphicsCapability);
+    }
+    // Freeing a dropped image is this runtime's job because only it knows which
+    // terminal holds the pixels; the cache cannot import from src/core.
+    this.graphicsUnsubscribe = onKittyEvicted(id => this.onGraphicsEvicted(id));
+
     // Treat every resize event as out-of-band damage, not just dimension
     // changes: SIGWINCH is coalesced, so a shrink+restore to the original
     // size delivers ONE event whose final dims equal the stored frame — the
@@ -282,6 +538,31 @@ export class TUIRuntime implements RuntimeInternal {
   cleanup(): void {
     this._input.stop();
     this.asyncManager.cleanup();
+    if (this.graphicsUnsubscribe) { this.graphicsUnsubscribe(); this.graphicsUnsubscribe = null; }
+    // Hand the terminal's graphics memory back before the alt screen goes away.
+    // The ORDERING is load-bearing and must not be "tidied": on kitty an image
+    // transmitted on the primary screen renders as nothing inside the alternate
+    // screen, so the deletes have to go out before `ESC[?1049l`, not after.
+    //
+    // Written directly rather than queued: this is the last chance, there will
+    // be no further frame to drain the queue, and the payload is a handful of
+    // bytes per image. The QUEUE is flushed as well as the live set, in case a
+    // frame was composed but never drained. In-flight ids count as live: their
+    // bytes may or may not have landed, and a delete for an image the terminal
+    // does not hold is a no-op while a leak is not.
+    const g = this.graphics;
+    if (g.sent.size > 0 || g.queue.length > 0 || g.inFlight.length > 0) {
+      let payload = g.queue.join("");
+      g.queue.length = 0;
+      for (const id of g.inFlight) g.sent.add(id);
+      g.inFlight.length = 0;
+      for (const id of g.sent) payload += encodeDelete(id);
+      g.sent.clear();
+      g.lastPlaced.clear();
+      g.placed.clear();
+      g.intent.clear();
+      try { this.terminalIO.write(payload); } catch { /* terminal already gone */ }
+    }
     if (this.bootTimer) clearInterval(this.bootTimer);
     if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
     if (this.notificationTimer) clearInterval(this.notificationTimer);
@@ -406,15 +687,46 @@ export class TUIRuntime implements RuntimeInternal {
   /** @internal */ handleEditMode(key: KeyPress): void { handleEditMode(this, key); }
   /** @internal */ render(): void {
     const prev = getColorMode();
+    // The image renderer reaches this runtime through a module-level slot, the
+    // same way it reaches the colour mode: renderBlock()'s signature is fixed,
+    // and the whole render pass is synchronous, so a set/restore pair around it
+    // is exact even with several SSH sessions in one process.
+    const prevSink = setGraphicsSink(this);
+    // The client's TERM, so the cell ladder negotiates against the viewer's
+    // terminal rather than the daemon's. `?? ""` keeps a remote session in
+    // remote mode even when the client sent no pty-req TERM — an unknown
+    // remote must fall back to the tier that asks least of the far end, not to
+    // whatever the server's own shell happens to advertise. Matches how the
+    // graphics verdict is resolved for the same session.
+    const prevTermType = setImageTermType(
+      this.terminalIO instanceof ProcessTerminalIO ? undefined : this.terminalIO.termType ?? "",
+    );
     setColorMode(this._colorMode);
+    // Re-assert this session's graphics verdict, not just its colour mode:
+    // both live in module-level slots, and in a serve process the sibling
+    // session that rendered last left its own value there. RESTORED in the
+    // `finally` like the other three, which it was not: the slot is readable
+    // outside a render pass — `detectTerminal().graphics` is a documented
+    // public helper and a page function may consult it while its content is
+    // being resolved — so leaving another session's terminal in it told the
+    // wrong client the wrong story. (The pillars demo's home page is exactly
+    // such a page.)
+    const prevCap = getGraphicsCapability();
+    if (this.graphicsCapability !== null) setGraphicsCapability(this.graphicsCapability);
     try {
       renderMain(this);
+      // After the frame is on screen, never before: the transmission is raw
+      // base64 and must bypass the row composer entirely.
+      this.settleGraphics();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       if (!this.site.onError || this.handlingError) throw error;
       this.invokeOnError(error, { page: this.getCurrentPage()?.id, params: this.currentParams, phase: "render" });
     } finally {
       setColorMode(prev);
+      setGraphicsSink(prevSink);
+      setImageTermType(prevTermType);
+      setGraphicsCapability(prevCap);
     }
   }
   /** @internal */ navigateToPage(pageId: string, params?: RouteParams): void {
@@ -453,7 +765,16 @@ export class TUIRuntime implements RuntimeInternal {
   /** @internal */ executeCommand(cmd: string): void { _executeCommand(this, cmd); }
   /** @internal */ validateInput(block: ContentBlock): boolean { return _validateInput(this, block); }
   /** @internal */ renderBlock(block: ContentBlock, ctx: RenderContext): string[] { return _renderBlock(this, block, ctx); }
-  /** @internal */ isBlockFocusable(block: ContentBlock): boolean { return _isBlockFocusable(block); }
+  /**
+   * @internal Whether a block takes a focus slot.
+   *
+   * Routed through runtime-render (i.e. runtime-block-render's widened version)
+   * rather than block-taxonomy: focusability is no longer decidable from the
+   * block TYPE alone, because `image(..., { resizable: true })` confers a slot
+   * that a plain image does not have. Answering from the taxonomy here would
+   * disagree with the walkers that actually assign focus indices.
+   */
+  isBlockFocusable(block: ContentBlock): boolean { return _isBlockFocusable(block); }
 
   renderContentBlocks(blocks: ContentBlock[], ctx: RenderContext): string[] {
     return _renderContentBlocks(this, blocks, ctx);
@@ -524,6 +845,9 @@ export async function runFileBasedSite(opts: {
   apiDir?: string;
   outDir: string;
   terminalIO?: TerminalIO;
+  /** Absolute project root. Defaults to the parent of `pagesDir`, which is
+   *  the project root by construction for every caller (`<project>/pages`). */
+  projectDir?: string;
 }): Promise<void> {
   const { FileRouter } = await import("../router/resolver.js");
 
@@ -561,6 +885,7 @@ export async function runFileBasedSite(opts: {
     artDir: opts.config.artDir,
     middleware: opts.config.middleware,
     menu: opts.config.menu,
+    serve: opts.config.serve,
     pages,
     api: {
       ...(apiRoutes || {}),
@@ -577,6 +902,10 @@ export async function runFileBasedSite(opts: {
 
   // Attach file router for menu({ source: "auto" }) resolution
   runtime.fileRouter = router;
+  // Relative asset paths resolve against the project, not the shell's cwd —
+  // `terminaltui dev demos/x/config.ts` and `terminaltui demo <name>` (which
+  // lives under node_modules) are both run from somewhere else entirely.
+  runtime.projectDir = opts.projectDir ?? dirname(opts.pagesDir);
 
   await runtime.start();
 }

@@ -30,6 +30,25 @@ export function blockRenderWidth(columns: number): number {
 }
 
 /**
+ * Width a `fitPage` image is composed against: the whole terminal.
+ *
+ * Every other block lives inside the centred content column, which is capped at
+ * CONTENT_MAX_WIDTH so long prose does not run to a 200-column measure. That cap
+ * is a TYPOGRAPHIC one and a picture is not type: applied to a page-fit image it
+ * pinned the picture at 99 columns, and since `contain` derives rows from
+ * columns, the row budget the page had just granted could not be spent — a
+ * 1080x709 source saturated at 34 rows and left 22 rows of the screen black on a
+ * 90-row window, the dead band growing one row per terminal row after that.
+ *
+ * A page-fit image therefore composes edge to edge and is positioned against the
+ * terminal rather than the column (renderContentPage writes its rows without the
+ * usual left pad). Nothing else on the page moves.
+ */
+export function pageFitWidth(columns: number): number {
+  return Math.max(1, Math.floor(columns));
+}
+
+/**
  * Height budget given to layout blocks (columns/rows/grid/panel/row) and the
  * focus-rect walk. rows − (HEADER_LINES + FOOTER_LINES + STATUS_ROW) === rows − 8,
  * numerically identical to the previous inline literals.

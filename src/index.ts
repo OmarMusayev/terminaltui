@@ -70,10 +70,12 @@ export type {
   ProgressBarBlock,
   BadgeBlock,
   ImageBlock,
+  ImageOptions,
   DividerBlock,
   SpacerBlock,
   SectionBlock,
   CustomBlock,
+  CustomRenderContext,
   BannerConfig,
   AsciiBannerOptions,
   AnimationConfig,
@@ -147,6 +149,28 @@ import * as _dataviz from "./ascii/dataviz.js";
 import { getIcon as _getIcon } from "./ascii/art.js";
 export { asciiImage } from "./ascii/image.js";
 export type { AsciiImageOptions } from "./ascii/image.js";
+
+// Image rendering (cell engine). `imageCellSize` is exported so authors and the
+// layout engine size a block the same way — it is the function flex-engine.ts
+// itself calls, header probe included.
+export { imageCellSize, setImageProjectDir } from "./components/Image.js";
+// `ImageRenderOptions` is deliberately NOT re-exported: it is the engine's
+// internal contract, and `ImageOptions` (Omit<ImageBlock, "type" | "path">) is
+// the authoring surface. Publishing both put two near-identical option types in
+// autocomplete, and the more descriptive-sounding one rejected `mode: "blocks"`.
+export type {
+  CellGeometry,
+  ImageAlign,
+  ImageDither,
+  ImageFit,
+  ImageMode,
+  ImageTier,
+} from "./image/types.js";
+export type { ImageGeometry } from "./image/geometry.js";
+// Resizable frames: the two numbers a page author (or a help screen) may need
+// to describe the interaction. The frame arithmetic itself stays internal —
+// `image(path, { resizable: true })` is the whole public surface.
+export { FRAME_MIN_COLS, FRAME_STEP_COLS } from "./image/frame.js";
 
 /** ASCII art shape, pattern, scene, data visualization, and icon generators. */
 export const asciiArt = {

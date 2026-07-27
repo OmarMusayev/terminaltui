@@ -20,6 +20,7 @@ import type { ScreenSize } from "./screen.js";
 import type { KeyPress } from "./input.js";
 import type { FocusItem, FormResult } from "./runtime-types.js";
 import type { FileRouter } from "../router/resolver.js"; // type-only import: no runtime cycle
+import type { GraphicsSink } from "../components/Image.js"; // type-only: the renderer defines the contract it needs
 
 /**
  * Per-page layout cache consulted by renderMain (§D.4). Static trees skip
@@ -57,7 +58,78 @@ export interface FrameState {
   valid: boolean;
 }
 
-export interface RuntimeInternal {
+/**
+ * Kitty graphics bookkeeping for ONE terminal.
+ *
+ * Per-runtime for the same reason `FrameState` is: an image lives in a specific
+ * terminal's memory, and two concurrent SSH sessions have transmitted entirely
+ * different sets of them. Hoisting any of this to module scope would let one
+ * session's "already sent" suppress another session's transmission and paint
+ * that client a rectangle of nothing.
+ *
+ * The three sets encode a small state machine, evaluated once per frame in
+ * `TUIRuntime.render()`:
+ *
+ *   placed      ids whose placeholder cells are in the frame being composed
+ *   lastPlaced  the same, for the frame already on screen
+ *   sent        ids this terminal is believed to be holding pixels for
+ *
+ * `lastPlaced \ placed` is the set of images that just left the screen — a page
+ * navigation, a resize that re-keyed an image, a block that stopped rendering —
+ * and each one is owed a delete, because kitty and Ghostty hold transmitted
+ * pixels against a 320 MB per-buffer quota until told otherwise, and virtual
+ * placements count.
+ */
+export interface GraphicsState {
+  /** Ids this terminal has received pixels for and has not been told to drop. */
+  sent: Set<number>;
+  /** Ids placed in the frame currently being composed. */
+  placed: Set<number>;
+  /** Ids placed in the frame currently on screen. */
+  lastPlaced: Set<number>;
+  /**
+   * Ids declared by this frame's blocks that have NOT been transmitted yet,
+   * with the thunk that would build the payload.
+   *
+   * The thunk is held rather than invoked because `renderBlock` runs for every
+   * block on the page, including the ones that scroll off the bottom: the page
+   * is composed in full and then sliced. Transmitting there sent a full image
+   * for every image on the page on the first paint (measured: 6 of 6 on a page
+   * whose viewport held one, 2141 KiB). `graphicsCommit()` resolves this map
+   * against the COMPOSED FRAME, so only pixels the viewer can actually see go
+   * down the wire.
+   */
+  intent: Map<number, () => string>;
+  /**
+   * Ids whose transmit thunk threw. Their source stopped being decodable
+   * between frames, so `graphicsPlace()` refuses them from here on and the
+   * renderer draws cells instead — otherwise every frame retries a known-dead
+   * decode behind a permanent grid of placeholder cells.
+   */
+  failed: Set<number>;
+  /** Payloads (transmissions and deletes, in order) owed to the terminal. */
+  queue: string[];
+  /** Ids whose transmission is IN the queue but not yet written. */
+  inFlight: number[];
+  /** A transmission was queued this frame — the placeholder rows need repainting. */
+  pendingTransmit: boolean;
+}
+
+/** A fresh, empty graphics state. One per runtime, built in the constructor. */
+export function createGraphicsState(): GraphicsState {
+  return {
+    sent: new Set(),
+    placed: new Set(),
+    lastPlaced: new Set(),
+    intent: new Map(),
+    failed: new Set(),
+    queue: [],
+    inFlight: [],
+    pendingTransmit: false,
+  };
+}
+
+export interface RuntimeInternal extends GraphicsSink {
   // ── Configuration & collaborators ─────────────────────────
   site: SiteConfig;
   theme: Theme;
@@ -66,6 +138,15 @@ export interface RuntimeInternal {
   borderStyle: BorderStyle;
   /** File router when running file-based projects (was `(rt as any)._fileRouter`). */
   fileRouter: FileRouter | null;
+  /**
+   * Absolute project root, when known. Relative asset paths written by page
+   * authors (`image("./logo.png")`) resolve against this, NOT `process.cwd()`
+   * — `terminaltui dev demos/x/config.ts` and `terminaltui demo <name>` both
+   * run from a directory that is not the project. Undefined when the runtime
+   * was constructed without a project (embedders, compiled `_entry.ts`), in
+   * which case the caller falls back to `process.cwd()`.
+   */
+  projectDir: string | undefined;
 
   // ── Navigation / focus state ──────────────────────────────
   scrollOffset: number;
@@ -112,6 +193,18 @@ export interface RuntimeInternal {
   layoutCache: PageLayoutCache;
   /** Line-diff renderer's previous-frame buffer (one per terminal stream). */
   frameState: FrameState;
+  /**
+   * Kitty graphics bookkeeping (one per terminal stream). `graphicsPlace()`,
+   * inherited from `GraphicsSink`, is the only thing the renderer touches;
+   * everything else is drained by the runtime after the frame is written.
+   */
+  graphics: GraphicsState;
+  /**
+   * Resolve this frame's kitty placement intents against the COMPOSED rows and
+   * queue the transmissions the viewer can actually see. Called by
+   * `writeToTerminal` after composition and before any byte is emitted.
+   */
+  graphicsCommit(frameRows: readonly string[]): void;
 
   // ── Services ─────────────────────────────────────────────
   notifications: NotificationManager;
@@ -127,6 +220,11 @@ export interface RuntimeInternal {
    * without going through writeToTerminal (error fallbacks, exit
    * messages, terminal restore) — otherwise the next diff is taken
    * against a buffer the screen no longer shows.
+   *
+   * It ALSO retires every transmitted kitty image: an out-of-band paint has
+   * erased the placeholder cells the pixels were hanging on, and the frame
+   * buffer no longer describes what the terminal shows, so the pixels are
+   * re-established from scratch rather than trusted.
    */
   invalidateFrame(): void;
 

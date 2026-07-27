@@ -146,6 +146,57 @@ asciiArt.pieChart([{ label: "A", value: 60 }, { label: "B", value: 40 }], 6)
 asciiArt.graph([10, 20, 15, 30, 25], 40, 10)
 ```
 
+## Images to terminal art
+
+`asciiImage()` converts a PNG or JPEG into rows of terminal art. Returns `Promise<string[]>` -- one string per output row, each exactly the negotiated column width.
+
+```ts
+import { asciiImage } from "terminaltui";
+
+const rows = await asciiImage("./logo.png", { width: 40 });
+console.log(rows.join("\n"));
+```
+
+PNG and JPEG decode with the bundled decoders. **No `sharp` and no other install is required** -- the old peer-dependency requirement is gone. GIF, WebP and BMP are recognized but have no synchronous decoder, and a missing or corrupt file behaves the same way: the call resolves to a single `["[Error: ...]"]` row rather than throwing.
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `width` | `number` | `60` | Output width in cells. Capped at 99. |
+| `height` | `number` | derived from aspect | Given, the image is stretched to exactly `width` x `height` |
+| `mode` | `"ascii" \| "shading" \| "blocks" \| "braille"` | `"ascii"` | Rendering technique |
+| `charset` | `string` | `" .:-=+*#%@"` / `" ·:░▒▓█"` | Ramp for `"ascii"` and `"shading"`, darkest first |
+| `invert` | `boolean` | `false` | Invert the sampled pixels |
+| `color` | `boolean` | `false` | Emit per-cell color. `false` guarantees plain text out |
+| `dithering` | `"none" \| "ordered" \| "floyd-steinberg"` | `"none"` | A no-op in truecolor and whenever `color` is `false` |
+| `threshold` | `number` | Otsu, chosen per image | Explicit 1-bit cut. Applies to `"braille"` only |
+
+### Modes
+
+| Mode | Sub-cells per row | With `color: false` | With `color: true` |
+|------|-------------------|---------------------|--------------------|
+| `"ascii"` | 1 | The `" .:-=+*#%@"` ramp | Same glyphs, one color per cell |
+| `"shading"` | 1 | The `" ·:░▒▓█"` ramp | Same glyphs, one color per cell |
+| `"blocks"` | 2 (upper/lower half) | Falls back to the shading ramp | `▀` with an independent foreground **and background** -- the highest-fidelity mode |
+| `"braille"` | 8 (2x4 dots) | 1-bit dot art | Dot art with one color per cell |
+
+```ts
+await asciiImage("./photo.jpg", { width: 60, mode: "blocks", color: true });
+await asciiImage("./plot.png", { width: 60, mode: "braille" });
+await asciiImage(buffer, { width: 30, charset: " .oO@" });
+```
+
+`color: false` emits **zero** escape bytes, including the trailing reset -- safe to write straight to a file or pipe. `mode: "blocks"` with `color: false` uses the shading ramp instead of half blocks, because a half block with both pens suppressed only encodes "the two halves differ", which is not an image.
+
+Aspect is correct in every mode: a 1600x1000 source at `width: 60` is 19 rows whether you ask for `"ascii"`, `"blocks"` or `"braille"`. (Before 2.1.0 every sub-cell mode was vertically squashed by 2x -- and in practice `asciiImage()` had never produced an image at all, because the `sharp` guard returned first.)
+
+Relative paths resolve against the current working directory, and transparent pixels are composited against black -- this is a standalone utility with no theme or project root in scope.
+
+### `asciiImage()` vs `image()`
+
+Both go through the same rendering engine. Use `asciiImage()` when you want the rows as strings; use the [`image()`](images.md) content block inside a page, where you also get automatic tier negotiation from the viewer's terminal, theme-aware alpha compositing, caching, framing, alignment, and an alt-text box that reserves the same space the image would have.
+
 ## Composing your own art
 
 The framework no longer ships a dedicated `artCompose` API — most use cases were one-liners with `padEnd`/`map`/`join`. To place two pieces of art side by side:

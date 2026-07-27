@@ -55,7 +55,12 @@ export function renderPanel(
   // nested panel must scroll in its own line-frame) so overflowing content can
   // scroll to keep the focused block visible instead of hard-clipping it away.
   const focusTrack = active ? { start: -1, end: -1 } : undefined;
-  const contentCtx: RenderContext = { ...ctx, width: innerWidth, panelHeight: innerHeight, focusTrack };
+  // `availRows` alongside `panelHeight`, and equal to it: this pane IS the
+  // enclosing sequence for its content, so a `custom` block inside it must size
+  // itself to the pane rather than to the page it happens to sit on. They are
+  // separate fields because `panelHeight` is a hard budget components are
+  // clipped against, while `availRows` is advisory — see base.ts.
+  const contentCtx: RenderContext = { ...ctx, width: innerWidth, panelHeight: innerHeight, availRows: innerHeight, focusTrack };
   const contentLines = renderContent(config.content, contentCtx);
 
   // Clip content to inner height, scrolled so the focused block stays visible:

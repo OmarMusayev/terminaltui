@@ -81,7 +81,9 @@ export const COMPONENT_DEFAULTS: Record<string, BoxOptions> = {
   spacer:      { padding: 0, border: false, margin: 0 },
   timeline:    { padding: 1, border: true,  margin: 1 },
   gallery:     { padding: 0, border: false, margin: 0 },
-  image:       { padding: 0, border: true,  margin: 0 },
+  // Images own their own geometry (imageCellSize) and their border is opt-in
+  // per block, so this entry is only here for COMPONENT_DEFAULTS completeness.
+  image:       { padding: 0, border: false, margin: 0 },
   markdown:    { padding: 0, border: false, margin: 0 },
 
   // --- Interactive components ---

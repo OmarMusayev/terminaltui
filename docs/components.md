@@ -183,14 +183,36 @@ badge("NEW", "#50fa7b")
 
 ### image(path, options?)
 
-Renders an image in the terminal. Not focusable.
+Renders a real PNG or JPEG as colored terminal cells. Not focusable. No graphics protocol and no native dependency -- the output is styled text, so it works on Apple Terminal, over SSH, in tmux, and in the test emulator.
 
-Options: `width` (number), `mode` (`"ascii"`, `"braille"`, `"blocks"`).
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `width` | `number` | fills available width | Width in terminal cells (max 99) |
+| `height` | `number` | derived from aspect | Height in rows -- a ceiling under `fit: "contain"` |
+| `maxHeight` | `number` | panel height, else 200 | Cap on derived rows |
+| `fit` | `"contain" \| "cover" \| "fill"` | `"contain"` | `"contain"` shrinks the block rather than letterboxing |
+| `align` | `"left" \| "center" \| "right"` | `"center"` | Placement in the block's allocation |
+| `mode` | `"auto" \| "quadrant" \| "half" \| "solid" \| "shading" \| "ascii" \| "braille" \| "alt"` | `"auto"` | Force a rendering tier. `"blocks"` still works as an alias for `"half"` |
+| `dither` | `"auto" \| "ordered" \| "floyd-steinberg" \| "none"` | `"auto"` | Ordered Bayer in 256/16 color, none in truecolor |
+| `alt` | `string` | file basename | Shown in a bordered box on any failure |
+| `background` | `string` | theme background | Hex composited under transparent pixels |
+| `invert` | `boolean` | `false` | Negate the image's ink (transparent areas keep the page background) |
+| `charset` | `string` | `" .:-=+*#%@"` | Ramp for the `ascii` and `shading` tiers |
+| `border` | `boolean \| BorderStyle` | `false` | Themed border, adds 2 columns and 2 rows |
+| `resizable` | `boolean` | `false` | Viewer resizes the frame with `+`/`-`. **Makes the block focusable**, adds one hint row |
+| `fitPage` | `boolean` | `false` | Size to the rows the page has left instead of to a hand-picked `width`. Inert on a `resizable` image and inside a panel |
 
 ```ts
 image("./logo.png")
-image("./photo.jpg", { width: 60, mode: "braille" })
+image("./photo.jpg", { width: 60, maxHeight: 20, alt: "Cover art" })
+image("./plot.png", { mode: "braille", width: 60 })   // line art
+image("./hero.png", { width: 40, fit: "cover", border: true })
+image("./poster.jpg", { fitPage: true, border: true })   // fits any window, no constant
 ```
+
+`mode: "auto"` picks the best technique the viewer's terminal supports: 2x2 quadrant cells on a 256-color or truecolor terminal, half blocks under tmux, a shading ramp at 16 colors, plain ASCII when color is off. Paths are relative to the **project root**, not the working directory. GIF, WebP, BMP and `http(s)` sources have no synchronous decoder and render the alt box at the same size the image would have taken, so layout never shifts.
+
+Full reference: [docs/images.md](images.md).
 
 ### section(title, content)
 

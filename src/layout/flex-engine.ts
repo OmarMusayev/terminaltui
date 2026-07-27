@@ -8,15 +8,90 @@
  */
 import type { FocusRect } from "./types.js";
 import type {
-  ContentBlock, DynamicBlock, FormBlock,
+  ContentBlock, DynamicBlock, FormBlock, ImageBlock,
   ColumnsBlock, RowsBlock, GridBlock, PanelBlock, PanelConfig,
   RowBlock, ContainerBlock,
 } from "../config/types.js";
 import { layoutColumns, layoutRows, layoutGrid } from "./panel-layout.js";
 import { shouldCollapseColumns, effectiveGridCols } from "./responsive.js";
 import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "./grid-system.js";
-import { focusSlots } from "../core/block-taxonomy.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "./box-model.js";
+import { imageBlockHeight } from "../components/Image.js";
+import {
+  focusSlotsOf, framedImageBlock, frameHintRows, pageFitBlockRows, pageFitImageBlock,
+  type PageFitGrant,
+} from "../image/frame.js";
+
+/**
+ * The viewer's frame width for a resizable image, or undefined for "as
+ * declared". Supplied by the runtime, which owns the per-block store; passing
+ * nothing (tests, the very first layout pass) simply lays out declared sizes.
+ */
+export type FrameWidthResolver = (block: ImageBlock) => number | undefined;
+
+/**
+ * What the page granted a `fitPage` image, or undefined for "no grant".
+ *
+ * Neither half is computable here. The row leftover is `viewport` minus the rows
+ * every SIBLING actually drew, and this walk only estimates sibling heights; the
+ * column allowance is the whole terminal, while this walk is seeded with the
+ * content column. So the RENDERER computes both, publishes them, and this walk
+ * reads them back. Passing nothing (tests, a layout pass before the first paint)
+ * lays the image out at its declared size, which is exactly what the renderer
+ * does when it has no grant either.
+ */
+export type PageFitGrantResolver = (block: ImageBlock) => PageFitGrant | undefined;
+
+/**
+ * Rows a `custom` block renders, or undefined for "cannot say".
+ *
+ * A `custom` block's height is whatever its own `render` returns, so the only
+ * honest estimate is to CALL it — which this walk cannot do, because `render`
+ * takes a theme and a {@link CustomRenderContext} and this module knows about
+ * neither. The runtime supplies both and hands back a row count.
+ *
+ * The alternative was the flat 3 rows this walk charged before, and that number
+ * is wrong by construction for the pattern the framework documents: a block that
+ * sets display type sized to `availRows` is routinely 4-7 rows, so every focus
+ * rect below one landed that much too high and spatial navigation misrouted.
+ *
+ * Returning undefined falls back to the old constant, which is what a caller
+ * that supplies no resolver (every test, every pre-runtime layout pass) gets.
+ */
+export type CustomHeightResolver = (
+  block: ContentBlock,
+  width: number,
+  panelHeight: number | undefined,
+) => number | undefined;
+
+/**
+ * The runtime-supplied lookups this walk needs and cannot derive.
+ *
+ * Bundled rather than threaded one by one: they are constant for the whole walk
+ * (unlike `panelHeight`, which changes per pane), and passing four optional
+ * positionals down thirteen recursive call sites is how the set silently went
+ * out of step in the first place.
+ */
+export interface WalkDeps {
+  /**
+   * Root that relative asset paths resolve against. Only `image` uses it, and it
+   * must be the SAME root `renderImage` is handed or the two probe different
+   * files and reserve different row counts.
+   */
+  projectDir?: string;
+  /**
+   * Current frame width of a resizable image. Must be the same store the
+   * renderer reads, for the same reason as `projectDir`: a resized image that
+   * layout still reserves the declared height for drags every rect below it out
+   * of position — the resizable-frame flavour of the old
+   * `case "image": return 10` defect.
+   */
+  frameWidthOf?: FrameWidthResolver;
+  /** What the page granted a `fitPage` image. See {@link PageFitGrantResolver}. */
+  pageFitGrantOf?: PageFitGrantResolver;
+  /** Measured height of a `custom` block. See {@link CustomHeightResolver}. */
+  measureCustom?: CustomHeightResolver;
+}
 
 /**
  * Compute FocusRect for every focusable item in the content tree.
@@ -25,20 +100,35 @@ import { computeBoxDimensions, COMPONENT_DEFAULTS } from "./box-model.js";
  * @param contentWidth Available width (terminal columns minus padding)
  * @param availHeight  Available height for layout blocks
  * @param resolveDyn   Function to resolve DynamicBlock → ContentBlock[]
+ * @param deps         Runtime lookups; see {@link WalkDeps}. APPENDED, never
+ *   inserted: five test files call this function positionally at arity 4, and a
+ *   value landing in `resolveDyn`'s slot would fail silently rather than loudly.
+ *   Omitting it lays every block out at its declared size.
  */
 export function computeFocusPositions(
   blocks: ContentBlock[],
   contentWidth: number,
   availHeight: number,
   resolveDyn: (block: DynamicBlock) => ContentBlock[],
+  deps: WalkDeps = {},
 ): FocusRect[] {
   const rects: FocusRect[] = [];
   const counter = { value: 0 };
-  walkBlocks(blocks, 0, 0, contentWidth, availHeight, rects, counter, resolveDyn);
+  walkBlocks(blocks, 0, 0, contentWidth, availHeight, rects, counter, resolveDyn, deps, undefined);
   return rects;
 }
 
-/** Walk the content tree, accumulating FocusRects. Returns the cursor Y after all blocks. */
+/**
+ * Walk the content tree, accumulating FocusRects. Returns the cursor Y after all blocks.
+ *
+ * `panelHeight` mirrors `RenderContext.panelHeight` — the value the renderer
+ * will actually see for these blocks. It is `undefined` at page level and the
+ * enclosing pane's INNER height inside any panel-backed container, because
+ * `renderPanel()` is the only thing that ever sets it. An image sizes itself
+ * against that budget (geometry.ts turns it into a row cap), so the estimator
+ * has to pass the same value or it reserves a taller box than the renderer
+ * draws and every focus rect below the image lands too low.
+ */
 function walkBlocks(
   blocks: ContentBlock[],
   offsetX: number,
@@ -48,6 +138,8 @@ function walkBlocks(
   rects: FocusRect[],
   counter: { value: number },
   resolveDyn: (block: DynamicBlock) => ContentBlock[],
+  deps: WalkDeps,
+  panelHeight?: number,
 ): number {
   let cursorY = startY;
 
@@ -62,7 +154,7 @@ function walkBlocks(
             cursorY = walkBlocks(
               p.content, offsetX + adj.dx, cursorY + adj.dy,
               availWidth - adj.dw, availHeight - adj.dh,
-              rects, counter, resolveDyn,
+              rects, counter, resolveDyn, deps, availHeight - adj.dh,
             );
             cursorY += 2; // divider + gap
           }
@@ -75,7 +167,7 @@ function walkBlocks(
               cols.panels[i].content,
               offsetX + pr.x + adj.dx, cursorY + adj.dy,
               pr.width - adj.dw, pr.height - adj.dh,
-              rects, counter, resolveDyn,
+              rects, counter, resolveDyn, deps, pr.height - adj.dh,
             );
           }
           const maxH = panelRects.length > 0
@@ -96,7 +188,7 @@ function walkBlocks(
             rowsBlock.panels[i].content,
             offsetX + pr.x + adj.dx, cursorY + pr.y + adj.dy,
             pr.width - adj.dw, pr.height - adj.dh,
-            rects, counter, resolveDyn,
+            rects, counter, resolveDyn, deps, pr.height - adj.dh,
           );
         }
         const totalH = panelRects.length > 0
@@ -121,7 +213,7 @@ function walkBlocks(
             panel.content,
             offsetX + pr.x + adj.dx, cursorY + pr.y + adj.dy,
             pr.width - adj.dw, pr.height - adj.dh,
-            rects, counter, resolveDyn,
+            rects, counter, resolveDyn, deps, pr.height - adj.dh,
           );
         }
         const totalH = panelRects.length > 0
@@ -138,7 +230,7 @@ function walkBlocks(
           panelBlock.config.content,
           offsetX + adj.dx, cursorY + adj.dy,
           availWidth - adj.dw, availHeight - adj.dh,
-          rects, counter, resolveDyn,
+          rects, counter, resolveDyn, deps, availHeight - adj.dh,
         );
         cursorY += 1;
         break;
@@ -173,18 +265,24 @@ function walkBlocks(
           const panels = rowColsToPanels(wRow, availWidth, gap, availWidth);
           if (shouldCollapseColumns(panels.length, availWidth)) {
             for (const p of panels) {
-              cursorY = walkBlocks(p.content, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn);
+              cursorY = walkBlocks(
+                p.content, offsetX, cursorY, availWidth, availHeight,
+                rects, counter, resolveDyn, deps, availHeight - panelContentAdjust(p).dh,
+              );
               cursorY += 2;
             }
           } else {
             const panelRects = layoutColumns(panels, availWidth, availHeight);
             for (let i = 0; i < panelRects.length; i++) {
               const pr = panelRects[i];
+              // x/y/width stay as they were — only the height BUDGET is adjusted,
+              // because `renderPanel` hands its content `height - chrome` as
+              // `ctx.panelHeight` and an image sizes itself against exactly that.
               walkBlocks(
                 panels[i].content,
                 offsetX + pr.x, cursorY,
                 pr.width, pr.height,
-                rects, counter, resolveDyn,
+                rects, counter, resolveDyn, deps, pr.height - panelContentAdjust(panels[i]).dh,
               );
             }
             const maxH = panelRects.length > 0 ? Math.max(...panelRects.map(r => r.height)) : 0;
@@ -201,11 +299,14 @@ function walkBlocks(
         const innerW = Math.max(1, Math.min(availWidth, maxW) - padding * 2);
         const totalPad = availWidth - innerW;
         const leftPad = (containerBlock.center !== false) ? Math.floor(totalPad / 2) : padding;
+        // container/section/form/dynamic are not panels: they never set
+        // `ctx.panelHeight`, so the enclosing pane's budget passes straight
+        // through to whatever they contain.
         cursorY = walkBlocks(
           containerBlock.content,
           offsetX + leftPad, cursorY,
           innerW, availHeight,
-          rects, counter, resolveDyn,
+          rects, counter, resolveDyn, deps, panelHeight,
         );
         cursorY += 1;
         break;
@@ -213,21 +314,21 @@ function walkBlocks(
 
       case "section":
         cursorY += 3; // title + divider + blank line
-        cursorY = walkBlocks(block.content, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn);
+        cursorY = walkBlocks(block.content, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn, deps, panelHeight);
         break;
 
       case "form":
-        cursorY = walkBlocks((block as FormBlock).fields, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn);
+        cursorY = walkBlocks((block as FormBlock).fields, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn, deps, panelHeight);
         break;
 
       case "dynamic": {
         const resolved = resolveDyn(block as DynamicBlock);
-        cursorY = walkBlocks(resolved, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn);
+        cursorY = walkBlocks(resolved, offsetX, cursorY, availWidth, availHeight, rects, counter, resolveDyn, deps, panelHeight);
         break;
       }
 
       case "accordion": {
-        const slots = focusSlots(block); // one per item
+        const slots = focusSlotsOf(block); // one per item
         for (let i = 0; i < slots; i++) {
           const itemH = 2; // header line + spacing
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: itemH });
@@ -239,7 +340,7 @@ function walkBlocks(
       }
 
       case "timeline": {
-        const slots = focusSlots(block); // one per item
+        const slots = focusSlotsOf(block); // one per item
         for (let i = 0; i < slots; i++) {
           const itemH = 3; // title + period + connector
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: itemH });
@@ -251,7 +352,7 @@ function walkBlocks(
       }
 
       case "tabs": {
-        if (focusSlots(block) > 0) {
+        if (focusSlotsOf(block) > 0) {
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: 3 });
           counter.value++;
         }
@@ -260,8 +361,14 @@ function walkBlocks(
       }
 
       default: {
-        const focusable = focusSlots(block) > 0;
-        const h = estimateBlockHeight(block, availWidth);
+        const focusable = focusSlotsOf(block) > 0;
+        // `panelHeight ?? availHeight` is the frame's vertical budget, and it
+        // is the SAME expression `frameLimitsOf` builds on the renderer side
+        // (whose page-level fallback, layoutAvailHeight(rows), is exactly what
+        // computeFocusLayout seeds this walk's availHeight with).
+        const h = estimateBlockHeight(
+          block, availWidth, deps, panelHeight, panelHeight ?? availHeight,
+        );
         if (focusable) {
           rects.push({ focusIndex: counter.value, x: offsetX, y: cursorY, width: availWidth, height: h });
           counter.value++;
@@ -280,8 +387,25 @@ function walkBlocks(
  * Heights here approximate what each component renderer actually produces.
  * Width-dependent terms (like `card.body` wrapping) derive their chrome from
  * `COMPONENT_DEFAULTS` so a padding/border change propagates here automatically.
+ *
+ * @param deps Runtime lookups; see {@link WalkDeps}.
+ * @param panelHeight `RenderContext.panelHeight` as the renderer will see it —
+ *   `undefined` at page level. Only `image` and `custom` consult it; every other
+ *   block type has a height independent of the vertical budget, which is exactly
+ *   why the omission stayed invisible until images landed.
+ * @param rowBudget Vertical budget for a resizable frame — `panelHeight` when
+ *   there is one, else the page's layout height. Distinct from `panelHeight`
+ *   because that one must stay `undefined` at page level: it is forwarded to
+ *   `imageBlockHeight` as a hard cap, and applying the page budget there would
+ *   silently shrink every ordinary (non-resizable) image on a short terminal.
  */
-function estimateBlockHeight(block: ContentBlock, width: number): number {
+function estimateBlockHeight(
+  block: ContentBlock,
+  width: number,
+  deps: WalkDeps,
+  panelHeight?: number,
+  rowBudget?: number,
+): number {
   switch (block.type) {
     case "card": {
       const cardDims = computeBoxDimensions(width, COMPONENT_DEFAULTS.card);
@@ -312,11 +436,72 @@ function estimateBlockHeight(block: ContentBlock, width: number): number {
     case "spacer": return (block as any).lines ?? 1;
     case "quote": return 3;
     case "badge": return 1;
-    case "image": return 10;
+    // Not a constant: the hardcoded 10 was five rows short of what the renderer
+    // emits at a 99-column content width, so every FocusRect below an image sat
+    // five rows too high and the arrow keys misrouted. imageBlockHeight() is
+    // the SAME call the renderer sizes itself with (header probe included) with
+    // the SAME arguments (`renderImage` passes `ctx.panelHeight` as the height
+    // budget), so the two agree by construction rather than by a number kept in
+    // sync. Dropping `panelHeight` here reintroduced the same defect with a new
+    // cause: a panel shorter than the image's natural height shrinks it in the
+    // renderer while the estimator still reserved the full box.
+    //
+    // And not the DECLARED size either, for the third instance of that same
+    // defect: a resizable frame is measured at the size the viewer grew it to,
+    // through the same framedImageBlock() the renderer applies, plus the hint
+    // row it always draws.
+    //
+    // And, for the fourth instance: a `fitPage` image is measured through the
+    // same pageFitImageBlock() the page loop applies, fed the same grant from
+    // the same per-runtime store — including its COLUMN half, because the page
+    // composes that image against the whole terminal rather than the content
+    // column this walk is seeded with, and columns decide rows under `contain`.
+    // The two transforms are each the identity on the other's opt-in (`fitPage`
+    // is inert when `resizable` is set), so the order they compose in does not
+    // matter.
+    case "image": {
+      // The grant is consulted only where `panelHeight` is undefined — i.e. at
+      // page level, which is by definition the only place the page loop
+      // composes and therefore grants anything. Inside a pane the enclosing
+      // panel's inner height already governs the image and the page loop never
+      // deferred it, so `fitPage` must be inert on both sides.
+      const grant = panelHeight === undefined ? deps.pageFitGrantOf?.(block) : undefined;
+      const sized = framedImageBlock(block, deps.frameWidthOf?.(block), {
+        availWidth: width,
+        availRows: rowBudget,
+      });
+      const fitted = pageFitImageBlock(sized, grant?.rows);
+      const availWidth = grant?.cols ?? width;
+      const drawn = imageBlockHeight(fitted, availWidth, panelHeight, deps.projectDir, grant?.cols);
+      // A granted image is padded out to the whole grant by the page loop, so
+      // the rows to reserve are the grant, not the picture — same two functions,
+      // same arguments, no arithmetic repeated on this side.
+      return pageFitBlockRows(drawn, grant?.rows) + frameHintRows(block);
+    }
     case "progressBar": return 2;
     // gallery is not focusable (no rect) but still occupies rendered rows.
     case "gallery": return 8;
     case "chat": return 10;
+    // Measured, not assumed. `custom` renders whatever its author returns, and
+    // the framework documents sizing that output to `CustomRenderContext.
+    // availRows` — display type that steps down a font ladder as the window
+    // shrinks is 1 to 7 rows, never the 3 this arm used to charge unconditionally.
+    // A single tall `custom` block above a link put the link's rect four rows
+    // above where the link was drawn, so spatial focus navigation misrouted on
+    // exactly the pages the feature was written for.
+    //
+    // The resolver calls the block's own `render` (pure and synchronous by
+    // contract) and this walk is not per-frame — `renderMain` recomputes it only
+    // when the content tree or the terminal size changes — so the extra call is
+    // not on the hot path. Without a resolver, or if the resolver throws, the old
+    // constant stands: this is the one place the walk calls out to page code, and
+    // a layout pass must never be the thing that kills a frame.
+    case "custom":
+      try {
+        return deps.measureCustom?.(block, width, panelHeight) ?? 3;
+      } catch {
+        return 3;
+      }
     default: return 3;
   }
 }

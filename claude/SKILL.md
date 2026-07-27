@@ -367,7 +367,7 @@ TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor bet
 | `badge()` | No | Inline label. Not focusable. |
 | `divider()` | No | Visual separator. Not focusable. |
 | `spacer()` | No | Vertical spacing. Not focusable. |
-| `image()` | No | Passive display. |
+| `image()` | No — unless `resizable` | Passive display by default. `image(path, { resizable: true })` takes one focus slot; `+`/`-` resize the frame, `0` resets. |
 | `section()` | No — wrapper | Children inherit their own focusability. |
 | `form()` | No — wrapper | Children (inputs, buttons) are individually focusable. |
 | `dynamic()` | No — wrapper | Children inherit their own focusability. |
@@ -795,14 +795,52 @@ badge("NEW", "#50fa7b")
 
 #### image(path: string, options?): ImageBlock
 
-Renders an image in the terminal.
+Renders a real PNG or JPEG. No `sharp` and no native dependency — decoding is `pngjs`/`jpeg-js`, bundled. On most terminals the output is colored cells (styled text, so it works on Apple Terminal, over SSH, in tmux, and in the test emulator); on kitty and Ghostty the framework transmits real pixels automatically. Not focusable unless `resizable: true`.
 
 ```ts
-image("./logo.png")
-image("./photo.jpg", { width: 60, mode: "braille" })
+image("./logo.png")                                        // fills available width
+image("./photo.jpg", { width: 60, maxHeight: 20, alt: "Cover art" })
+image("./plot.png", { mode: "braille", width: 60 })        // line art
+image("./hero.png", { width: 40, fit: "cover", border: true })
+image("./nebula.jpg", { width: 40, resizable: true })      // viewer can grow/shrink it
+image("./poster.jpg", { fitPage: true, border: true })     // sizes itself to the page
 ```
 
-Options: `width?: number`, `mode?: "ascii" | "braille" | "blocks"`.
+```ts
+interface ImageOptions {
+  width?: number;          // Cells. Default: fill available width. Max 99
+  height?: number;         // Rows. A ceiling under fit:"contain"
+  maxHeight?: number;      // Cap on derived rows. Default: panel height, else 200
+  fit?: "contain" | "cover" | "fill";                    // Default "contain"
+  align?: "left" | "center" | "right";                   // Default "center"
+  mode?: "auto" | "quadrant" | "half" | "solid"
+       | "shading" | "ascii" | "braille" | "alt";        // Default "auto"
+  dither?: "auto" | "ordered" | "floyd-steinberg" | "none";  // Default "auto"
+  alt?: string;            // Shown in a bordered box on any failure
+  background?: string;     // Hex composited under alpha. Default: theme bg
+  invert?: boolean;
+  charset?: string;        // Ramp for the "ascii" / "shading" tiers
+  border?: boolean | BorderStyle; // Themed border. Adds 2 cols + 2 rows. Default false
+  resizable?: boolean;     // Viewer can resize the frame. Makes the block FOCUSABLE
+                           // and adds 1 hint row. Default false
+  fitPage?: boolean;       // Size to the rows the PAGE has left, not to a hand-picked
+                           // width. Default false. Confers no focus slot
+}
+```
+
+Rules that matter when generating code:
+
+- **Paths are relative to the project root** (the directory containing `pages/`), not the working directory. Absolute paths, `~/`, `file:` URLs and `data:` URIs also work.
+- **PNG and JPEG only.** GIF, WebP, BMP and `http(s)` URLs render a bordered alt box at exactly the size the image would have taken. Nothing throws and nothing shifts.
+- `mode: "auto"` negotiates from the viewer's terminal: real pixels on kitty/Ghostty, otherwise 2x2 quadrant cells at 256/truecolor, half blocks under tmux, a shading ramp at 16 colors, ASCII when color is off. **Pinning any `mode` also disables the pixel path** — do it only for snapshot tests or when you specifically want `"braille"` (line art, plots — never photographs). There is no `mode: "kitty"`; pixels are negotiated, never authored.
+- `fit: "contain"` (the default) **never letterboxes** — it shrinks the block instead. Use `fit: "fill"` or `"cover"` if an exact `width` x `height` box matters.
+- `dither: "floyd-steinberg"` looks better but re-emits every row on any scroll; use it only for static art. It is a cell-path option and is ignored on kitty/Ghostty.
+- `resizable: true` costs a focus slot and one hint row, and the block answers `+`/`=` (grow 4 cells), `-`/`_` (shrink), `0` (reset). Use it for a hero photograph the viewer may want bigger — the engine samples per cell, so a larger frame is a fresh resample with genuinely more detail, not a magnification. Do **not** sprinkle it across a page: every resizable image inserts a focus stop in the arrow-key order.
+- `fitPage: true` is the answer to "what `width` makes this fit?" — the page composes every other block, then grants this image the rows that are left, and geometry derives the columns from the source aspect. Re-derived every frame, so it re-fits on resize. `width` still applies as a ceiling, so `{ fitPage: true, border: true }` is the usual form. It confers **no** focus slot. A fitted picture is composed against the **whole terminal**, not the 100-column content column — that column is a measure for prose, and capping a picture's width caps its height too (`contain` derives rows from columns), which is what left a quarter of a tall window black. Rows it cannot spend stay inside its own slot as margin, so whatever follows it keeps its place. Inert on a `resizable` image (the viewer's size wins), inside a panel/columns cell (the pane's height already governs), and on the home page. Use it for a page meant to be seen at once — a poster, a splash, a single hero — not for every image on a scrolling page, where several fitted images just split the leftover between them.
+- A `custom` block gets the same budget as an optional third argument, `CustomRenderContext` — `{ availRows, columns, rows }` — so ASCII-art type can pick its font from the room it has instead of from a constant. `availRows` is the container's **total**, never the leftover. The layout pass **measures** the block by calling `render` (once per navigation/resize, not per frame), so a block whose height varies with the window does not misplace the focus rectangles below it — keep `render` pure and cheap.
+- Environment knobs, both read at render time: `TERMINALTUI_IMAGE` is the **cell** knob — `off` forces every image to its alt box (row counts unchanged), a tier name forces that tier, `cells` forces the cell path. Any non-neutral value there also disables pixels. `TERMINALTUI_GRAPHICS` is the **pixel** knob — `off` disables the pixel path absolutely (and is the right setting for test harnesses and screenshot scripts), `kitty` forces it on for a mis-detected terminal.
+
+Full reference: `docs/images.md`.
 
 #### section(title: string, content: ContentBlock[]): SectionBlock
 
@@ -936,7 +974,7 @@ const widePad = computeBoxDimensions(80, { ...COMPONENT_DEFAULTS.card, padding: 
 | image        | 1      | 0       | 0      | 2      | 78              |
 
 **Rules:**
-- Every component calls `computeBoxDimensions()`. No exceptions.
+- Every component calls `computeBoxDimensions()`, with one exception: `image` sizes itself through `imageCellSize()` (see `docs/images.md`) because its row count is a function of the source file's aspect ratio, and its border is opt-in via `border`. `COMPONENT_DEFAULTS.image` is no longer consulted for image blocks.
 - Layout components (columns, rows, grid, panel, row, col, container) divide width among children — they do NOT call `computeBoxDimensions()` for themselves.
 - Text always wraps at `dims.content`.
 - Child blocks receive `dims.content` as their allocated width.
@@ -2114,24 +2152,30 @@ const g = asciiArt.graph([10, 20, 15, 30, 25], 40, 10);
 
 #### asciiImage(source, options?): Promise<string[]>
 
-Convert images to ASCII art. Requires `sharp` peer dependency.
+Convert a PNG or JPEG to terminal art, one string per row. **No `sharp` and no other install required** — PNG and JPEG decode with bundled decoders. GIF/WebP/BMP and unreadable files resolve to a single `["[Error: …]"]` row instead of throwing.
+
+Use this when you want rows as strings. Inside a page, use the `image()` block instead — it adds tier negotiation, theming, caching, framing and alt text.
 
 ```ts
 interface AsciiImageOptions {
-  width?: number;                                // Default: 60
-  height?: number;
-  mode?: "ascii" | "braille" | "blocks" | "shading";
-  charset?: string;                              // Custom char ramp
+  width?: number;        // Cells. Default: 60. Capped at 99
+  height?: number;       // Given, the image is stretched to exactly width x height
+  mode?: "ascii" | "braille" | "blocks" | "shading";   // Default "ascii"
+  charset?: string;      // Ramp for "ascii" / "shading", darkest first
   invert?: boolean;
-  color?: boolean;
-  dithering?: "none" | "floyd-steinberg" | "ordered";
-  threshold?: number;
+  color?: boolean;       // Default false, which emits ZERO escape bytes
+  dithering?: "none" | "floyd-steinberg" | "ordered";  // Default "none".
+                         // No-op in truecolor and whenever color is false
+  threshold?: number;    // 1-bit cut. "braille" ONLY. Omit to let Otsu choose
 }
 ```
 
 ```ts
-const art = await asciiImage("./logo.png", { width: 40, mode: "braille", color: true });
+const art = await asciiImage("./logo.png", { width: 40, mode: "braille" });
+const photo = await asciiImage("./photo.jpg", { width: 60, mode: "blocks", color: true });
 ```
+
+`mode: "blocks"` with `color: true` is the highest-fidelity mode (`▀` with an independent foreground and background per cell). With `color: false` it falls back to the shading ramp, because a half block with both pens suppressed carries no image. `source` may be a path (resolved against the working directory) or a `Buffer` of encoded bytes.
 
 ---
 
@@ -2317,6 +2361,7 @@ Each SSH connection gets an independent TUI session with its own state. Requires
 | `Shift+Tab` | Previous panel (in layouts) / previous focusable element |
 | `Home` | First item |
 | `End` | Last item |
+| `+` / `=` , `-` / `_` , `0` | Grow / shrink / reset the frame — **only** while a `resizable: true` image is focused |
 
 **Edit mode (when editing an input):**
 
@@ -2532,7 +2577,7 @@ For more substantial examples — restaurant, dashboard with live API data, conf
 
 13. **Forgetting `onChange` on interactive inputs.** If you want real-time reactivity from a select, checkbox, toggle, or radioGroup, you must pass an `onChange` handler.
 
-14. **Using truecolor hex in Apple Terminal.** Apple Terminal does not support truecolor ANSI. terminaltui auto-detects and falls back to 256-color mode, but custom render functions using raw ANSI codes should use `fgColor()`/`bgColor()` from terminaltui which handle this automatically.
+14. **Emitting raw truecolor ANSI from a custom render function.** Color depth varies per viewer and is never safe to assume — Apple Terminal below build 470 has no truecolor at all, and `NO_COLOR` or a 16-color session can turn up anywhere. Always go through `fgColor()`/`bgColor()` from terminaltui, which quantize to whatever the session detected. (Apple Terminal 470+ on macOS 26 *does* do 24-bit, and the framework detects it from `TERM_PROGRAM_VERSION` since Terminal.app never sets `COLORTERM` — but that is the detector's problem, not yours.)
 
 15. **Using `timeline()` for browsable content.** `timeline()` renders as individual focusable items but they're display-only — Enter does nothing. If users need to interact with entries (open URLs, see details), use individual `card()` blocks instead.
 

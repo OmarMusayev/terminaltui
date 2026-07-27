@@ -1,306 +1,170 @@
 /**
- * Image-to-ASCII art converter.
- * Converts PNG, JPG, and WEBP images to ASCII art using different rendering modes.
+ * Image-to-terminal-art converter — the public `asciiImage()` entry point.
  *
- * Requires `sharp` as an optional peer dependency.
- * If sharp is not installed, functions return a helpful message instead of crashing.
+ * This used to lazy-load `sharp`, which is declared in no manifest and
+ * installed nowhere, so every call in the project's history returned
+ * `["[Image: install sharp for image support]", "  npm install sharp"]` and the
+ * function had never once produced an image. It now decodes with the bundled
+ * synchronous decoders (pngjs / jpeg-js, no `sharp`, no native build) and
+ * renders through the shared cell engine under src/image/, so this function and
+ * the framework's `image()` block are the same renderer.
+ *
+ * Two long-standing defects went with the rewrite:
+ *
+ * - **Aspect was applied twice** for the sub-cell modes. The old code scaled
+ *   the pixel target by the mode factor, then scaled it again by 0.5 for the
+ *   cell aspect, and then the renderers stepped `y` by 2 (blocks) or 4
+ *   (braille) — both came out 2x vertically squashed. All geometry now comes
+ *   from `imageCellSize()`, which owns CELL_ASPECT and applies it once.
+ * - **Dither and quantizer disagreed.** Error was diffused over five grey
+ *   levels for a consumer that thresholded to one bit, and only ever over
+ *   luminance, so hue and saturation error could never be corrected. Dithering
+ *   now runs over the full RGB triple against the palette the terminal will
+ *   actually display.
+ *
+ * See devnotes/terminal-image-rendering-exploration.md §2.2.
  */
 
+import type { DecodeFailure, ImageDither } from "../image/types.js";
+import { decodeImage } from "../image/decode.js";
+import { imageCellSize } from "../image/geometry.js";
+import { renderAsciiRows } from "./image-renderers.js";
+
 export interface AsciiImageOptions {
+  /**
+   * Output width in terminal CELLS. Default: 60. Not capped at the framework's
+   * content column — this is a standalone utility — but `cols * rows` is still
+   * bounded by `IMAGE_LIMITS.maxCells`, so an extreme width scales down.
+   */
   width?: number;
+  /**
+   * Output height in terminal ROWS. Given, the image is stretched to fit it
+   * exactly. Bounded by `MAX_IMAGE_ROWS` (200).
+   */
   height?: number;
+  /** Rendering technique. Default: "ascii". */
   mode?: "ascii" | "braille" | "blocks" | "shading";
+  /** Ramp for "ascii" and "shading", darkest first. Default: " .:-=+*#%@" / " ·:░▒▓█". */
   charset?: string;
   invert?: boolean;
+  /**
+   * Emit per-cell colour. Default: false, which guarantees plain text out.
+   *
+   * It also selects the glyph set for `mode: "blocks"`: a half block conveys
+   * nothing once both its pens are suppressed (the shape alone only says "the
+   * halves differ"), so `blocks` + `color: false` renders the block SHADING ramp
+   * `" ·:░▒▓█"` rather than U+2580/2584/2588.
+   */
   color?: boolean;
+  /**
+   * Default: "none". A no-op in truecolor and whenever `color` is false.
+   *
+   * Preferred spelling — the same word every other entry point in the framework
+   * uses (`ImageBlock.dither`, `ImageRenderOptions.dither`).
+   */
+  dither?: ImageDither;
+  /** @deprecated Use {@link AsciiImageOptions.dither}. Kept for compatibility. */
   dithering?: "none" | "floyd-steinberg" | "ordered";
+  /** Explicit 1-bit cut for "braille". Omit to let Otsu choose per image. */
   threshold?: number;
 }
 
 const DEFAULT_WIDTH = 60;
-const DEFAULT_CHARSET = " .:-=+*#%@";
-const BLOCK_CHARS = " ░▒▓█";
-const BRAILLE_OFFSET = 0x2800;
-
-// Braille dot bit positions for a 2×4 grid:
-// col0: rows 0,1,2,6  col1: rows 3,4,5,7
-const BRAILLE_MAP: [number, number][] = [
-  [0, 3],  // row 0
-  [1, 4],  // row 1
-  [2, 5],  // row 2
-  [6, 7],  // row 3
-];
-
-interface PixelGrid {
-  data: Uint8Array;
-  width: number;
-  height: number;
-  channels: number;
-}
-
-// ---------------------------------------------------------------------------
-// Sharp loader
-// ---------------------------------------------------------------------------
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SharpFn = (input?: string | Buffer) => any;
-
-async function loadSharp(): Promise<SharpFn | null> {
-  try {
-    // Use a variable to prevent TypeScript from resolving the module at compile time.
-    const mod = "sharp";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const imported: any = await import(/* webpackIgnore: true */ mod);
-    return (imported.default ?? imported) as SharpFn;
-  } catch {
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function brightness(r: number, g: number, b: number): number {
-  // ITU-R BT.601 luminance
-  return 0.299 * r + 0.587 * g + 0.114 * b;
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
-}
-
-// ---------------------------------------------------------------------------
-// Dithering
-// ---------------------------------------------------------------------------
-
-function applyFloydSteinberg(gray: Float64Array, w: number, h: number, levels: number): void {
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const idx = y * w + x;
-      const old = gray[idx];
-      const step = 255 / (levels - 1);
-      const quantized = Math.round(old / step) * step;
-      gray[idx] = quantized;
-      const err = old - quantized;
-
-      if (x + 1 < w)          gray[idx + 1]     += err * 7 / 16;
-      if (y + 1 < h) {
-        if (x - 1 >= 0)       gray[(y + 1) * w + (x - 1)] += err * 3 / 16;
-                               gray[(y + 1) * w + x]       += err * 5 / 16;
-        if (x + 1 < w)        gray[(y + 1) * w + (x + 1)] += err * 1 / 16;
-      }
-    }
-  }
-}
-
-// 4×4 Bayer matrix
-const BAYER_4X4 = [
-  [ 0,  8,  2, 10],
-  [12,  4, 14,  6],
-  [ 3, 11,  1,  9],
-  [15,  7, 13,  5],
-];
-
-function applyOrderedDither(gray: Float64Array, w: number, h: number, levels: number): void {
-  const n = 4; // Bayer matrix size
-  const step = 255 / (levels - 1);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const idx = y * w + x;
-      const bayerValue = BAYER_4X4[y % n][x % n] / (n * n) - 0.5;
-      gray[idx] = Math.round((gray[idx] + bayerValue * step) / step) * step;
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Pixel loading
-// ---------------------------------------------------------------------------
-
-async function loadPixels(
-  source: string | Buffer,
-  targetW: number,
-  targetH: number | undefined,
-  sharp: SharpFn,
-): Promise<PixelGrid> {
-  let pipeline = sharp(source);
-
-  // Determine aspect-ratio-corrected height if not specified.
-  let resizeW = targetW;
-  let resizeH: number;
-
-  if (targetH != null) {
-    resizeH = targetH;
-  } else {
-    const meta = await sharp(source).metadata();
-    const imgW = meta.width ?? targetW;
-    const imgH = meta.height ?? targetW;
-    // Terminal characters are roughly twice as tall as wide, so multiply by 0.5.
-    resizeH = Math.max(1, Math.round((targetW * (imgH / imgW)) * 0.5));
-  }
-
-  pipeline = pipeline
-    .resize(resizeW, resizeH, { fit: "fill" } as never)
-    .ensureAlpha()
-    .raw();
-
-  const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
-
-  return {
-    data: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-    width: info.width,
-    height: info.height,
-    channels: info.channels,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Grayscale extraction
-// ---------------------------------------------------------------------------
-
-function extractGray(pixels: PixelGrid, invert: boolean): Float64Array {
-  const { data, width, height, channels } = pixels;
-  const gray = new Float64Array(width * height);
-
-  for (let i = 0; i < width * height; i++) {
-    const off = i * channels;
-    const r = data[off];
-    const g = data[off + 1];
-    const b = data[off + 2];
-    let v = brightness(r, g, b);
-    if (invert) v = 255 - v;
-    gray[i] = v;
-  }
-  return gray;
-}
-
-function sampleColor(pixels: PixelGrid, x: number, y: number, w: number, h: number): [number, number, number] {
-  const { data, width, channels } = pixels;
-  let rSum = 0, gSum = 0, bSum = 0, count = 0;
-
-  for (let dy = 0; dy < h; dy++) {
-    for (let dx = 0; dx < w; dx++) {
-      const px = x + dx;
-      const py = y + dy;
-      if (px >= pixels.width || py >= pixels.height) continue;
-      const off = (py * width + px) * channels;
-      rSum += data[off];
-      gSum += data[off + 1];
-      bSum += data[off + 2];
-      count++;
-    }
-  }
-
-  if (count === 0) return [0, 0, 0];
-  return [
-    Math.round(rSum / count),
-    Math.round(gSum / count),
-    Math.round(bSum / count),
-  ];
-}
-
-// Rendering mode implementations split to image-renderers.ts
-import { renderAscii, renderBraille, renderBlocks, renderShading } from "./image-renderers.js";
-
-// ---------------------------------------------------------------------------
 
 /**
- * Convert an image (PNG, JPG, WEBP) to ASCII art.
+ * Convert an image to terminal art.
  *
- * @param source - File path (string) or raw image data (Buffer)
- * @param options - Rendering options
- * @returns Array of strings, one per output row
+ * PNG and JPEG decode synchronously and need no dependencies beyond the two
+ * bundled decoders. GIF, WebP and BMP are recognised but have no synchronous
+ * decoder, so they return an error row rather than pixels.
+ *
+ * Still `async` because it is published as async and callers await it; the body
+ * is entirely synchronous and the promise resolves in the same tick.
+ *
+ * @param source File path (string) or raw encoded image data (Buffer). A
+ *   relative path resolves against `process.cwd()`.
+ * @param options Rendering options.
+ * @returns One string per output row, each exactly the negotiated column width.
+ *   A single `[Error: …]` row if the image could not be read or decoded.
  */
 export async function asciiImage(
   source: string | Buffer,
   options?: AsciiImageOptions,
 ): Promise<string[]> {
-  const {
-    width = DEFAULT_WIDTH,
-    height,
-    mode = "ascii",
-    charset = DEFAULT_CHARSET,
-    invert = false,
-    color = false,
-    dithering = "none",
-    threshold = 128,
-  } = options ?? {};
+  const opts = options ?? {};
+  const cols = normCells(opts.width) ?? DEFAULT_WIDTH;
+  const rows = normCells(opts.height);
 
-  // --- Load sharp dynamically ---
-  const sharp = await loadSharp();
-  if (sharp == null) {
-    return [
-      "[Image: install sharp for image support]",
-      "  npm install sharp",
-    ];
+  const decoded = decodeImage(source);
+  if (!decoded.ok) return [decodeError(source, decoded.reason, decoded.detail)];
+
+  // An explicit height is an exact box — that is what the old sharp pipeline's
+  // `fit: "fill"` did with both dimensions. Without one, aspect is derived and
+  // preserved.
+  const geom = imageCellSize(
+    {
+      width: decoded.pixels.width,
+      height: decoded.pixels.height,
+      format: decoded.format,
+    },
+    { width: cols, height: rows, fit: rows === undefined ? "contain" : "fill" },
+    cols,
+    rows,
+    // Not rendering into a content column, so the page-layout ceiling of 99
+    // does not apply — `asciiImage(img, { width: 400 })` used to come back
+    // silently 99 columns wide. IMAGE_LIMITS.maxCells still bounds the total.
+    cols,
+  );
+
+  return renderAsciiRows(decoded.pixels, geom, {
+    mode: opts.mode ?? "ascii",
+    color: opts.color === true,
+    charset: opts.charset,
+    invert: opts.invert === true,
+    dither: opts.dither ?? opts.dithering ?? "none",
+    threshold: opts.threshold,
+  });
+}
+
+/**
+ * Normalise an author-supplied cell dimension.
+ *
+ * Zero, negative and non-finite all mean "unspecified" rather than "zero", so a
+ * bad expression falls back to the default width instead of rendering a sliver
+ * nobody can see.
+ */
+function normCells(v: number | undefined): number | undefined {
+  if (v === undefined || !Number.isFinite(v)) return undefined;
+  const n = Math.floor(v);
+  return n >= 1 ? n : undefined;
+}
+
+/**
+ * The failure row.
+ *
+ * The "could not load image" message predates this rewrite but was unreachable:
+ * the `sharp` guard returned first, so a missing file produced the install hint
+ * instead. With a real decoder the branch is live again, wired to the decoder's
+ * own failure taxonomy — `not-found` keeps the original wording, everything
+ * else reports what the decoder said (unsupported magic bytes, no bundled
+ * decoder for the format, over budget, corrupt).
+ */
+function decodeError(
+  source: string | Buffer,
+  reason: DecodeFailure,
+  detail: string,
+): string {
+  if (reason === "not-found") {
+    const label = typeof source === "string" ? source : "(buffer)";
+    return `[Error: could not load image: ${sanitize(label)}]`;
   }
+  return `[Error: could not decode image: ${sanitize(detail)}]`;
+}
 
-  // --- Determine pixel dimensions for the requested mode ---
-  let pixelW: number;
-  let pixelH: number | undefined;
-
-  if (mode === "braille") {
-    // Braille characters span 2×4 pixels, so we need 2× / 4× the output chars
-    pixelW = width * 2;
-    pixelH = height != null ? height * 4 : undefined;
-  } else if (mode === "blocks") {
-    // Block characters span 1×2 pixels
-    pixelW = width;
-    pixelH = height != null ? height * 2 : undefined;
-  } else {
-    pixelW = width;
-    pixelH = height;
-  }
-
-  // --- Load and resize image ---
-  let pixels: PixelGrid;
-  try {
-    pixels = await loadPixels(source, pixelW, pixelH, sharp);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (
-      msg.includes("Input file is missing") ||
-      msg.includes("ENOENT") ||
-      msg.includes("no such file")
-    ) {
-      return [`[Error: could not load image: ${typeof source === "string" ? source : "(buffer)"}]`];
-    }
-    return ["[Error: could not decode image]"];
-  }
-
-  // --- Extract grayscale ---
-  const gray = extractGray(pixels, invert);
-
-  // --- Apply dithering ---
-  const ditherLevels =
-    mode === "ascii" ? charset.length :
-    mode === "shading" ? 7 :
-    mode === "blocks" ? BLOCK_CHARS.length :
-    2; // braille is binary
-
-  if (dithering === "floyd-steinberg") {
-    applyFloydSteinberg(gray, pixels.width, pixels.height, ditherLevels);
-  } else if (dithering === "ordered") {
-    applyOrderedDither(gray, pixels.width, pixels.height, ditherLevels);
-  }
-
-  // Clamp after dithering
-  for (let i = 0; i < gray.length; i++) {
-    gray[i] = clamp(gray[i], 0, 255);
-  }
-
-  // --- Render based on mode ---
-  switch (mode) {
-    case "ascii":
-      return renderAscii(pixels, gray, charset, color);
-    case "braille":
-      return renderBraille(pixels, gray, threshold, color);
-    case "blocks":
-      return renderBlocks(pixels, gray, threshold, color);
-    case "shading":
-      return renderShading(pixels, gray, color);
-    default:
-      return renderAscii(pixels, gray, charset, color);
-  }
+/** Control bytes are stripped from every row before it is written, which would
+ *  silently shorten a row that was measured before the strip. Neither a path
+ *  nor a decoder message is trusted to be free of them. */
+function sanitize(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[\x00-\x1f\x7f]/g, "");
 }

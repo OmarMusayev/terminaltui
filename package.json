@@ -104,7 +104,9 @@
     }
   },
   "dependencies": {
-    "esbuild": "^0.27.4"
+    "esbuild": "^0.27.4",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0"
   },
   "overrides": {
     "picomatch": "^4.0.4"

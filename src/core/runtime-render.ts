@@ -2,7 +2,7 @@
  * Page-level rendering logic: home page, content page, scroll management,
  * and terminal output.
  */
-import type { ContentBlock, AsyncContentBlock, FormBlock } from "../config/types.js";
+import type { ContentBlock, AsyncContentBlock, FormBlock, ImageBlock } from "../config/types.js";
 import { fgColor, reset, bold, dim, italic } from "../style/colors.js";
 import { gradientLines } from "../style/gradient.js";
 import { renderBanner, centerBanner } from "../ascii/banner.js";
@@ -14,11 +14,14 @@ import type { FocusItem } from "./runtime-types.js";
 import type { RuntimeInternal } from "./runtime-internal.js";
 import {
   renderBlock, renderContentBlocks, resolveDynamic,
-  invalidateDynamicCache, isBlockFocusable, renderSectionHeader,
+  invalidateDynamicCache, isBlockFocusable, renderSectionHeader, setPageFitGrant,
 } from "./runtime-block-render.js";
+import {
+  isPageFitImage, pageFitBlockRows, pageFitImageBlock, pageFitLeadRows,
+} from "../image/frame.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
 import { writeToTerminal, createRenderContext } from "./runtime-terminal.js";
-import { FOOTER_LINES, viewportHeight } from "./layout-constants.js";
+import { FOOTER_LINES, pageFitWidth, viewportHeight } from "./layout-constants.js";
 import { computeFocusLayout, isVolatileContent, countFocusSlots } from "./runtime-pages.js";
 import {
   findFirst, containsBlock, stampBlockKeys, STRUCTURAL_EDGES, type ContainerEdge,
@@ -238,7 +241,27 @@ function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderCont
   // Block rendering width: 1 less than contentWidth to account for the 1-col
   // focus prefix (" " or "▌") prepended to every content line.
   const blockWidth = Math.max(1, contentWidth - 1);
-  const blockCtx: RenderContext = { ...ctx, width: blockWidth };
+  // `availRows` is the row budget the SEQUENCE has, not the leftover: a custom
+  // block that sizes itself to it stays measurable in the single pass below,
+  // and cannot form a cycle with a `fitPage` image that is sized FROM the rows
+  // this block ends up taking.
+  const blockCtx: RenderContext = { ...ctx, width: blockWidth, availRows: viewportHeight(rows) };
+
+  // `fitPage` images, deferred: they render 0 lines during the walk and are
+  // spliced back in afterwards, once `allContentLines.length` states exactly how
+  // many rows every other block consumed. A MEASURE pre-pass would be simpler to
+  // read and is not an option — re-walking the tree re-invokes
+  // `renderAsyncContentBlock`, which kicks off `asyncManager.load` and schedules
+  // the shared spinner timer, so every frame would double-fire loaders. This way
+  // `renderBlock` is still called exactly once per block per frame.
+  const pending: Array<{ index: number; block: ImageBlock }> = [];
+
+  // Indices in `allContentLines` that carry their OWN horizontal position and
+  // must not be shifted by `padStr` or the focus gutter — page-fit image rows,
+  // which are composed against the whole terminal rather than the centred
+  // content column. Empty on every page that has no such image, and the write
+  // loop's branch is then never taken.
+  const fullBleed = new Set<number>();
 
   const renderBlocksRecursive = (blocks: ContentBlock[]) => {
     for (const block of blocks) {
@@ -263,6 +286,12 @@ function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderCont
         renderAccordionInline(rt, block, allContentLines, blockCtx, blockWidth, focusedAccordionItemIdx, indicator, focusedLineStart, focusedLineEnd, (s, e) => { focusedLineStart = s; focusedLineEnd = e; });
       } else if (block.type === "timeline") {
         renderTimelineInline(rt, block, allContentLines, blockCtx, blockWidth, currentFocus, indicator, focusedLineStart, focusedLineEnd, (s, e) => { focusedLineStart = s; focusedLineEnd = e; });
+      } else if (isPageFitImage(block)) {
+        // Contributes no lines yet — only its position. The blank separator
+        // below still gets pushed, so the arithmetic works with the image first,
+        // last or anywhere between: the rows it will occupy are the only ones
+        // missing from the total.
+        pending.push({ index: allContentLines.length, block });
       } else {
         const focused = isBlockFocusedFn(block);
         // For layout containers (any structural edge, incl. panel), check if
@@ -291,6 +320,76 @@ function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderCont
 
   // Scroll adjustment
   const viewport = viewportHeight(rows);
+
+  // `viewportHeight(rows)` (rows-7) and NOT `layoutAvailHeight(rows)` (rows-8,
+  // floored at 10): the leftover is measured against the slice the page body
+  // actually gets below, and against the same length `hasBelow` tests. The other
+  // constant is one row smaller above 17 rows — leaving a row unused — and,
+  // because of its MIN_LAYOUT_HEIGHT floor, LARGER than the real viewport at 16
+  // rows and under, which would overflow on exactly the short terminals this
+  // feature exists to serve. Every existing consumer keeps layoutAvailHeight.
+  let refit = false;
+  if (pending.length > 0) {
+    const leftover = viewport - allContentLines.length;
+    // Even split, remainder discarded. `contain` then shrinks each image to
+    // aspect, so both may end up using less than their share — deterministic and
+    // convergent, which is what the two-pass agreement needs, but a policy
+    // rather than a derivation. No page in the repo has two elastic images.
+    const each = Math.max(1, Math.floor(leftover / pending.length));
+    // The whole terminal, not the content column. See `pageFitWidth`: the
+    // 99-column column cap is a measure for TYPE, and applying it to a picture
+    // pinned the picture's width — and therefore, through `contain`, its height —
+    // far below the rows the page had just granted it.
+    const fitCols = pageFitWidth(columns);
+    const fitCtx: RenderContext = { ...blockCtx, width: fitCols };
+    // Front to back, carrying the running `shift`, so that both the splice
+    // positions AND the `fullBleed` indices recorded for earlier images stay
+    // correct: every later splice happens at a strictly greater index and cannot
+    // move them.
+    let shift = 0;
+    for (const { index, block } of pending) {
+      const at = index + shift;
+      const drawn = renderBlock(rt, pageFitImageBlock(block, each), fitCtx);
+      // Pad the picture out to the whole grant, centred in it. `contain` means a
+      // picture cannot always spend every row it is offered, and the surplus has
+      // to live somewhere; keeping it inside this block turns it into margin
+      // around the picture instead of a black band under the last block, and —
+      // the reason it is done HERE rather than at page level — makes the block
+      // occupy exactly the rows the estimator reserves for it, so nothing below
+      // it can drift. Both sides call the same two functions.
+      const lead = pageFitLeadRows(drawn.length, each);
+      const total = pageFitBlockRows(drawn.length, each);
+      const rowsOut = [
+        ...new Array<string>(lead).fill(""),
+        ...drawn,
+        ...new Array<string>(total - drawn.length - lead).fill(""),
+      ];
+      // No " " gutter prefix and, below, no `padStr`: these rows already carry
+      // the left pad that centres them in the terminal. A page-fit image is
+      // never `resizable`, so it is never focusable and the ▌ gutter can never
+      // apply to it either.
+      allContentLines.splice(at, 0, ...rowsOut);
+      for (let k = 0; k < rowsOut.length; k++) fullBleed.add(at + k);
+      if (focusedLineStart >= at) {
+        focusedLineStart += rowsOut.length;
+        focusedLineEnd += rowsOut.length;
+      }
+      shift += rowsOut.length;
+      if (setPageFitGrant(rt, block, { rows: each, cols: fitCols })) refit = true;
+    }
+  }
+
+  // Close the one-frame lag. `computeFocusLayout` structurally runs in
+  // `renderMain` BEFORE composition, so on the first paint of a page — and after
+  // any resize or content change that moves the leftover — it walked with a
+  // stale or absent grant and put every rect below the image at the wrong Y. The
+  // renderer has just published the true grant, so re-walking here produces
+  // rects describing the composition that was written a few lines above, and it
+  // happens before any input is handled (`rt.focusRects` is read only by the
+  // input handlers, never during a render). `refit` is false on every
+  // steady-state frame, and the walk itself does no I/O — `imageBlockHeight`
+  // hits the header memo, never a decode.
+  if (refit) computeFocusLayout(rt, content);
 
   if (focusedLineStart >= 0) {
     const focusedHeight = focusedLineEnd - focusedLineStart;
@@ -333,8 +432,12 @@ function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderCont
     lines.push("");
   }
 
-  for (const cl of allContentLines.slice(rt.pageScrollOffset, rt.pageScrollOffset + viewport)) {
-    lines.push(padStr + cl);
+  const sliceEnd = Math.min(allContentLines.length, rt.pageScrollOffset + viewport);
+  for (let i = rt.pageScrollOffset; i < sliceEnd; i++) {
+    // A full-bleed row is already positioned against column 0 of the terminal;
+    // padding it again would push it off the right edge. Every other row is
+    // indented into the centred content column exactly as before.
+    lines.push(fullBleed.has(i) ? allContentLines[i] : padStr + allContentLines[i]);
   }
   while (lines.length < rows - FOOTER_LINES) lines.push("");
 

@@ -163,6 +163,16 @@ export default defineConfig({ theme: "dracula" });
 
 14 fonts, 15 scenes, 30+ icons, data visualization, image-to-ASCII conversion.
 
+### Images
+
+```ts
+image("./cover.png", { width: 60 })
+image("./nebula.jpg", { width: 40, resizable: true })   // viewer can grow it
+image("./poster.jpg", { fitPage: true, border: true })  // sizes itself to the page
+```
+
+Real PNGs and JPEGs -- no `sharp`, no native build, nothing to install. On kitty and Ghostty they are drawn as **real pixels** via the kitty graphics protocol; everywhere else as colored cells, each one a Unicode block glyph with its own foreground and background, so images work on Apple Terminal, over SSH, and inside tmux. The path is negotiated from the viewer's terminal -- pixels, six cell tiers from 2x2 quadrants down to a plain ASCII ramp, and a bordered alt box on any failure, all at exactly the same row count. `resizable: true` lets the viewer resize a frame with `+`/`-`, and because the engine samples per cell, a bigger frame is a fresh resample with genuinely more detail. `fitPage: true` deletes the hand-picked `width` entirely: the image takes whatever rows the page has left, so a page meant to be seen at once fits at any window size and re-fits on resize. See [docs/images.md](docs/images.md).
+
 ### Forms & Inputs
 
 TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchInput, Button. Validation, submission, notifications.
@@ -361,6 +371,7 @@ terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed
 | [docs/api-routes.md](docs/api-routes.md) | File-based HTTP API server (api/*.ts) |
 | [docs/state-data.md](docs/state-data.md) | createState, computed, dynamic, fetcher, liveData |
 | [docs/themes.md](docs/themes.md) | The 10 built-in themes + how to write your own |
+| [docs/images.md](docs/images.md) | Rendering PNG/JPEG -- kitty pixels, cell tiers, detection, resizable frames, caching |
 | [docs/ascii-art.md](docs/ascii-art.md) | Banners, scenes, icons, dataviz, image-to-ASCII |
 | [docs/serve.md](docs/serve.md) | SSH hosting (`terminaltui serve`) |
 | [docs/testing.md](docs/testing.md) | Headless TUI emulator |
@@ -374,9 +385,9 @@ terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed
 ## Tech Stack
 
 - **TypeScript** -- strict mode, zero `any` in public API
-- **1 required dependency** (esbuild) -- ssh2 is an optional peer dependency for `serve`
-- **3,323 tests across 52 suites**, all blocking in CI -- the default subset (2,440 tests, 33 suites) runs in ~20s; the full sweep drives every demo through a real PTY emulator
-- **Apple Terminal compatible** -- auto-detects and uses 256-color fallback
+- **3 required dependencies** (esbuild, pngjs, jpeg-js) -- all pure JavaScript, no native builds; ssh2 is an optional peer dependency for `serve`
+- **2,713 tests across 41 suites** in the default run, all blocking in CI (~1 minute); `npx tsx test/run-all.ts --demos` adds the PTY-driven sweep of every bundled demo, for 3,600+ tests across 60 suites
+- **Apple Terminal compatible** -- truecolor on Terminal.app 470+ (macOS 26), automatic 256-color fallback below that
 
 ## Contributing
 

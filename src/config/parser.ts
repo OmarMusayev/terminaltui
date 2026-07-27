@@ -17,6 +17,7 @@ import type {
   ProgressBarBlock,
   BadgeBlock,
   ImageBlock,
+  ImageOptions,
   DividerBlock,
   SpacerBlock,
   SectionBlock,
@@ -135,8 +136,28 @@ export function badge(text: string, color?: string): BadgeBlock {
   return { type: "badge", text, color };
 }
 
-/** Renders an image file as ASCII art in the terminal. */
-export function image(path: string, options?: { width?: number; mode?: "ascii" | "braille" | "blocks" }): ImageBlock {
+/**
+ * Renders an image file in the terminal.
+ *
+ * Uses the highest-fidelity cell technique the viewer's terminal supports —
+ * coloured quadrants where quadrant glyphs and 256+ colours are available,
+ * degrading through half blocks, solid backgrounds, a shading ramp and finally
+ * plain ASCII. Decoding is synchronous and cached, and the block's row count is
+ * fixed from the image header on the first frame, so layout never shifts when
+ * pixels arrive or when a file turns out to be missing.
+ *
+ * `image(path)` and `image(path, { width, mode })` are unchanged, including the
+ * original `mode: "blocks"` spelling.
+ *
+ * `{ resizable: true }` additionally makes the block focusable and lets the
+ * viewer grow (`+`) and shrink (`-`) its frame, or reset it with `0`. Because
+ * the engine samples per cell, a bigger frame is a fresh resample rather than a
+ * magnification — the picture genuinely gains detail as it grows.
+ *
+ * @example
+ * image("./assets/nebula.jpg", { width: 40, resizable: true, border: true })
+ */
+export function image(path: string, options?: ImageOptions): ImageBlock {
   return { type: "image", path, ...options };
 }
 

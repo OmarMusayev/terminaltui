@@ -9,13 +9,13 @@ import type {
 } from "../config/types.js";
 import type { RouteParams } from "../router/types.js";
 import { runMiddleware } from "../middleware/index.js";
-import { resolveDynamic } from "./runtime-block-render.js";
+import { resolveDynamic, projectDirOf, imageFrameWidth, pageFitGrant } from "./runtime-block-render.js";
 import type { FocusItem } from "./runtime-types.js";
 import type { RuntimeInternal } from "./runtime-internal.js";
 import { computeFocusPositions } from "../layout/flex-engine.js";
-import { layoutAvailHeight, blockRenderWidth } from "./layout-constants.js";
+import { layoutAvailHeight, blockRenderWidth, viewportHeight } from "./layout-constants.js";
 import { walk, findFirst, ALL_EDGES, stampBlockKeys } from "./block-walker.js";
-import { focusSlots } from "./block-taxonomy.js";
+import { focusSlotsOf } from "../image/frame.js";
 
 /** Navigate to a page or route, with optional params and middleware. */
 export function navigateToPage(rt: RuntimeInternal, pageId: string, params?: RouteParams): void {
@@ -227,13 +227,13 @@ export function initializePageContent(rt: RuntimeInternal, content: ContentBlock
  * fast path uses to detect in-place mutation of a static tree (blocks pushed
  * onto the content array, items pushed onto accordion/timeline) that cannot
  * change array identity. Equals collectFocusItems(...).length by
- * construction: both derive counts from focusSlots(). No dynamic resolver is
+ * construction: both derive counts from focusSlotsOf(). No dynamic resolver is
  * passed because only non-volatile (dynamic-free) trees are fingerprinted;
  * counting a tree WITH dynamic() this way would diverge from the focus walk.
  */
 export function countFocusSlots(blocks: ContentBlock[]): number {
   let n = 0;
-  for (const e of walk(blocks)) n += focusSlots(e.block);
+  for (const e of walk(blocks)) n += focusSlotsOf(e.block);
   return n;
 }
 
@@ -261,7 +261,60 @@ export function computeFocusLayout(rt: RuntimeInternal, content: ContentBlock[])
     blockRenderWidth(columns),
     layoutAvailHeight(rows),
     (block: DynamicBlock) => resolveDynamic(rt, block),
+    {
+      // Explicit rather than inherited: `renderImage` is handed this same root
+      // per call, and two runtimes for different projects in one process (which
+      // ssh-server.ts permits up to 100 of) would otherwise fight over the
+      // module-level fallback in components/Image.ts.
+      projectDir: projectDirOf(rt),
+      // Same contract, vertically: the rect walk must measure a resizable image
+      // at the size the viewer grew it to, from the same per-runtime store
+      // renderBlock reads.
+      frameWidthOf: (block) => imageFrameWidth(rt, block),
+      // And the same contract again for a `fitPage` image, with the direction of
+      // knowledge reversed: this walk cannot compute the page's leftover rows
+      // (it only ESTIMATES sibling heights) nor the full-terminal width the page
+      // composes it against, so `renderContentPage` computes the grant from what
+      // it actually composed, publishes it here, and re-runs this walk on the
+      // same frame if either number moved.
+      pageFitGrantOf: (block) => pageFitGrant(rt, block),
+      // And, for `custom`, the direction of knowledge is reversed again: only
+      // the block itself knows its height, so the walk asks it.
+      measureCustom: (block, width, panelHeight) => measureCustomRows(rt, block, width, panelHeight),
+    },
   );
+}
+
+/**
+ * Rows a `custom` block renders at, by rendering it.
+ *
+ * The arguments must be the ones `renderBlock` will pass or the measurement is
+ * of a different block than the one drawn: `ctx.theme`, and a
+ * `CustomRenderContext` whose `availRows` follows the SAME fallback chain the
+ * renderer uses (`ctx.availRows ?? ctx.panelHeight ?? viewportHeight`). Inside a
+ * pane `renderPanel` sets `availRows` equal to `panelHeight`, so the two agree
+ * there; at page level `renderContentPage` sets it to `viewportHeight(rows)`,
+ * which is what the `??` chain below lands on when `panelHeight` is undefined.
+ * Note that page level is deliberately NOT `layoutAvailHeight(rows)` — that is
+ * one row smaller, and a ladder that steps on the boundary would then pick a
+ * different font here than on screen.
+ *
+ * A `render` that throws is left to propagate to `estimateBlockHeight`, which
+ * guards every resolver call and falls back to the old constant — one total
+ * boundary rather than two.
+ */
+function measureCustomRows(
+  rt: RuntimeInternal,
+  block: ContentBlock,
+  width: number,
+  panelHeight: number | undefined,
+): number | undefined {
+  if (block.type !== "custom") return undefined;
+  return block.render(width, rt.theme, {
+    availRows: panelHeight ?? viewportHeight(rt.screenSize.rows),
+    columns: rt.screenSize.columns,
+    rows: rt.screenSize.rows,
+  }).length;
 }
 
 /**
@@ -313,14 +366,14 @@ export function getPageContent(rt: RuntimeInternal, page: PageConfig): ContentBl
 
 /**
  * Recursively collect focusable items from content blocks (pre-order,
- * items in declaration order). Slot counts come from focusSlots() — the
+ * items in declaration order). Slot counts come from focusSlotsOf() — the
  * same contract that drives the flex-engine rect walk.
  */
 export function collectFocusItems(rt: RuntimeInternal, blocks: ContentBlock[]): FocusItem[] {
   const result: FocusItem[] = [];
   for (const e of walk(blocks, { resolveDynamic: (b) => resolveDynamic(rt, b) })) {
     const block = e.block;
-    if (focusSlots(block) === 0) continue;
+    if (focusSlotsOf(block) === 0) continue;
     if (block.type === "accordion") {
       for (let i = 0; i < block.items.length; i++) {
         result.push({ kind: "accordion-item", accordion: block, itemIndex: i });

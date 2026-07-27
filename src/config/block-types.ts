@@ -160,9 +160,16 @@ export interface LinkOptions {
 
 // ─── Custom Block ──────────────────────────────────────────
 
+/** See the copy in types.ts, which is the one the ContentBlock union uses. */
+export interface CustomRenderContext {
+  readonly availRows: number;
+  readonly columns: number;
+  readonly rows: number;
+}
+
 export interface CustomBlock {
   type: "custom";
-  render: (width: number, theme: Theme) => string[];
+  render: (width: number, theme: Theme, ctx?: CustomRenderContext) => string[];
 }
 
 // These are imported from other modules but needed for the types here.

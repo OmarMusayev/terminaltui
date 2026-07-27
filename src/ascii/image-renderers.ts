@@ -1,124 +1,195 @@
 /**
- * Image rendering mode implementations: ASCII, braille, blocks, shading.
- * Split from image.ts to keep files under 400 lines.
+ * Adapter from the legacy `AsciiImageOptions` vocabulary onto the cell engine
+ * in src/image/.
+ *
+ * This file used to hold a second, independent implementation of every mode —
+ * its own braille bit table, its own half-block fitter, its own colour
+ * emission. All of it was worse than the shared engine and none of it had ever
+ * run (the `sharp` guard in image.ts returned before any of it was reached).
+ * The half-block renderer in particular painted the average of both half-pixels
+ * as a FOREGROUND colour, so the glyph carried no information at all and scored
+ * identically to a flat one-colour cell.
+ *
+ * What is left here is translation only: which tier a legacy `mode` means,
+ * which ramp it uses, and the one guarantee the legacy API makes that the
+ * engine does not — `color: false` emits ZERO escape bytes.
+ *
+ * See devnotes/terminal-image-rendering-exploration.md §2.2.
  */
-import { fgColorRgb, reset } from "../style/colors.js";
 
-interface PixelGrid {
-  data: Uint8Array;
-  width: number;
-  height: number;
-  channels: number;
+import type {
+  CellGeometry,
+  ImageDither,
+  ImageRenderOptions,
+  ImageTier,
+  PixelBuffer,
+  RGB,
+  SubCellGrid,
+} from "../image/types.js";
+import { subCellGridSize } from "../image/geometry.js";
+import { resampleToGrid } from "../image/resample.js";
+import { ditherGrid } from "../image/dither.js";
+import { renderCells } from "../image/render.js";
+import { ASCII_RAMP, SHADING_RAMP } from "../image/glyphs.js";
+import { getColorMode, setColorMode } from "../style/colors.js";
+
+/** The four rendering modes `AsciiImageOptions.mode` accepts. */
+export type AsciiImageMode = "ascii" | "braille" | "blocks" | "shading";
+
+/**
+ * Colour composited under partially transparent pixels.
+ *
+ * `asciiImage()` is a standalone utility with no theme and no knowledge of the
+ * terminal's real background, so it assumes the overwhelmingly common dark one.
+ * The framework's own `image()` block composites against the theme background
+ * instead — it has one to composite against.
+ */
+export const ASCII_IMAGE_BACKGROUND: RGB = { r: 0, g: 0, b: 0 };
+
+/** Everything the cell engine needs that the legacy options can express. */
+export interface AsciiRenderRequest {
+  mode: AsciiImageMode;
+  /** False forces the uncoloured path AND suppresses every escape sequence. */
+  color: boolean;
+  /** Ramp override for the two ramp tiers. Ignored by braille and half. */
+  charset?: string;
+  invert?: boolean;
+  dither?: ImageDither;
+  /** Explicit 1-bit cut for braille. Undefined leaves the choice to Otsu. */
+  threshold?: number;
+  /** Defaults to {@link ASCII_IMAGE_BACKGROUND}. */
+  background?: RGB;
 }
 
-const BRAILLE_OFFSET = 0x2800;
-const BRAILLE_MAP: [number, number][] = [[0, 3], [1, 4], [2, 5], [6, 7]];
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
+/**
+ * Legacy mode + colour flag -> engine tier.
+ *
+ * The two ramp tiers differ in exactly one thing: "shading" emits a foreground
+ * colour per cell and "ascii" emits none. So an uncoloured render of ANY ramp
+ * mode is the "ascii" tier carrying that mode's ramp, and a coloured one is the
+ * "shading" tier carrying it. That is why `mode: "ascii", color: true` maps to
+ * the shading tier — it is the same glyph ramp with a pen, which is precisely
+ * what the old `renderAscii(..., useColor)` did.
+ *
+ * "blocks" is the one mode that genuinely needs two colours per cell, so it
+ * maps to the "half" tier when colour is available and falls back to the block
+ * shading ramp when it is not: a half block whose foreground and background are
+ * both suppressed conveys nothing, because the glyph shape alone only encodes
+ * "the two halves differ".
+ */
+export function selectAsciiTier(mode: AsciiImageMode, color: boolean): ImageTier {
+  if (mode === "braille") return "braille";
+  if (!color) return "ascii";
+  return mode === "blocks" ? "half" : "shading";
 }
 
-function colorWrap(ch: string, r: number, g: number, b: number): string {
-  return fgColorRgb(r, g, b) + ch + reset;
+/**
+ * Ramp for a mode, honouring an author-supplied `charset`.
+ *
+ * "blocks" without colour lands on the shading ramp rather than the ASCII one
+ * because it IS a block ramp — and because the legacy ditherer already computed
+ * its levels from `BLOCK_CHARS = " ░▒▓█"`, so the mode's own dithering code
+ * always assumed a block ramp even though its renderer emitted a binary
+ * threshold. `SHADING_RAMP` is that ramp plus the two low steps it was missing.
+ */
+export function asciiRamp(mode: AsciiImageMode, charset?: string): string {
+  if (charset !== undefined && charset.length > 0) return charset;
+  return mode === "ascii" ? ASCII_RAMP : SHADING_RAMP;
 }
 
-function sampleColor(pixels: PixelGrid, x: number, y: number, w: number, h: number): [number, number, number] {
-  let rSum = 0, gSum = 0, bSum = 0, count = 0;
-  for (let dy = 0; dy < h; dy++) {
-    for (let dx = 0; dx < w; dx++) {
-      const px = x + dx;
-      const py = y + dy;
-      if (px < pixels.width && py < pixels.height) {
-        const idx = (py * pixels.width + px) * pixels.channels;
-        rSum += pixels.data[idx];
-        gSum += pixels.data[idx + 1];
-        bSum += pixels.data[idx + 2];
-        count++;
-      }
-    }
-  }
-  if (count === 0) return [0, 0, 0];
-  return [Math.round(rSum / count), Math.round(gSum / count), Math.round(bSum / count)];
-}
-
-export function renderAscii(
-  pixels: PixelGrid, gray: Float64Array, charset: string, useColor: boolean,
+/**
+ * Render decoded pixels to terminal rows at a geometry the caller has already
+ * negotiated with `imageCellSize()`.
+ *
+ * Rows come back exactly `geom.cols` display columns wide, `geom.rows` of them,
+ * each terminated by `reset` (which is the empty string when colour is off).
+ *
+ * @param pixels Decoded RGBA source, full frame.
+ * @param geom   Cell geometry from src/image/geometry.ts. The cell aspect has
+ *               already been applied there and must not be applied again here —
+ *               the sub-cell factor below is a SEPARATE multiplier.
+ * @param req    Translated legacy options.
+ */
+export function renderAsciiRows(
+  pixels: PixelBuffer,
+  geom: CellGeometry,
+  req: AsciiRenderRequest,
 ): string[] {
-  const { width, height } = pixels;
-  const lines: string[] = [];
-  for (let y = 0; y < height; y++) {
-    let line = "";
-    for (let x = 0; x < width; x++) {
-      const v = clamp(gray[y * width + x], 0, 255);
-      let ch = charset[Math.round((v / 255) * (charset.length - 1))];
-      if (useColor) { const [r, g, b] = sampleColor(pixels, x, y, 1, 1); ch = colorWrap(ch, r, g, b); }
-      line += ch;
-    }
-    lines.push(line);
+  const tier = selectAsciiTier(req.mode, req.color);
+  // The second and only other multiplier: 2x2 for quadrant, 1x2 for half,
+  // 2x4 for braille, 1x1 for the ramp tiers.
+  const { subW, subH } = subCellGridSize(geom, tier);
+
+  const data = resampleToGrid(pixels, subW, subH, {
+    background: req.background ?? ASCII_IMAGE_BACKGROUND,
+    invert: req.invert === true,
+  });
+
+  if (tier === "braille" && req.threshold !== undefined) {
+    binarize(data, req.threshold);
   }
-  return lines;
+
+  // Dithering must land on the sub-cell grid BEFORE any glyph is fitted: the
+  // two-colour tiers average their sub-pixels into one fg and one bg pen, so
+  // noise injected afterwards would be averaged straight back out. A no-op in
+  // truecolor (nothing to correct) and under "none" (nothing is emitted to
+  // correct against) — see resolveDither() in dither.ts.
+  const mode = req.color ? getColorMode() : "none";
+  ditherGrid(data, subW, subH, mode, req.dither ?? "none");
+
+  const grid: SubCellGrid = {
+    data,
+    subW,
+    subH,
+    cols: geom.cols,
+    rows: geom.rows,
+    tier,
+  };
+
+  const opts: ImageRenderOptions =
+    tier === "ascii" || tier === "shading"
+      ? { charset: asciiRamp(req.mode, req.charset) }
+      : {};
+
+  // `color: false` has always meant "plain text out", so it is enforced
+  // structurally rather than tier by tier: under colour mode "none" every
+  // emitter in colors.ts returns "" and `reset` is empty, so no tier — not even
+  // braille, which always paints a foreground — can leak an escape. The emitter
+  // is the only thing here that reads that module-level state, so the swap is
+  // wrapped as tightly around it as possible. This is the same swap-and-restore
+  // runtime.ts performs per frame for per-session colour, and safe for the same
+  // reason: renderCells is synchronous and cannot interleave with another one.
+  const ambient = getColorMode();
+  if (mode !== ambient) setColorMode(mode);
+  try {
+    return renderCells(grid, tier, opts);
+  } finally {
+    if (mode !== ambient) setColorMode(ambient);
+  }
 }
 
-export function renderBraille(
-  pixels: PixelGrid, gray: Float64Array, threshold: number, useColor: boolean,
-): string[] {
-  const { width, height } = pixels;
-  const lines: string[] = [];
-  for (let by = 0; by < height; by += 4) {
-    let line = "";
-    for (let bx = 0; bx < width; bx += 2) {
-      let code = 0;
-      for (let row = 0; row < 4; row++) {
-        for (let col = 0; col < 2; col++) {
-          const px = bx + col, py = by + row;
-          if (px < width && py < height && gray[py * width + px] >= threshold) {
-            code |= (1 << BRAILLE_MAP[row][col]);
-          }
-        }
-      }
-      let ch = String.fromCharCode(BRAILLE_OFFSET + code);
-      if (useColor) { const [r, g, b] = sampleColor(pixels, bx, by, 2, 4); ch = colorWrap(ch, r, g, b); }
-      line += ch;
-    }
-    lines.push(line);
+/**
+ * Collapse the grid to pure black and white about `threshold`.
+ *
+ * The braille tier picks its own cut with Otsu, which has no parameter to hand
+ * an explicit threshold to. Binarising first makes Otsu's answer exact rather
+ * than approximate: a two-valued histogram maximises between-class variance at
+ * t = 0, and the tier lights a dot when luma > t, so every pixel that was
+ * `>= threshold` — the legacy comparison — lights and no other does.
+ *
+ * The trade is visible and deliberate: a 1-bit image has no colour left to
+ * carry, so with `color: true` the lit dots come out white. Omitting
+ * `threshold` keeps the image's own ink colours and lets Otsu choose the cut,
+ * which is the better rendering for anything that is not already line art.
+ */
+function binarize(data: Uint8ClampedArray, threshold: number): void {
+  const cut = Number.isFinite(threshold) ? threshold : 128;
+  for (let i = 0; i < data.length; i += 4) {
+    // Rec.601 luma, matching the engine's own luminance.
+    const v =
+      0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2] >= cut ? 255 : 0;
+    data[i] = v;
+    data[i + 1] = v;
+    data[i + 2] = v;
   }
-  return lines;
-}
-
-export function renderBlocks(
-  pixels: PixelGrid, gray: Float64Array, threshold: number, useColor: boolean,
-): string[] {
-  const { width, height } = pixels;
-  const lines: string[] = [];
-  for (let y = 0; y < height; y += 2) {
-    let line = "";
-    for (let x = 0; x < width; x++) {
-      const topOn = gray[y * width + x] >= threshold;
-      const botOn = (y + 1) < height ? gray[(y + 1) * width + x] >= threshold : false;
-      let ch = topOn && botOn ? "\u2588" : topOn ? "\u2580" : botOn ? "\u2584" : " ";
-      if (useColor) { const [r, g, b] = sampleColor(pixels, x, y, 1, 2); ch = colorWrap(ch, r, g, b); }
-      line += ch;
-    }
-    lines.push(line);
-  }
-  return lines;
-}
-
-export function renderShading(
-  pixels: PixelGrid, gray: Float64Array, useColor: boolean,
-): string[] {
-  const shadingChars = " \u00b7:\u2591\u2592\u2593\u2588";
-  const { width, height } = pixels;
-  const lines: string[] = [];
-  for (let y = 0; y < height; y++) {
-    let line = "";
-    for (let x = 0; x < width; x++) {
-      const v = clamp(gray[y * width + x], 0, 255);
-      let ch = shadingChars[Math.round((v / 255) * (shadingChars.length - 1))];
-      if (useColor) { const [r, g, b] = sampleColor(pixels, x, y, 1, 1); ch = colorWrap(ch, r, g, b); }
-      line += ch;
-    }
-    lines.push(line);
-  }
-  return lines;
 }

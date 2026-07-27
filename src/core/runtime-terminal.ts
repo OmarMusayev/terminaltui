@@ -101,6 +101,14 @@ export function writeToTerminal(rt: RuntimeInternal, lines: string[], columns: n
     }
   }
 
+  // ── Phase 1b: settle kitty placements against the composed frame ────
+  // `frameRows` is the first point at which "is this image on screen" has an
+  // answer: the page is composed in full and only then sliced to the viewport,
+  // so `renderBlock` — and therefore `graphicsPlace` — runs for blocks that
+  // scrolled away. Committing here is what keeps a gallery page from pushing a
+  // full transmission for every image it holds on the first paint.
+  rt.graphicsCommit(frameRows);
+
   // ── Phase 2: diff + emit ────────────────────────────────────────────
   const fs = rt.frameState;
   const fullRedraw = !fs.valid || fs.columns !== columns || fs.rowCount !== rows;

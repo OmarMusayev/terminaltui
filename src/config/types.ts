@@ -4,6 +4,15 @@ import type { RouteParams } from "../router/types.js";
 import type { MiddlewareFn } from "../middleware/types.js";
 import type { LifecycleHooks } from "../lifecycle/types.js";
 import type { ApiHandler } from "../api/types.js";
+// Type-only: the image engine's option vocabulary is shared verbatim so a
+// block and the renderer can never disagree about what a mode or a fit means.
+import type {
+  ImageAlign,
+  ImageDither,
+  ImageFit,
+  ImageMode,
+  ImageRenderOptions,
+} from "../image/types.js";
 
 // ─── Site Config ───────────────────────────────────────────
 
@@ -22,6 +31,13 @@ export interface SiteConfig {
   footer?: string | ContentBlock;
   statusBar?: boolean | StatusBarConfig;
   artDir?: string | false;
+  /**
+   * Root that relative asset paths (currently image blocks) resolve against.
+   * File-based projects get this from the runtime; a hand-written config can
+   * set it explicitly (e.g. `import.meta.dirname`) when it is not launched from
+   * its own directory.
+   */
+  projectDir?: string;
 
   // Menu config (file-based routing) — explicit menu overrides auto-generation
   menu?: {
@@ -269,10 +285,181 @@ export interface BadgeBlock {
 
 export interface ImageBlock {
   type: "image";
+  /**
+   * Path relative to the project root, an absolute path, a `file:` URL or a
+   * `data:` URI. Remote `http(s)` sources cannot be decoded synchronously and
+   * render as alt text.
+   */
   path: string;
+  /** Width in terminal CELLS. Default: fill the available content width. */
   width?: number;
-  mode?: "ascii" | "braille" | "blocks";
+  /** Height in terminal CELLS. Aspect is preserved unless `fit: "fill"`. */
+  height?: number;
+  /** Hard cap on derived rows. */
+  maxHeight?: number;
+  /** Default "contain", which never letterboxes — the block just gets smaller. */
+  fit?: ImageFit;
+  /** Horizontal placement inside the block's allocation. Default "center". */
+  align?: ImageAlign;
+  /**
+   * Force a rendering tier. Default "auto" negotiates the ladder from the
+   * viewer's colour depth and glyph coverage. Pin it in demos and snapshot
+   * tests so output is byte-stable across terminals.
+   *
+   * "blocks" is the original published spelling of the half-block tier and is
+   * still accepted; it maps to "half".
+   */
+  mode?: ImageMode | "blocks";
+  /**
+   * "auto" = no dithering, at every colour depth. Both algorithms stay
+   * available explicitly.
+   *
+   * One sample here is one whole terminal cell, which is enormous, so the
+   * dispersion that error diffusion relies on never fuses in the eye — it just
+   * reads as confetti. At 256 the 240-entry palette is dense enough that
+   * nearest-colour is already smooth. At 16, reproducing a mid grey means
+   * alternating between black and a saturated primary, which renders a
+   * photograph as scattered dots on black with no identifiable content; the
+   * undithered image is a legible posterised photograph (measured on the
+   * pillars fixture: RMSE 32.5 undithered against 52.0 dithered). An earlier
+   * version defaulted 16 to Floyd-Steinberg on the belief that undithered
+   * output was "nearly empty" — that emptiness was a separate bug, the shading
+   * tier painting coverage x colour, i.e. luminance squared.
+   *
+   * "ordered" (Bayer) is never chosen automatically either: it shares one
+   * threshold across all three channels, so it can shift lightness but never
+   * manufacture chroma, and at 256 colours it measured worse than no dithering.
+   */
+  dither?: ImageDither;
+  /** Shown while decoding, on failure, and when the format is unsupported. */
+  alt?: string;
+  /** Hex composited under alpha. Defaults to the theme background. */
+  background?: string;
+  invert?: boolean;
+  /** Ramp for `mode: "ascii"`. Default " .:-=+*#%@". */
+  charset?: string;
+  /**
+   * Draw a themed border around the image. Default false.
+   *
+   * Same vocabulary as `card`, `table` and `panel`: `true` uses the site's
+   * `borderStyle`, a style name overrides it. The border is added OUTSIDE
+   * `width`/`height`, so `{ width: 40, border: true }` occupies 42 columns.
+   *
+   * The alt-text box drawn when an image cannot be decoded is always bordered,
+   * regardless of this option — a missing asset has to be visible.
+   */
+  border?: boolean | BorderStyle;
+  /**
+   * Let the viewer resize this image's frame at runtime. Default false.
+   *
+   * A resizable image becomes FOCUSABLE — it takes a focus slot, is reachable
+   * with the arrow keys, and answers `+`/`=` (grow), `-`/`_` (shrink) and `0`
+   * (back to the declared size). It renders one extra row carrying the current
+   * size and those keys.
+   *
+   * Opting in matters. Focusability is otherwise decided by block TYPE, so
+   * making every image focusable would insert a slot into every page that shows
+   * one and shift every focus index below it. This is the ONLY option in the
+   * framework that confers focus — note that `PanelConfig.focusable`, which
+   * looks like a sibling, is inert.
+   *
+   * Because the engine samples per CELL, a wider frame is not a magnified
+   * picture: it is a fresh resample into a larger sub-cell grid, so the
+   * rendered detail genuinely increases. The frame is clamped to the content
+   * column (99 cells) and to the visible height, so growing it can never push
+   * its own bottom edge off screen.
+   */
+  resizable?: boolean;
+  /**
+   * Size this image to the rows the PAGE actually has left, rather than to a
+   * width picked by hand for one window. Default false.
+   *
+   * The page composes every other block first, then grants this image whatever
+   * rows remain in the content viewport; geometry back-solves the column count
+   * from the source aspect, so the picture stays aspect-correct and the page
+   * stops scrolling. Re-derived every frame, so it re-fits on resize.
+   *
+   * `width` still applies as a CEILING and `maxHeight` as a tighter cap, so
+   * `{ fitPage: true }` on its own is the usual form — it is the constant you
+   * are trying to delete.
+   *
+   * INERT in three places, deliberately:
+   * - on a `resizable` image, because the viewer's chosen size must win;
+   * - inside a panel/columns/rows/grid cell, because the pane's own inner
+   *   height already governs the image through `ctx.panelHeight`;
+   * - on the home page, which composes its own fixed layout.
+   *
+   * With several opted-in images on one page the leftover is split evenly
+   * between them; `contain` then shrinks each to aspect, so a page may end up
+   * shorter than its viewport but never taller by their doing.
+   */
+  fitPage?: boolean;
 }
+
+/**
+ * Everything `image()` accepts besides the path.
+ *
+ * Derived from {@link ImageBlock} rather than restated, so the helper and the
+ * block can never drift apart.
+ */
+export type ImageOptions = Omit<ImageBlock, "type" | "path">;
+
+/**
+ * Compile-time parity between the AUTHORING type above and the ENGINE's
+ * {@link ImageRenderOptions}.
+ *
+ * The two are declared separately so each can carry documentation aimed at its
+ * own reader, but they describe one feature and used to be able to drift
+ * silently — adding a field to one would simply not reach the other, and nothing
+ * typechecked the relationship. Both directions are asserted, so a new option on
+ * either side is a build error until it exists on both.
+ *
+ * `mode` is excluded because the divergence there is deliberate: the block
+ * additionally accepts the legacy `"blocks"` spelling, which `optionsOf()` maps
+ * onto the `"half"` tier before the engine ever sees it.
+ *
+ * `resizable` is excluded for a different deliberate reason: it is an
+ * INTERACTION option, not a rendering one. The engine renders a frame the
+ * viewer grew exactly as it renders one the author declared that size — the
+ * resize is applied upstream, by rewriting `width`/`maxHeight` before geometry
+ * ever runs (src/image/frame.ts) — so the engine has no business knowing the
+ * flag exists. Excluding it explicitly keeps the assertion sharp: an optional
+ * property is structurally satisfied by its own absence, so leaving it in would
+ * have silently weakened the check rather than failing it.
+ *
+ * `fitPage` is excluded for exactly the same reason as `resizable`, and through
+ * exactly the same mechanism: it is a PAGE-LAYOUT option, and the page spends it
+ * by rewriting `maxHeight` before geometry runs (`pageFitImageBlock` in
+ * src/image/frame.ts). Pushing it into `ImageRenderOptions` would teach the pure
+ * cell engine what a page viewport is, which is the coupling this split exists
+ * to prevent — and the engine could not act on it anyway, since it never sees
+ * the sibling blocks whose heights define the leftover.
+ */
+type Assert<T extends true> = T;
+
+/**
+ * `Required<>` on both sides is load-bearing, and was missing.
+ *
+ * Every property on both types is OPTIONAL, and an optional property is
+ * structurally satisfied by its own ABSENCE in both directions — so without
+ * `Required<>` the assertion below passed for any pair of types at all. So did
+ * the earlier `? true : never` form, because nothing constrained the result:
+ * `[never, never]` is a perfectly legal tuple alias. Verified: adding
+ * `bogus?: number` to `ImageBlock` left `tsc --noEmit` at exit 0. With
+ * `Assert<>` and `Required<>` the same edit is TS2344.
+ */
+type _ImageOptionParity = [
+  Assert<
+    Required<Omit<ImageOptions, "mode" | "resizable" | "fitPage">> extends
+      Required<Omit<ImageRenderOptions, "mode">> ? true : false
+  >,
+  Assert<
+    Required<Omit<ImageRenderOptions, "mode">> extends
+      Required<Omit<ImageOptions, "mode" | "resizable" | "fitPage">> ? true : false
+  >,
+];
+// Referenced so the alias is not dead code; the assertion is the whole point.
+export type ImageOptionParity = _ImageOptionParity;
 
 export interface DividerBlock {
   type: "divider";
@@ -292,9 +479,42 @@ export interface SectionBlock {
   content: ContentBlock[];
 }
 
+/**
+ * What a `custom` block may size itself against, beyond its width.
+ *
+ * Exists so display type can pick a FONT from the room it has instead of from a
+ * constant chosen for one window — the vertical twin of the `width` argument
+ * `render` has always received.
+ */
+export interface CustomRenderContext {
+  /**
+   * Rows the enclosing sequence may occupy in total: the page's content
+   * viewport, or the pane's inner height inside a panel.
+   *
+   * The container's TOTAL, deliberately, not the rows left after the block's
+   * siblings. A block sized to the leftover could not be measured until every
+   * sibling had been, and an image sized from that measurement would close the
+   * loop; against the total, every custom block still composes in one pass and
+   * its real height flows into the leftover automatically.
+   *
+   * Nothing clamps to it. A block that returns more rows than this simply makes
+   * the page scroll, exactly as it does today.
+   */
+  readonly availRows: number;
+  /** Terminal columns, for a block that needs the window rather than its slot. */
+  readonly columns: number;
+  /** Terminal rows. */
+  readonly rows: number;
+}
+
 export interface CustomBlock {
   type: "custom";
-  render: (width: number, theme: Theme) => string[];
+  /**
+   * `ctx` is optional so that every existing `(width, theme) => string[]` stays
+   * assignable — widening a callback's parameter list is source-compatible, and
+   * there is exactly one dispatch site in the framework.
+   */
+  render: (width: number, theme: Theme, ctx?: CustomRenderContext) => string[];
 }
 
 // ─── Input Components ─────────────────────────────────────
@@ -452,6 +672,20 @@ export interface PanelConfig {
   border?: boolean | "left" | "right" | "top" | "bottom" | BorderStyle;
   padding?: number;
   scrollable?: boolean;
+  /**
+   * NOT IMPLEMENTED. Accepted for backward compatibility and read by nothing.
+   *
+   * Focusability is decided by block TYPE (`FOCUSABLE_TYPES` in
+   * core/block-taxonomy.ts) plus the one option that widens it,
+   * `ImageBlock.resizable`; "panel" is in neither, so setting this has no
+   * effect and produces no warning. It is documented rather than deleted
+   * because removing it would turn a silent no-op into a compile error in
+   * existing configs.
+   *
+   * If panel focus is ever implemented, the single widening point is
+   * `focusSlotsOf()` in image/frame.ts — every walker that assigns focus
+   * indices already goes through it.
+   */
   focusable?: boolean;
 }
 

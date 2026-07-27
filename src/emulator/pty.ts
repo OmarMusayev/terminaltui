@@ -56,6 +56,16 @@ export async function spawnPTY(options: LaunchOptions): Promise<PTYProcess> {
     TERM: "xterm-256color",
     COLORTERM: "truecolor",
     FORCE_COLOR: "1",
+    // Pixels are off by default inside the emulator, for two reasons that both
+    // make suites machine-dependent otherwise. (a) TERM is rewritten above but
+    // KITTY_WINDOW_ID is inherited, so a contributor running the suite from
+    // kitty or Ghostty would have the app under test negotiate the pixel tier
+    // and every cell assertion would fail on their machine only. (b) With
+    // node-pty installed the child's stdio IS a TTY and xterm-256color is
+    // ambiguous, so the runtime would probe and wait out the full 300 ms
+    // deadline at every app launch — the emulator's vterm never answers DA1.
+    // Listed before options.env so a graphics test can still opt back in.
+    TERMINALTUI_GRAPHICS: "off",
     ...(options.env ?? {}),
   };
   const bins = localBinPaths();

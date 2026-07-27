@@ -77,6 +77,8 @@ interface MockRt {
   writes: string[];
   writeOutput(data: string): void;
   invalidateFrame(): void;
+  /** Kitty placements are settled against the composed frame; nothing to settle here. */
+  graphicsCommit(frameRows: readonly string[]): void;
 }
 
 function makeRt(): MockRt {
@@ -92,6 +94,7 @@ function makeRt(): MockRt {
     writes: [],
     writeOutput(data: string) { this.writes.push(data); },
     invalidateFrame() { this.frameState.valid = false; },
+    graphicsCommit() { /* this mock never places an image */ },
   };
   return rt;
 }

@@ -100,6 +100,29 @@ console.log("\x1b[1m  length gate\x1b[0m");
   assert(longEnough.length >= minLen, "gated probe is at/above minLen");
   stringWidth(longEnough);
   assert(inspect().has(longEnough), "strings at/above the gate are cached after a call");
+
+  // Upper gate. The cap is an ENTRY count sized for ~200-char UI rows; a single
+  // truecolor image row is ~1.5 KB, and letting those in took heapUsed from
+  // 5.3 MB to 29.0 MB while FIFO-evicting every legitimate UI string. Both
+  // gates return the SAME width as the cached path — only residency differs.
+  const { maxLen } = inspect();
+  const atMax = "x".repeat(maxLen);
+  stringWidth(atMax);
+  assert(inspect().has(atMax), "strings exactly at maxLen are still cached");
+
+  const tooLong = "x".repeat(maxLen + 1);
+  const before = inspect().size;
+  assertEqual(stringWidth(tooLong), maxLen + 1, "over-long strings still measure correctly");
+  assert(!inspect().has(tooLong), "strings above the gate are never cached");
+  assertEqual(inspect().size, before, "and do not grow the cache");
+
+  // A realistic image row: block glyphs behind SGR pairs, measured uncached.
+  let imageRow = "";
+  for (let i = 0; i < 80; i++) imageRow += `\x1b[38;2;${i};${i};${i};48;2;${i};0;0m▀`;
+  imageRow += "\x1b[0m";
+  assert(imageRow.length > maxLen, "the synthetic image row exceeds the gate");
+  assertEqual(stringWidth(imageRow), 80, "an 80-cell image row measures 80 columns");
+  assert(!inspect().has(imageRow), "image rows stay out of the shared memo");
 }
 
 // ─── Eviction cap (FIFO) ─────────────────────────────────

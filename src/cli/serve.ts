@@ -98,6 +98,10 @@ async function startFileBasedSession(projectDir: string, terminalIO: TerminalIO)
     artDir: config.artDir,
     middleware: config.middleware,
     menu: config.menu,
+    // Without this the runtime's `this.site.serve?.colorMode` read is always
+    // undefined under `serve`, so the documented per-session colour override
+    // silently did nothing and every client fell through to auto-detection.
+    serve: config.serve,
     pages,
     api: { ...(apiRoutes || {}) },
     onInit: config.onInit,
@@ -108,6 +112,9 @@ async function startFileBasedSession(projectDir: string, terminalIO: TerminalIO)
 
   const runtime = new TUIRuntime({ config: siteConfig }, terminalIO);
   runtime.fileRouter = router;
+  // Relative asset paths resolve against the served project, never the cwd
+  // the server happened to be launched from.
+  runtime.projectDir = projectDir;
   await runtime.start();
   return runtime;
 }

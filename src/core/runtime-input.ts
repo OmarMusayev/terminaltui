@@ -22,8 +22,14 @@ import {
   handleNumberInputKey, handleSearchInputKey, handleRadioGroupKey,
 } from "./runtime-edit-handlers.js";
 import { walk, ALL_EDGES, type ContainerEdge } from "./block-walker.js";
-import { focusSlots } from "./block-taxonomy.js";
-import { resolveDynamic } from "./runtime-block-render.js";
+import {
+  resolveDynamic, projectDirOf, frameLimitsOf, imageFrameKey, imageFrameWidths, lastRenderedFrame,
+} from "./runtime-block-render.js";
+import {
+  clampFrameCols, focusSlotsOf, framedImageBlock, isResizableImage, stepFrameCols,
+} from "../image/frame.js";
+import { imageCellSize } from "../components/Image.js";
+import { blockRenderWidth } from "./layout-constants.js";
 
 /** Handle keystrokes in command mode (:command). */
 export function handleCommandMode(rt: RuntimeInternal, key: KeyPress): void {
@@ -71,6 +77,14 @@ export function handleNavigationMode(rt: RuntimeInternal, key: KeyPress): void {
       rt.render();
       return;
     }
+  }
+
+  // Resizable images claim their own keys BEFORE keyToAction, and only while
+  // one is focused. Nothing is stolen from navigation: `+ = - _` are unbound
+  // globally and the number jumps are 1-9, so `0` is dead everywhere else.
+  if (!isHome && handleImageResizeKey(rt, key)) {
+    rt.render();
+    return;
   }
 
   const action = keyToAction(key, isHome);
@@ -227,6 +241,100 @@ export function handleNavigationMode(rt: RuntimeInternal, key: KeyPress): void {
       }
       break;
   }
+}
+
+// ─── Resizable image frames ─────────────────────────────
+
+/**
+ * What a key asks a focused resizable image for: grow, shrink, reset, or
+ * "not mine".
+ *
+ * `=` and `_` are the unshifted twins of `+` and `-` — on a US layout `+` costs
+ * a shift, and a viewer who presses the key they see on the keycap must not be
+ * told nothing happened. Ctrl/Meta chords are excluded so terminal-level
+ * bindings keep working.
+ */
+function resizeIntent(key: KeyPress): 1 | -1 | 0 | null {
+  if (key.ctrl || key.meta) return null;
+  switch (key.char) {
+    case "+": case "=": return 1;
+    case "-": case "_": return -1;
+    case "0": return 0;
+    default: return null;
+  }
+}
+
+/**
+ * Resizing changes the image's row count, so every FocusRect below it moves.
+ *
+ * renderMain's fast path keys on content identity, terminal dimensions and the
+ * focus-slot count — none of which change here — so it would happily reuse the
+ * rects computed for the old size. Dropping `contentRef` forces the full
+ * collect/registerForms/computeFocusPositions pass on the next frame, exactly
+ * as entering a page does.
+ */
+function invalidateFrameLayout(rt: RuntimeInternal): void {
+  rt.layoutCache.contentRef = null;
+}
+
+/**
+ * Grow, shrink or reset the focused image's frame.
+ *
+ * @returns true when the key belonged to a focused resizable image — the caller
+ *   must then stop, so `-`/`0` never fall through to the global bindings.
+ */
+function handleImageResizeKey(rt: RuntimeInternal, key: KeyPress): boolean {
+  const focused = rt.pageFocusItems[rt.pageFocusIndex];
+  if (focused?.kind !== "block" || !isResizableImage(focused.block)) return false;
+  const intent = resizeIntent(key);
+  if (intent === null) return false;
+
+  const block = focused.block;
+  const widths = imageFrameWidths(rt);
+  const stateKey = imageFrameKey(rt, block);
+
+  if (intent === 0) {
+    if (widths.delete(stateKey)) invalidateFrameLayout(rt);
+    return true;
+  }
+
+  // Step against the allocation the RENDERER last used, not the page's content
+  // width. Input has no RenderContext, so this used to budget an image inside a
+  // panel as though it had the whole content column: the stored width then ran
+  // 17 presses ahead of the picture, with no feedback, and "Frame at maximum
+  // size" fired at the wrong ceiling. `renderImageBlock` records both the
+  // achieved columns and the limits it clamped against; the page-level budget
+  // is only the fallback for a block that has not been drawn yet.
+  const drawn = lastRenderedFrame(rt, block);
+  const limits = drawn?.limits ?? frameLimitsOf(rt, blockRenderWidth(rt.screenSize.columns));
+  const root = projectDirOf(rt);
+
+  /** Columns geometry ACTUALLY yields for a stored width (aspect + caps applied). */
+  const measure = (stored: number | undefined): number =>
+    imageCellSize(
+      framedImageBlock(block, stored, limits),
+      limits.availWidth,
+      limits.availRows,
+      root,
+    ).cols;
+
+  const current = drawn?.cols ?? widths.get(stateKey) ?? measure(undefined);
+  const wanted = stepFrameCols(current, intent, block, limits);
+  // Store what geometry produced, not what was asked for. Near the row cap the
+  // two differ (a 24-row terminal answers a request for 64 columns with 61, the
+  // widest that still fits), and remembering the request would leave the stored
+  // width running ahead of the picture — the next few presses of `-` would move
+  // nothing at all. Storing the result also means the last effective `+` lands
+  // exactly on the largest frame that fits rather than stopping short of it.
+  const applied = wanted === current ? current : clampFrameCols(measure(wanted), block, limits);
+  if ((applied - current) * intent <= 0) {
+    rt.showFeedback(intent > 0 ? "Frame at maximum size" : "Frame at minimum size");
+    return true;
+  }
+
+  widths.set(stateKey, applied);
+  invalidateFrameLayout(rt);
+  return true;
 }
 
 /**
@@ -432,7 +540,7 @@ function switchToTabContaining(
  * index of the first focusable item inside that panel.
  *
  * Path-based: the matched panel's walk path prefixes exactly the paths of
- * the blocks inside it, and focus indices are focusSlots() sums in walk
+ * the blocks inside it, and focus indices are focusSlotsOf() sums in walk
  * order — the same ordering contract collectFocusItems uses.
  */
 function findFocusIndexByPanelTitle(
@@ -468,7 +576,7 @@ function findFocusIndexByPanelTitle(
   // Focus index of the first focus slot inside that panel.
   let focusIdx = 0;
   for (const e of walk(blocks, walkOpts)) {
-    const slots = focusSlots(e.block);
+    const slots = focusSlotsOf(e.block);
     if (slots === 0) continue;
     if (e.path.startsWith(panelPrefix + "/")) return focusIdx;
     focusIdx += slots;

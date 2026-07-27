@@ -101,6 +101,9 @@ export async function createFileBasedEntryPoint(
   const relConfigPath = relative(outDir, configPath).replace(/\\/g, "/");
   lines.push(`import siteConfig from "${relConfigPath}";`);
   lines.push(`import { TUIRuntime } from "terminaltui";`);
+  // Prefixed so a page module that exports `dirname` cannot collide with these.
+  lines.push(`import { fileURLToPath as _bFileURLToPath } from "node:url";`);
+  lines.push(`import { dirname as _bDirname } from "node:path";`);
   lines.push(``);
 
   // Import all page modules (skip layout files)
@@ -179,7 +182,14 @@ export async function createFileBasedEntryPoint(
 
   lines.push(``);
   lines.push(`const site = { config: { ...siteConfig, pages, api: apiRoutes } };`);
-  lines.push(`await new TUIRuntime(site).start();`);
+  lines.push(`const _runtime = new TUIRuntime(site);`);
+  // Relative asset paths (image("./logo.png")) must resolve against the
+  // packaged project, not the cwd the user happened to run `npx <pkg>` from.
+  // The bundle lands at <project>/dist/cli.js, so the root is two dirnames up
+  // from this module. Without it the runtime falls back to process.cwd() and
+  // every relative image in a published site renders as alt text.
+  lines.push(`_runtime.projectDir = _bDirname(_bDirname(_bFileURLToPath(import.meta.url)));`);
+  lines.push(`await _runtime.start();`);
 
   const entryPath = join(outDir, "_entry.ts");
   writeFileSync(entryPath, lines.join("\n"), "utf-8");

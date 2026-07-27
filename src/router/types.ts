@@ -176,6 +176,8 @@ export interface FileBasedConfig {
   statusBar?: SiteConfig["statusBar"];
   artDir?: SiteConfig["artDir"];
   middleware?: SiteConfig["middleware"];
+  /** SSH hosting options, read by `terminaltui serve` (port, colorMode, auth…). */
+  serve?: SiteConfig["serve"];
   menu?: MenuConfig;
   env?: Record<string, unknown>;
   onInit?: SiteConfig["onInit"];
