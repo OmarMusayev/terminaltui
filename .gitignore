@@ -31,3 +31,13 @@ devnotes/frames.json
 devnotes/capture.log
 # Exported static sites from build experiments.
 site-*.html
+
+# Real-world video/GIF captures for the video engine. Derivable from public URLs
+# (Sintel trailer, CC-BY Blender Foundation) and megabytes of binary; the tiny
+# deterministic clips under test/fixtures/video/ are the committed ones.
+devnotes/media/
+
+# Recorded demos. The tapes in devnotes/ regenerate them; the GIFs and MP4s
+# themselves are tens of megabytes of derivable binary.
+devnotes/screenshots/*.gif
+devnotes/screenshots/*.mp4

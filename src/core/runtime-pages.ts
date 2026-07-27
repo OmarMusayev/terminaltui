@@ -16,6 +16,7 @@ import { computeFocusPositions } from "../layout/flex-engine.js";
 import { layoutAvailHeight, blockRenderWidth, viewportHeight } from "./layout-constants.js";
 import { walk, findFirst, ALL_EDGES, stampBlockKeys } from "./block-walker.js";
 import { focusSlotsOf } from "../image/frame.js";
+import { pauseOtherPages } from "../video/player.js";
 
 /** Navigate to a page or route, with optional params and middleware. */
 export function navigateToPage(rt: RuntimeInternal, pageId: string, params?: RouteParams): void {
@@ -100,6 +101,13 @@ export function enterPage(rt: RuntimeInternal): void {
   for (const p of rt.site.pages) {
     rt.asyncManager.clearRefresh(`page-${p.id}`);
   }
+
+  // Same argument, applied to video: a player left running on a page nobody is
+  // looking at keeps the frame clock armed and keeps asking for repaints
+  // forever. Pausing rather than destroying is deliberate — navigating back
+  // should resume where the viewer left off, and the departure sweep in
+  // `sweepPlayers` is what actually reclaims a player that is gone for good.
+  pauseOtherPages(rt, rt.router.currentPage);
 
   const currentPage = getCurrentPage(rt);
   if (!currentPage) return;

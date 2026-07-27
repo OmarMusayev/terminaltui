@@ -8,7 +8,7 @@
  */
 import type { FocusRect } from "./types.js";
 import type {
-  ContentBlock, DynamicBlock, FormBlock, ImageBlock,
+  ContentBlock, DynamicBlock, FormBlock, ImageBlock, VideoBlock,
   ColumnsBlock, RowsBlock, GridBlock, PanelBlock, PanelConfig,
   RowBlock, ContainerBlock,
 } from "../config/types.js";
@@ -17,6 +17,7 @@ import { shouldCollapseColumns, effectiveGridCols } from "./responsive.js";
 import { rowColsToPanels, getBreakpoint, getEffectiveSpan } from "./grid-system.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "./box-model.js";
 import { imageBlockHeight } from "../components/Image.js";
+import { videoBlockRows } from "../components/Video.js";
 import {
   focusSlotsOf, framedImageBlock, frameHintRows, pageFitBlockRows, pageFitImageBlock,
   type PageFitGrant,
@@ -40,7 +41,7 @@ export type FrameWidthResolver = (block: ImageBlock) => number | undefined;
  * lays the image out at its declared size, which is exactly what the renderer
  * does when it has no grant either.
  */
-export type PageFitGrantResolver = (block: ImageBlock) => PageFitGrant | undefined;
+export type PageFitGrantResolver = (block: ImageBlock | VideoBlock) => PageFitGrant | undefined;
 
 /**
  * Rows a `custom` block renders, or undefined for "cannot say".
@@ -477,6 +478,22 @@ function estimateBlockHeight(
       // the rows to reserve are the grant, not the picture — same two functions,
       // same arguments, no arithmetic repeated on this side.
       return pageFitBlockRows(drawn, grant?.rows) + frameHintRows(block);
+    }
+    // Measured from the pack header, exactly as the image case is measured from
+    // the image header — and for the same reason. This estimator walks the tree
+    // independently of the renderer, so a constant here (the `case "image":
+    // return 10` defect this file's docblock warns about) would put every focus
+    // rect below a video at the wrong Y, and the arrow keys would select the
+    // wrong block. `videoBlockRows` is the function the renderer itself uses to
+    // size the block, transport row included.
+    case "video": {
+      // Same three steps as the image case above, for the same reason: the page
+      // loop grants rows to a `fitPage` block and then pads the picture out to
+      // the whole grant, so what must be RESERVED is the grant, not the picture.
+      const grant = panelHeight === undefined ? deps.pageFitGrantOf?.(block) : undefined;
+      const fitted = pageFitImageBlock(block, grant?.rows);
+      const drawn = videoBlockRows(fitted, grant?.cols ?? width, panelHeight, deps.projectDir, grant?.cols);
+      return pageFitBlockRows(drawn, grant?.rows);
     }
     case "progressBar": return 2;
     // gallery is not focusable (no rect) but still occupies rendered rows.

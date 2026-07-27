@@ -26,6 +26,8 @@ import { Router } from "../navigation/router.js";
 import { FocusManager } from "../navigation/focus.js";
 import type { FocusRect } from "../layout/types.js";
 import { animationEngine } from "../animation/engine.js";
+import { stopAllVideo, sweepPlayers } from "../video/player.js";
+import { setVideoRepaintHook } from "../video/source.js";
 import { InputModeManager } from "./input-mode.js";
 import { NotificationManager } from "./notifications.js";
 import { AsyncContentManager } from "../data/async-content.js";
@@ -55,6 +57,7 @@ import { runtimeContext, type RuntimeRef } from "./runtime-context.js";
 // Delegated modules
 import { handleCommandMode, handleNavigationMode, handleEditMode } from "./runtime-input.js";
 import { renderMain, renderBlock as _renderBlock, renderContentBlocks as _renderContentBlocks, resolveDynamic, isBlockFocusable as _isBlockFocusable } from "./runtime-render.js";
+import { bumpVideoRenderSeq } from "./runtime-block-render.js";
 import { INPUT_TYPES, TEXT_ENTRY_TYPES } from "./block-taxonomy.js";
 import { contentWidth } from "./layout-constants.js";
 import { navigateToPage as _navigateToPage, enterPage as _enterPage, getCurrentPage as _getCurrentPage, getPageContent as _getPageContent, resolvePageTitle as _resolvePageTitle, resolvePageLoading as _resolvePageLoading, collectFocusItems as _collectFocusItems, pageFocusNext as _pageFocusNext, pageFocusPrev as _pageFocusPrev, initializePageContent as _initializePageContent, registerForms as _registerForms, showFeedback as _showFeedback, executeCommand as _executeCommand } from "./runtime-pages.js";
@@ -440,6 +443,11 @@ export class TUIRuntime implements RuntimeInternal {
     // rect until content identity or the terminal size changed.
     setImageProjectDir(this.projectDir);
 
+    // A video whose source still has to be packed renders its alt box and asks
+    // to be woken when ffmpeg finishes. Without this the picture would sit on
+    // the placeholder until some unrelated event happened to trigger a repaint.
+    setVideoRepaintHook(() => this.render());
+
     // Legacy callbacks for code paths outside an AsyncLocalStorage scope
     // (cross-package fetcher.ts; unit tests). Inside an active runtime,
     // currentRuntime() is consulted first so these clobbers don't matter.
@@ -572,6 +580,10 @@ export class TUIRuntime implements RuntimeInternal {
     // URL slot, render-callback fallback) are shared by every SSH session in
     // this process — only the runtime that owns the local terminal may tear
     // them down, or one session's disconnect would break its siblings.
+    // Per-runtime, not process-global: an SSH session disconnecting must stop
+    // ITS videos without touching a sibling session's, so this sits outside the
+    // ProcessTerminalIO guard below.
+    stopAllVideo(this);
     if (this.terminalIO instanceof ProcessTerminalIO) {
       animationEngine.stop();
       destroyAllFetchers();
@@ -713,11 +725,18 @@ export class TUIRuntime implements RuntimeInternal {
     // such a page.)
     const prevCap = getGraphicsCapability();
     if (this.graphicsCapability !== null) setGraphicsCapability(this.graphicsCapability);
+    // One tick of the departure sweep per render PASS. Advancing it before
+    // renderMain means every video block drawn in this pass stamps the NEW
+    // value, and any player that was not drawn keeps an older one — which is
+    // exactly the signal `sweepPlayers` reads to decide a block has left the
+    // tree. There is no per-block teardown hook to do this properly.
+    const seq = bumpVideoRenderSeq(this);
     try {
       renderMain(this);
       // After the frame is on screen, never before: the transmission is raw
       // base64 and must bypass the row composer entirely.
       this.settleGraphics();
+      sweepPlayers(this, seq);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       if (!this.site.onError || this.handlingError) throw error;

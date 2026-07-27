@@ -66,6 +66,13 @@ export async function spawnPTY(options: LaunchOptions): Promise<PTYProcess> {
     // deadline at every app launch — the emulator's vterm never answers DA1.
     // Listed before options.env so a graphics test can still opt back in.
     TERMINALTUI_GRAPHICS: "off",
+    // Video is frozen on its poster for a reason that is not about determinism
+    // but about the harness working at all: `waitForIdle` settles by observing
+    // that the screen stopped changing, and a playing video guarantees it never
+    // does. One autoplaying demo would hang every suite that navigates to its
+    // page for the full timeout and then fail. Listed before options.env so a
+    // video test can opt back in.
+    TERMINALTUI_VIDEO: "off",
     ...(options.env ?? {}),
   };
   const bins = localBinPaths();

@@ -34,7 +34,7 @@
  * where CELL_ASPECT is applied.
  */
 
-import type { ContentBlock, ImageBlock } from "../config/types.js";
+import type { ContentBlock, ImageBlock, VideoBlock } from "../config/types.js";
 import { focusSlots } from "../core/block-taxonomy.js";
 import { MAX_IMAGE_COLS, hasBorder } from "./geometry.js";
 
@@ -113,12 +113,30 @@ export function isResizableImage(block: ContentBlock): block is ImageBlock {
  * two terms can never both be non-zero.
  */
 export function focusSlotsOf(block: ContentBlock): number {
-  return focusSlots(block) + (isResizableImage(block) ? 1 : 0);
+  return focusSlots(block) + (isResizableImage(block) ? 1 : 0) + (isControlledVideo(block) ? 1 : 0);
 }
 
-/** Rows a block spends on the resize hint: one for a resizable image, else 0. */
+/**
+ * A video that asked for a transport, which is the only video that takes a
+ * focus slot and the only one that draws a control row.
+ *
+ * Exactly parallel to {@link isResizableImage}, and it exists here rather than
+ * only in the renderer for the same reason: every walker that assigns focus
+ * indices must agree with every walker that reserves rows, and the way they
+ * stay in agreement is by asking the same function.
+ */
+export function isControlledVideo(block: ContentBlock): block is VideoBlock {
+  return block.type === "video" && (block as VideoBlock).controls === true;
+}
+
+/**
+ * Rows a block spends on chrome below the picture: one for a resizable image's
+ * resize hint, one for a video's transport, else 0.
+ */
 export function frameHintRows(block: ContentBlock): number {
-  return isResizableImage(block) ? FRAME_HINT_ROWS : 0;
+  if (isResizableImage(block)) return FRAME_HINT_ROWS;
+  if (isControlledVideo(block)) return 1;
+  return 0;
 }
 
 /**
@@ -133,7 +151,7 @@ export function frameHintRows(block: ContentBlock): number {
  * allocations too narrow to hold one, which can only make the real footprint
  * smaller than this estimate).
  */
-function borderChrome(block: ImageBlock): number {
+function borderChrome(block: ImageBlock | VideoBlock): number {
   return hasBorder(block.border) ? FRAME_BORDER_CHROME : 0;
 }
 
@@ -221,7 +239,8 @@ export function framedImageBlock(
  * FRAME_HINT_ROWS, and a second budget on top would charge for the hint row
  * twice.
  */
-export function isPageFitImage(block: ContentBlock): block is ImageBlock {
+export function isPageFitImage(block: ContentBlock): block is ImageBlock | VideoBlock {
+  if (block.type === "video") return (block as VideoBlock).fitPage === true;
   return (
     block.type === "image" &&
     (block as ImageBlock).fitPage === true &&
@@ -289,10 +308,10 @@ export interface PageFitGrant {
  *                   undefined for "no grant" — which is what every caller that
  *                   is not the page loop passes.
  */
-export function pageFitImageBlock(
-  block: ImageBlock,
+export function pageFitImageBlock<T extends ImageBlock | VideoBlock>(
+  block: T,
   budgetRows: number | undefined,
-): ImageBlock {
+): T {
   if (!isPageFitImage(block)) return block;
   if (budgetRows === undefined || !Number.isFinite(budgetRows)) return block;
   // Floored at 1 rather than 0: geometry clamps rows to >= 1 anyway, and a

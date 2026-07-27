@@ -18,6 +18,8 @@ import type {
   BadgeBlock,
   ImageBlock,
   ImageOptions,
+  VideoBlock,
+  VideoOptions,
   DividerBlock,
   SpacerBlock,
   SectionBlock,
@@ -159,6 +161,29 @@ export function badge(text: string, color?: string): BadgeBlock {
  */
 export function image(path: string, options?: ImageOptions): ImageBlock {
   return { type: "image", path, ...options };
+}
+
+/**
+ * Plays a video in the terminal, through the same cell engine that draws
+ * stills — coloured quadrants where they are available, degrading down the
+ * same ladder.
+ *
+ * Takes a `.tvf` frame pack, or any source it can pack into one. A `.gif`
+ * needs no tooling whatsoever; `.mp4`, `.mov` and `.webm` are packed by ffmpeg
+ * the first time they are used and cached under `.terminaltui/video/`, so
+ * ffmpeg is a build-time tool and a viewer never needs it installed.
+ *
+ * Playback DEFAULTS TO PAUSED on a poster frame. That is deliberate: press
+ * Space (with `controls: true`) or set `autoplay: true`. A page that starts
+ * moving on its own can never be screenshotted and never lets a test harness
+ * decide the screen has settled.
+ *
+ * @example
+ * video("assets/trailer.mp4", { fitPage: true, controls: true, alt: "Trailer" })
+ * video("assets/loop.gif", { autoplay: true, width: 40 })
+ */
+export function video(path: string, options?: VideoOptions): VideoBlock {
+  return { type: "video", path, ...options };
 }
 
 // ─── Visual Helpers ────────────────────────────────────────

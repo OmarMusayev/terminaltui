@@ -173,6 +173,15 @@ image("./poster.jpg", { fitPage: true, border: true })  // sizes itself to the p
 
 Real PNGs and JPEGs -- no `sharp`, no native build, nothing to install. On kitty and Ghostty they are drawn as **real pixels** via the kitty graphics protocol; everywhere else as colored cells, each one a Unicode block glyph with its own foreground and background, so images work on Apple Terminal, over SSH, and inside tmux. The path is negotiated from the viewer's terminal -- pixels, six cell tiers from 2x2 quadrants down to a plain ASCII ramp, and a bordered alt box on any failure, all at exactly the same row count. `resizable: true` lets the viewer resize a frame with `+`/`-`, and because the engine samples per cell, a bigger frame is a fresh resample with genuinely more detail. `fitPage: true` deletes the hand-picked `width` entirely: the image takes whatever rows the page has left, so a page meant to be seen at once fits at any window size and re-fits on resize. See [docs/images.md](docs/images.md).
 
+### Video
+
+```ts
+video("./trailer.mp4", { fitPage: true, controls: true })  // Space plays, arrows scrub
+video("./loop.gif", { autoplay: true, width: 40 })         // zero tooling required
+```
+
+Moving pictures, through the same cell engine -- and **with no video decoder at runtime**. A source is packed once, ahead of time, into a `.tvf` frame pack of small pre-scaled JPEGs; playback is a 0.6 ms decode into the existing resample-fit-write path, about 5% of a 24fps frame budget. ffmpeg is needed to *pack* an mp4 and never to play one, and a `.gif` needs nothing at all because the GIF decoder is pure TypeScript. Playback is cells on every terminal including kitty, because per-frame pixel transmission measures 37-44 MiB/s against the quadrant tier's 1.26 -- so the wire, not the CPU, is the ceiling. `autoplay` defaults to false so a page stays screenshottable, and `TERMINALTUI_VIDEO=off` freezes every video absolutely. See [docs/video.md](docs/video.md).
+
 ### Forms & Inputs
 
 TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchInput, Button. Validation, submission, notifications.
@@ -372,6 +381,7 @@ terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed
 | [docs/state-data.md](docs/state-data.md) | createState, computed, dynamic, fetcher, liveData |
 | [docs/themes.md](docs/themes.md) | The 10 built-in themes + how to write your own |
 | [docs/images.md](docs/images.md) | Rendering PNG/JPEG -- kitty pixels, cell tiers, detection, resizable frames, caching |
+| [docs/video.md](docs/video.md) | Playing video -- frame packs, the pack CLI, GIF support, the frame budget, tearing |
 | [docs/ascii-art.md](docs/ascii-art.md) | Banners, scenes, icons, dataviz, image-to-ASCII |
 | [docs/serve.md](docs/serve.md) | SSH hosting (`terminaltui serve`) |
 | [docs/testing.md](docs/testing.md) | Headless TUI emulator |

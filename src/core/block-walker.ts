@@ -170,6 +170,33 @@ export function stampBlockKeys(
   }
 }
 
+/**
+ * Give a DERIVED block the same key as the block it was derived from.
+ *
+ * `blockKeys` is a WeakMap keyed on object IDENTITY, so any transform that
+ * rewrites a block — `pageFitImageBlock` and `framedImageBlock` both return
+ * `{...block, ...}` — hands the renderer an object the stamp does not cover.
+ * The renderer then falls back to the legacy path-derived key while everything
+ * holding the ORIGINAL block (the focus items, and therefore every input
+ * handler) keeps the stamped one, and the two silently address different state.
+ *
+ * That cost a real bug: a `fitPage` video's player was registered under the
+ * legacy key by the renderer and looked up under the stamped key by the
+ * transport handler, so Space did nothing at all.
+ *
+ * A no-op when the source was never stamped, which is the case for every
+ * pre-runtime layout pass.
+ */
+export function inheritBlockKey(
+  rt: { blockKeys: WeakMap<ContentBlock, string> },
+  from: ContentBlock,
+  to: ContentBlock,
+): void {
+  if (from === to) return;
+  const key = rt.blockKeys.get(from);
+  if (key !== undefined) rt.blockKeys.set(to, key);
+}
+
 /** Identity containment. Descends STRUCTURAL_EDGES by default. */
 export function containsBlock(
   blocks: ContentBlock[],

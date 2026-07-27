@@ -45,8 +45,11 @@ function printCliError(prefix: string, err: any): void {
 async function main() {
   // `<cmd> --help` / `<cmd> -h` must never be forwarded as a config path or
   // (worse) boot a live SSH listener — route it to help before dispatch.
-  // `demo` shows its own listing; `art` prints its own usage in its dispatcher.
-  if (command && command !== "art" && args.slice(1).some(a => a === "--help" || a === "-h")) {
+  // `demo` shows its own listing; `art` and `video` print their own usage in
+  // their dispatchers, because their subcommands each take different flags and
+  // a single global help page cannot say anything useful about them.
+  if (command && command !== "art" && command !== "video" &&
+      args.slice(1).some(a => a === "--help" || a === "-h")) {
     if (command === "demo") {
       await runDemo(undefined);
     } else {
@@ -73,6 +76,9 @@ async function main() {
       break;
     case "convert":
       await runConvert();
+      break;
+    case "video":
+      await runVideoCommand();
       break;
     case "create":
       await runCreateCommand();
@@ -320,6 +326,115 @@ async function runServeCommand() {
   }
 }
 
+/**
+ * `terminaltui video pack|info` — build and inspect `.tvf` frame packs.
+ *
+ * Packing is a BUILD-time step by design. `video()` will auto-pack a source it
+ * has not seen, but doing it here means the pack is a reviewable artifact next
+ * to the rest of the project rather than a surprise in a cache directory, and
+ * it is the only way to choose a width or a frame rate other than the default.
+ */
+async function runVideoCommand() {
+  const sub = args[1];
+  if (!sub || sub === "--help" || sub === "-h") {
+    console.log(`
+  terminaltui video pack <source> [options]   build a .tvf frame pack
+  terminaltui video info <pack.tvf>           describe an existing pack
+
+  Sources: .gif (no tooling required) | .mp4 .mov .webm .mkv (needs ffmpeg)
+
+  Options for pack:
+    -o, --out <path>     output path (default: alongside the source)
+    --width <px>         frame width; height follows the aspect (default 400)
+    --fps <n>            frames per second (default 12)
+    --quality <2-31>     JPEG quality, lower is better (default 5)
+    --start <seconds>    seek into the source before packing
+    --duration <seconds> how much of the source to take
+`);
+    return;
+  }
+
+  const { buildPack, writePack, DEFAULT_PACK_FPS, DEFAULT_PACK_QUALITY, DEFAULT_PACK_WIDTH } =
+    await import("../video/pack-build.js");
+  const { openPack } = await import("../video/pack.js");
+
+  const num = (name: string, fallback: number): number => {
+    const i = args.indexOf(`--${name}`);
+    if (i === -1) return fallback;
+    const v = Number(args[i + 1]);
+    return Number.isFinite(v) ? v : fallback;
+  };
+  const str = (...names: string[]): string | undefined => {
+    for (const n of names) {
+      const i = args.indexOf(n);
+      if (i !== -1 && args[i + 1]) return args[i + 1];
+    }
+    return undefined;
+  };
+
+  if (sub === "info") {
+    const target = args[2];
+    if (!target) { console.error("  usage: terminaltui video info <pack.tvf>"); process.exitCode = 2; return; }
+    const opened = openPack(resolve(target));
+    if (!opened.ok) { console.error(`  cannot read pack: ${opened.reason}`); process.exitCode = 1; return; }
+    const h = opened.pack.header;
+    const bytes = opened.pack.payload.length;
+    console.log(`
+  ${target}
+    ${h.width}x${h.height}  ${h.frameCount} frames  ${h.fps.toFixed(2)} fps  ${(h.durationMs / 1000).toFixed(2)}s
+    ${(bytes / 1024).toFixed(0)} KB of frames, ${(bytes / h.frameCount / 1024).toFixed(1)} KB/frame
+    variable frame rate: ${h.delaysMs ? "yes" : "no"}
+    source sha1: ${h.sourceSha1}
+`);
+    return;
+  }
+
+  if (sub !== "pack") {
+    console.error(`  unknown subcommand "${sub}" — try: terminaltui video --help`);
+    process.exitCode = 2;
+    return;
+  }
+
+  const src = args[2];
+  if (!src || src.startsWith("-")) {
+    console.error("  usage: terminaltui video pack <source> [-o out.tvf]");
+    process.exitCode = 2;
+    return;
+  }
+
+  const out = str("-o", "--out") ?? src.replace(/\.[^.]+$/, ".tvf");
+  const startFlag = args.indexOf("--start");
+  const durFlag = args.indexOf("--duration");
+
+  console.log(`  packing ${src}...`);
+  const t0 = Date.now();
+  const built = buildPack(resolve(src), {
+    width: num("width", DEFAULT_PACK_WIDTH),
+    fps: num("fps", DEFAULT_PACK_FPS),
+    quality: num("quality", DEFAULT_PACK_QUALITY),
+    start: startFlag === -1 ? undefined : Number(args[startFlag + 1]),
+    duration: durFlag === -1 ? undefined : Number(args[durFlag + 1]),
+  });
+
+  if (!built.ok) {
+    console.error(`  pack failed: ${built.reason}`);
+    if (built.hint) console.error(`  ${built.hint}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  writePack(resolve(out), built.bytes);
+  const h = built.header;
+  console.log(
+    `  ${out}\n` +
+    `    ${h.width}x${h.height}  ${h.frameCount} frames  ${h.fps.toFixed(2)} fps  ` +
+    `${(h.durationMs / 1000).toFixed(2)}s  via ${built.via}\n` +
+    `    ${(built.bytes.length / 1024).toFixed(0)} KB, ` +
+    `${(built.bytes.length / h.frameCount / 1024).toFixed(1)} KB/frame, ` +
+    `${((Date.now() - t0) / 1000).toFixed(2)}s`,
+  );
+}
+
 async function runConvert() {
   const { copyFileSync } = await import("node:fs");
 
@@ -416,6 +531,7 @@ function printHelp() {
     build        Bundle for npm publish (includes API routes)
     test         Run automated tests on site in current directory
     art          Manage art assets (list, preview, create, validate)
+    video        Build .tvf frame packs for video() blocks (pack, info)
     help         Show this help message
 
   Test options:

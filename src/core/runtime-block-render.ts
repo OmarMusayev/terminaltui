@@ -2,7 +2,7 @@
  * Individual block rendering — the big switch statement that maps
  * block types to component renderers.
  */
-import type { ContentBlock, DynamicBlock, ImageBlock, ColumnsBlock, RowsBlock, GridBlock, PanelBlock, RowBlock, ContainerBlock, MenuBlock, ChatBlock } from "../config/types.js";
+import type { ContentBlock, DynamicBlock, ImageBlock, VideoBlock, ColumnsBlock, RowsBlock, GridBlock, PanelBlock, RowBlock, ContainerBlock, MenuBlock, ChatBlock } from "../config/types.js";
 import { renderChat, type ChatState, type ChatMessage } from "../components/Chat.js";
 import { fgColor, reset, bold } from "../style/colors.js";
 import { computeBoxDimensions, COMPONENT_DEFAULTS } from "../layout/box-model.js";
@@ -25,6 +25,7 @@ import { renderBadge } from "../components/Badge.js";
 import { renderHero } from "../components/Hero.js";
 import { renderList } from "../components/List.js";
 import { renderImage, imageCellSize } from "../components/Image.js";
+import { renderVideo } from "../components/Video.js";
 import { renderAccordion } from "../components/Accordion.js";
 import { renderTabs } from "../components/Tabs.js";
 import { renderGallery } from "../components/Gallery.js";
@@ -59,7 +60,19 @@ import { layoutAvailHeight, viewportHeight } from "./layout-constants.js";
  * OPTION can confer focusability.
  */
 export function isBlockFocusable(block: ContentBlock): boolean {
-  return isTypeFocusable(block) || isResizableImage(block);
+  return isTypeFocusable(block) || isResizableImage(block) || isControlledVideo(block);
+}
+
+/**
+ * A video is focusable only when it asked for a transport.
+ *
+ * Same opt-in as `image.resizable`, for the same reason: focusability is
+ * otherwise decided by block TYPE, so making every video focusable would
+ * insert a slot into every page that shows one and shift every focus index
+ * below it.
+ */
+export function isControlledVideo(block: ContentBlock): block is VideoBlock {
+  return block.type === "video" && block.controls === true;
 }
 
 /**
@@ -175,6 +188,51 @@ export function imageFrameWidth(rt: RuntimeInternal, block: ImageBlock): number 
   return imageFrameWidths(rt).get(imageFrameKey(rt, block));
 }
 
+// ─── Video ────────────────────────────────────────────────
+
+/**
+ * Monotonic render counter, per runtime.
+ *
+ * The video scheduler infers that a block has left the tree by noticing that
+ * the renderer stopped stamping its player — there is no per-block teardown
+ * hook anywhere in this framework. The counter has to advance once per render
+ * PASS rather than once per video block, or two videos on one page would each
+ * see the other's stamps as their own progress.
+ */
+const RENDER_SEQ = new WeakMap<RuntimeInternal, number>();
+
+export function videoRenderSeq(rt: RuntimeInternal): number {
+  return RENDER_SEQ.get(rt) ?? 0;
+}
+
+export function bumpVideoRenderSeq(rt: RuntimeInternal): number {
+  const next = videoRenderSeq(rt) + 1;
+  RENDER_SEQ.set(rt, next);
+  return next;
+}
+
+/** State key for a video block. Same shape as {@link imageFrameKey}. */
+export function videoBlockKey(rt: RuntimeInternal, block: VideoBlock): string {
+  return rt.getBlockKey(block, () => `video:${block.path}`);
+}
+
+function renderVideoBlock(rt: RuntimeInternal, block: VideoBlock, ctx: RenderContext): string[] {
+  // Focus is identified by BLOCK IDENTITY, the same way the resizable-image
+  // handler does it — the focus item holds the block object itself, so this
+  // needs no second key and cannot disagree with the input handler.
+  const focusedItem = rt.pageFocusItems[rt.pageFocusIndex];
+  const focused = focusedItem?.kind === "block" && focusedItem.block === block;
+  return renderVideo(block, ctx, {
+    rt,
+    blockKey: videoBlockKey(rt, block),
+    pageId: rt.router.currentPage,
+    renderSeq: videoRenderSeq(rt),
+    projectDir: projectDirOf(rt),
+    maxCols: pageFitCeiling(block, ctx),
+    focused,
+  });
+}
+
 // ─── Page-fit image budgets ───────────────────────────────
 
 /**
@@ -206,8 +264,22 @@ export function imageFrameWidth(rt: RuntimeInternal, block: ImageBlock): number 
 const PAGE_FIT_GRANTS = new WeakMap<RuntimeInternal, Map<string, PageFitGrant>>();
 
 /** What the page last granted this image, or undefined before its first frame. */
-export function pageFitGrant(rt: RuntimeInternal, block: ImageBlock): PageFitGrant | undefined {
-  return PAGE_FIT_GRANTS.get(rt)?.get(imageFrameKey(rt, block));
+export function pageFitGrant(
+  rt: RuntimeInternal,
+  block: ImageBlock | VideoBlock,
+): PageFitGrant | undefined {
+  return PAGE_FIT_GRANTS.get(rt)?.get(mediaFitKey(rt, block));
+}
+
+/**
+ * Grant key for either medium.
+ *
+ * The two key functions are separate because their legacy fallbacks differ
+ * (`image:<path>` vs `video:<path>`), and a page holding an image and a video
+ * of the same path must not have them share a grant.
+ */
+export function mediaFitKey(rt: RuntimeInternal, block: ImageBlock | VideoBlock): string {
+  return block.type === "video" ? videoBlockKey(rt, block) : imageFrameKey(rt, block);
 }
 
 /**
@@ -220,7 +292,7 @@ export function pageFitGrant(rt: RuntimeInternal, block: ImageBlock): PageFitGra
  */
 export function setPageFitGrant(
   rt: RuntimeInternal,
-  block: ImageBlock,
+  block: ImageBlock | VideoBlock,
   grant: PageFitGrant,
 ): boolean {
   let store = PAGE_FIT_GRANTS.get(rt);
@@ -228,7 +300,7 @@ export function setPageFitGrant(
     store = new Map<string, PageFitGrant>();
     PAGE_FIT_GRANTS.set(rt, store);
   }
-  const key = imageFrameKey(rt, block);
+  const key = mediaFitKey(rt, block);
   const prev = store.get(key);
   if (prev !== undefined && prev.rows === grant.rows && prev.cols === grant.cols) return false;
   store.set(key, grant);
@@ -257,7 +329,10 @@ export function setPageFitGrant(
  * The estimator must apply the SAME ceiling — it does, from `PageFitGrant.cols`,
  * which is this same number recorded by the page loop.
  */
-export function pageFitCeiling(block: ImageBlock, ctx: RenderContext): number | undefined {
+export function pageFitCeiling(
+  block: ImageBlock | VideoBlock,
+  ctx: RenderContext,
+): number | undefined {
   return isPageFitImage(block) ? Math.max(1, Math.floor(ctx.width)) : undefined;
 }
 
@@ -535,6 +610,8 @@ export function renderBlock(rt: RuntimeInternal, block: ContentBlock, ctx: Rende
       return [renderBadge(block.text, ctx, { color: block.color, style: block.style })];
     case "image":
       return renderImageBlock(rt, block, ctx);
+    case "video":
+      return renderVideoBlock(rt, block, ctx);
     case "divider":
       return renderDivider(ctx, { style: block.style, label: block.label, color: block.color });
     case "spacer":

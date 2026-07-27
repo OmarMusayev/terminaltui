@@ -24,11 +24,14 @@ import {
 import { walk, ALL_EDGES, type ContainerEdge } from "./block-walker.js";
 import {
   resolveDynamic, projectDirOf, frameLimitsOf, imageFrameKey, imageFrameWidths, lastRenderedFrame,
+  videoBlockKey,
 } from "./runtime-block-render.js";
 import {
-  clampFrameCols, focusSlotsOf, framedImageBlock, isResizableImage, stepFrameCols,
+  clampFrameCols, focusSlotsOf, framedImageBlock, isControlledVideo, isResizableImage, stepFrameCols,
 } from "../image/frame.js";
 import { imageCellSize } from "../components/Image.js";
+import { existingPlayer } from "../components/Video.js";
+import { rearm } from "../video/player.js";
 import { blockRenderWidth } from "./layout-constants.js";
 
 /** Handle keystrokes in command mode (:command). */
@@ -83,6 +86,15 @@ export function handleNavigationMode(rt: RuntimeInternal, key: KeyPress): void {
   // one is focused. Nothing is stolen from navigation: `+ = - _` are unbound
   // globally and the number jumps are 1-9, so `0` is dead everywhere else.
   if (!isHome && handleImageResizeKey(rt, key)) {
+    rt.render();
+    return;
+  }
+
+  // A focused video's transport, on the same terms: it claims keys only while
+  // the block is focused, and only keys nothing else wanted. Space is otherwise
+  // unbound, and left/right are handled here rather than falling through to
+  // focus navigation ONLY when a controlled video holds the focus.
+  if (!isHome && handleVideoTransportKey(rt, key)) {
     rt.render();
     return;
   }
@@ -275,6 +287,46 @@ function resizeIntent(key: KeyPress): 1 | -1 | 0 | null {
  */
 function invalidateFrameLayout(rt: RuntimeInternal): void {
   rt.layoutCache.contentRef = null;
+}
+
+// ─── Video transport ────────────────────────────────────
+
+/**
+ * Seek step, in frames.
+ *
+ * One second's worth at the pack's own rate would need the pack here; a fixed
+ * step is predictable instead, and at the default 12 fps it is a little under
+ * half a second — small enough to scrub with, large enough to feel like a
+ * response rather than a stutter.
+ */
+const VIDEO_SEEK_FRAMES = 5;
+
+/**
+ * Play/pause and seek for a focused video.
+ *
+ * Left/right are ONLY claimed while a controlled video is focused. Everywhere
+ * else they remain focus navigation, which is why this returns false rather
+ * than swallowing the key when the focused block is anything but a video —
+ * stealing the arrows globally would strand the viewer on the block.
+ *
+ * @returns true when the key belonged to a focused video.
+ */
+function handleVideoTransportKey(rt: RuntimeInternal, key: KeyPress): boolean {
+  if (key.ctrl || key.meta) return false;
+  const focused = rt.pageFocusItems[rt.pageFocusIndex];
+  if (focused?.kind !== "block" || !isControlledVideo(focused.block)) return false;
+
+  const player = existingPlayer(rt, videoBlockKey(rt, focused.block));
+  if (!player) return false;
+
+  if (key.char === " " || key.name === "space") {
+    player.toggle();
+    rearm(rt);
+    return true;
+  }
+  if (key.name === "left") { player.seekBy(-VIDEO_SEEK_FRAMES); rearm(rt); return true; }
+  if (key.name === "right") { player.seekBy(VIDEO_SEEK_FRAMES); rearm(rt); return true; }
+  return false;
 }
 
 /**

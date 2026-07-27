@@ -162,6 +162,7 @@ export type ContentBlock =
   | ProgressBarBlock
   | BadgeBlock
   | ImageBlock
+  | VideoBlock
   | DividerBlock
   | SpacerBlock
   | SectionBlock
@@ -403,6 +404,112 @@ export interface ImageBlock {
  * block can never drift apart.
  */
 export type ImageOptions = Omit<ImageBlock, "type" | "path">;
+
+/**
+ * Moving pictures, played through the same cell engine that draws stills.
+ *
+ * The source of truth is a `.tvf` frame pack: a header plus a run of
+ * independently-decodable JPEG frames, already scaled to roughly twice the
+ * sub-cell grid. That shape is the whole design, and it follows from one
+ * measurement — decoding an 854x480 PNG costs 10.7 ms, which is a quarter of
+ * the 41.6 ms a 24 fps frame gets, before a single glyph has been fitted.
+ * Packing moves the scale down to build time, where it is free, and leaves
+ * playback a 0.6 ms JPEG decode into the existing resample -> glyph-fit ->
+ * ANSI path.
+ *
+ * The consequence worth stating plainly: THERE IS NO DECODER AT RUNTIME. mp4,
+ * mov and webm are packed by ffmpeg ahead of time, so ffmpeg is a build-time
+ * tool and never a runtime dependency; a `.gif` needs nothing at all, because
+ * the GIF decoder is pure TypeScript and ships in the box. A site rendering
+ * video runs on a machine with no ffmpeg installed.
+ *
+ * Playback is CELLS, even on terminals with a graphics protocol. Kitty's
+ * protocol forbids re-transmitting onto a live image id, so every frame would
+ * need a fresh transmit plus a delete — measured at 37-44 MiB/s at 24 fps,
+ * which no local pty absorbs and no ssh link survives. The quadrant tier costs
+ * 52 KiB/frame for the same picture. Pixels win only when nothing is moving,
+ * which is why `poster` upgrades to a real image and motion does not.
+ */
+export interface VideoBlock {
+  type: "video";
+  /**
+   * A `.tvf` pack, or a source to pack from — `.gif` (pure TypeScript, no
+   * tooling) or `.mp4`/`.mov`/`.webm` (ffmpeg, at pack time only).
+   *
+   * A raw source is packed on first use into `.terminaltui/video/<sha1>.tvf`
+   * and reused from there afterwards. As with images, remote `http(s)` sources
+   * cannot be opened synchronously and render as alt text; fetch them at pack
+   * time instead.
+   */
+  path: string;
+  /** Shown while packing, on failure, and when the pack cannot be read. */
+  alt?: string;
+  /** Width in terminal CELLS. Default: fill the available content width. */
+  width?: number;
+  /** Height in terminal CELLS. Aspect is preserved unless `fit: "fill"`. */
+  height?: number;
+  /** Hard cap on derived rows. */
+  maxHeight?: number;
+  /** Default "contain", which never letterboxes — the block just gets smaller. */
+  fit?: ImageFit;
+  /** Horizontal placement inside the block's allocation. Default "center". */
+  align?: ImageAlign;
+  /**
+   * Force a rendering tier, exactly as on an image — with one difference:
+   * "auto" never resolves to the kitty pixel tier for a PLAYING video, for the
+   * bandwidth reason in this interface's docblock. Pin a cell tier in demos and
+   * snapshot tests so output is byte-stable across terminals.
+   */
+  mode?: ImageMode | "blocks";
+  /** Default "auto" (= none). Same reasoning as {@link ImageBlock.dither}. */
+  dither?: ImageDither;
+  /** Hex composited under alpha. Defaults to the theme background. */
+  background?: string;
+  invert?: boolean;
+  /** Ramp for `mode: "ascii"`. Default " .:-=+*#%@". */
+  charset?: string;
+  /** Themed border, added OUTSIDE `width`/`height`. Same vocabulary as `image`. */
+  border?: boolean | BorderStyle;
+  /**
+   * Frames per second to present at. Clamped to the pack's own rate — asking
+   * for 60 on a 12 fps pack plays at 12 rather than showing each frame five
+   * times. Default: the pack's rate.
+   *
+   * Raising this costs bandwidth, not CPU: the pipeline runs at ~2.7 ms/frame,
+   * so the ceiling is what the terminal's escape parser will swallow, roughly
+   * 70 KiB per frame at full width.
+   */
+  fps?: number;
+  /** Restart at the end. Default true. */
+  loop?: boolean;
+  /**
+   * Start playing on its own. Default FALSE, and the default is load-bearing:
+   * a page that animates the moment it is opened never lets the test emulator's
+   * `waitForIdle` settle, and would break every existing demo suite. An
+   * autoplaying video also cannot be photographed by VHS.
+   */
+  autoplay?: boolean;
+  /** Frame index shown while idle or paused. Default 0. */
+  poster?: number;
+  /**
+   * Give the viewer a transport. Default false.
+   *
+   * Like `image.resizable`, opting in makes the block FOCUSABLE — it takes a
+   * focus slot, is reachable with the arrow keys, and answers Space
+   * (play/pause) and left/right (seek). It renders one extra row carrying the
+   * position and those keys.
+   */
+  controls?: boolean;
+  /** Size to the rows the page has left. Same machinery as {@link ImageBlock.fitPage}. */
+  fitPage?: boolean;
+}
+
+/**
+ * Everything `video()` accepts besides the path.
+ *
+ * Derived from {@link VideoBlock} for the same reason {@link ImageOptions} is.
+ */
+export type VideoOptions = Omit<VideoBlock, "type" | "path">;
 
 /**
  * Compile-time parity between the AUTHORING type above and the ENGINE's

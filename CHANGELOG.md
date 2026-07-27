@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.3.0] - 2026-07-27
+
+Video. `video("trailer.mp4")` plays a moving picture in the terminal, through the same cell engine that draws stills — and with no video decoder at runtime. The expensive half of the problem is moved to build time: a source is packed once into a `.tvf` frame pack of small, already-scaled JPEGs, and playback is a 0.6 ms decode into the existing resample → glyph-fit → ANSI path. ffmpeg is needed to *pack* an mp4 and never to play one; a `.gif` needs nothing at all, because the GIF decoder is now pure TypeScript and ships in the box.
+
+### Added
+
+- **`video(path, options)` and the `video` block.** Takes a `.tvf` pack, a `.gif`, or anything ffmpeg can read. A raw source is packed on first use into `.terminaltui/video/<hash>.tvf` and reused from there. Options mirror `image()` — `width`, `height`, `maxHeight`, `fit`, `align`, `mode`, `dither`, `background`, `invert`, `charset`, `border`, `fitPage` — plus `fps`, `loop`, `autoplay`, `poster` and `controls`.
+
+  **`autoplay` defaults to false**, and the default is load-bearing rather than timid: a page that starts moving the moment it is opened can never be screenshotted, and never lets a test harness decide the screen has settled. `controls: true` buys a transport row and a focus slot (Space plays and pauses, ←/→ scrub), opt-in for the same reason `image.resizable` is — focusability is otherwise decided by block type, so making every video focusable would shift every focus index below one.
+
+- **The `.tvf` frame pack, and `terminaltui video pack | info`.** Magic, a JSON header, and a run of independently-decodable JPEGs at 400 px, 12 fps by default. The header carries the frame offsets, so a frame is a zero-copy `subarray`; it also carries an optional per-frame delay table, because real GIFs are routinely variable-rate and flattening a held title card into a mean rate is the difference between a loop that reads as deliberate and one that reads as broken. `decodePack` **validates the offsets rather than trusting them** and never throws — it is called from inside a synchronous render pass, where a throw kills the frame.
+
+- **A pure-TypeScript animated GIF decoder** (`src/image/gif.ts`): LZW with mid-stream clears and the self-referential KwKwK case, interlacing, transparency, all four disposal methods, and the NETSCAPE loop extension. Verified frame-by-frame against ffmpeg's own output rather than against itself. `image("x.gif")` also renders now — it previously reported `no-decoder` and fell back to alt text.
+
+- **A synchronous MP4 dimension probe** (`src/video/mp4-probe.ts`). Walks the ISO-BMFF box tree with positioned reads, skipping `mdat` by its size, so a 4.4 MB file costs a few kilobytes to size. It exists because a block's row count must be fixed **before any pixel is decoded** — and `moov` sits at the tail of most real files, so a prefix read finds nothing.
+
+- **`TERMINALTUI_VIDEO=off`** freezes every video on its poster, absolutely: not just autoplay, but `play()` and the transport too, because a guarantee a keypress can revoke is not one. The bundled PTY emulator sets it for every app it launches, so a demo containing a video cannot hang a suite's `waitForIdle`.
+
+- **Synchronized output (DEC 2026) while a video is playing.** Rows are emitted one cursor-position at a time, so a terminal may repaint between any two of them; on a picture where every row changes every frame that is a visible horizontal tear. The batch is now bracketed with BSU/ESU — but only while something is actually moving, so output with no video playing is byte-identical to before and every existing byte-budget assertion still holds.
+
+- **The `cinema` demo.** `npx tsx src/cli/index.ts dev demos/cinema/config.ts`.
+
+### Fixed
+
+- **A derived block lost its state key.** `getBlockKey` is a `WeakMap` keyed on object identity, and the page-fit transform returns `{...block, maxHeight}` — a new object — so the renderer addressed one key while everything holding the original block (the focus items, and therefore every input handler) addressed another. It cost a `fitPage` video its entire transport: the player was registered under one key and looked up under the other, so Space did nothing. Now carried across by `inheritBlockKey`.
+
+### Notes
+
+- Playback is **cells, on every terminal**, including ones with a graphics protocol. The kitty protocol forbids re-transmitting onto a live image id, so each frame would cost a delete plus a full transmit — measured at 1.5–1.9 MB per frame, 37–44 MiB/s at 24 fps, which no local pty absorbs and no SSH link survives. The quadrant tier draws the same picture for about 52 KiB.
+- The frame budget at 24 fps is 41.6 ms; the pipeline spends about 2.1 ms of it. CPU is not the limit — the wire is, which is why the pack default is 12 fps rather than 24.
+
 ## [2.2.0] - 2026-07-25
 
 Real pixels. On kitty and Ghostty, `image()` now transmits the decoded image to the terminal and draws it with Unicode placeholder cells — actual pixels, not block glyphs — while every other terminal keeps the cell renderer. Which path a terminal gets is negotiated automatically, including over SSH, and no probe byte is ever written to a terminal that could be damaged by one. Images can also be resized by the viewer at runtime, and a bigger frame is a fresh resample rather than a magnification, so it carries genuinely more detail. Separately, the 256-color path no longer blotches: the grey-ramp-versus-color-cube decision is taken away from RGB distance in the band where RGB distance oscillates at pixel frequency. And Apple Terminal is no longer capped at 256 colors on macOS 26, which does more for image quality there than any amount of quantizer work could.

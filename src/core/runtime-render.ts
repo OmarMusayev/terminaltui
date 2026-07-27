@@ -2,7 +2,7 @@
  * Page-level rendering logic: home page, content page, scroll management,
  * and terminal output.
  */
-import type { ContentBlock, AsyncContentBlock, FormBlock, ImageBlock } from "../config/types.js";
+import type { ContentBlock, AsyncContentBlock, FormBlock, ImageBlock, VideoBlock } from "../config/types.js";
 import { fgColor, reset, bold, dim, italic } from "../style/colors.js";
 import { gradientLines } from "../style/gradient.js";
 import { renderBanner, centerBanner } from "../ascii/banner.js";
@@ -24,7 +24,7 @@ import { writeToTerminal, createRenderContext } from "./runtime-terminal.js";
 import { FOOTER_LINES, pageFitWidth, viewportHeight } from "./layout-constants.js";
 import { computeFocusLayout, isVolatileContent, countFocusSlots } from "./runtime-pages.js";
 import {
-  findFirst, containsBlock, stampBlockKeys, STRUCTURAL_EDGES, type ContainerEdge,
+  findFirst, containsBlock, inheritBlockKey, stampBlockKeys, STRUCTURAL_EDGES, type ContainerEdge,
 } from "./block-walker.js";
 
 // Re-export for runtime.ts
@@ -254,7 +254,7 @@ function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderCont
   // `renderAsyncContentBlock`, which kicks off `asyncManager.load` and schedules
   // the shared spinner timer, so every frame would double-fire loaders. This way
   // `renderBlock` is still called exactly once per block per frame.
-  const pending: Array<{ index: number; block: ImageBlock }> = [];
+  const pending: Array<{ index: number; block: ImageBlock | VideoBlock }> = [];
 
   // Indices in `allContentLines` that carry their OWN horizontal position and
   // must not be shifted by `padStr` or the focus gutter — page-fit image rows,
@@ -349,7 +349,12 @@ function renderContentPage(rt: RuntimeInternal, lines: string[], ctx: RenderCont
     let shift = 0;
     for (const { index, block } of pending) {
       const at = index + shift;
-      const drawn = renderBlock(rt, pageFitImageBlock(block, each), fitCtx);
+      // The transform returns a NEW object, which the stamp does not cover —
+      // carry the key across so the renderer and every input handler address
+      // the same per-block state. See `inheritBlockKey`.
+      const fitted = pageFitImageBlock(block, each);
+      inheritBlockKey(rt, block, fitted);
+      const drawn = renderBlock(rt, fitted, fitCtx);
       // Pad the picture out to the whole grant, centred in it. `contain` means a
       // picture cannot always spend every row it is offered, and the surplus has
       // to live somewhere; keeping it inside this block turns it into margin

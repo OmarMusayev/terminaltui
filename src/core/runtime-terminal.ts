@@ -30,6 +30,7 @@ import { renderInput } from "../components/Input.js";
 import { stringWidth, cutToWidth, type RenderContext } from "../components/base.js";
 import type { RuntimeInternal } from "./runtime-internal.js";
 import { contentWidth } from "./layout-constants.js";
+import { videoActive } from "../video/player.js";
 
 /** ANSI-safe line truncation to prevent terminal wrapping. */
 export function truncateLine(line: string, maxWidth: number): string {
@@ -133,6 +134,26 @@ export function writeToTerminal(rt: RuntimeInternal, lines: string[], columns: n
   let out = "";
 
   if (body.length > 0) {
+    // Synchronized output (DEC private mode 2026), but ONLY while a video is
+    // playing.
+    //
+    // The rows above are emitted one CUP at a time, so a terminal is free to
+    // repaint between any two of them. For a still page nobody notices — the
+    // rows that changed are a menu item and a status line. For a moving
+    // picture where every row changes every frame it is a visible horizontal
+    // tear: the top of the frame is drawn from frame N and the bottom from
+    // frame N+1, photographed and confirmed on the cinema demo before this
+    // existed. BSU/ESU tells the terminal to buffer the whole batch and swap
+    // it atomically.
+    //
+    // Gated rather than unconditional because it must not perturb the byte
+    // budgets every existing test asserts on: with no video playing the output
+    // is byte-identical to what it was. Terminals that do not implement 2026
+    // (Apple Terminal among them) ignore both sequences as unknown private
+    // modes, so the cost of asking is 16 bytes a frame and the failure mode is
+    // the tearing we already had.
+    const sync = videoActive(rt);
+    if (sync) out += "\x1b[?2026h";
     // Hide-while-painting when the cursor should end up visible, so it
     // doesn't visibly hop across rows mid-frame.
     if (wantCursor) out += "\x1b[?25l";
@@ -144,6 +165,9 @@ export function writeToTerminal(rt: RuntimeInternal, lines: string[], columns: n
     out += `\x1b[${rows};${parkCol}H`;
     if (wantCursor) out += "\x1b[?25h";
     else if (fullRedraw || fs.cursorShown) out += "\x1b[?25l";
+    // Closes the batch. Emitted LAST so the cursor park and the visibility
+    // toggle land inside the same atomic swap as the rows.
+    if (sync) out += "\x1b[?2026l";
   } else if (fullRedraw) {
     // Degenerate (rows === 0) full redraw: still assert DECTCEM —
     // restore paths may have clobbered it out-of-band.

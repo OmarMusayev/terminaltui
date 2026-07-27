@@ -37,6 +37,8 @@ import { fgColor, reset } from "../src/style/colors.js";
 import { renderInput } from "../src/components/Input.js";
 import { stringWidth } from "../src/components/base.js";
 import { TUIEmulator, VirtualTerminal, ScreenReader } from "../src/emulator/index.js";
+import { encodePack } from "../src/video/pack.js";
+import { VideoPlayer, registerPlayer, stopAllVideo } from "../src/video/player.js";
 
 // ─── Harness ─────────────────────────────────────────────────
 
@@ -407,6 +409,65 @@ function testOutOfBandDesyncHeals(): void {
 const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DEMO_DIR = join(PROJECT_ROOT, "demos", "startup");
 
+/**
+ * Synchronized output (DEC 2026) is emitted ONLY while a video is playing.
+ *
+ * Two halves, and the first matters as much as the second: with nothing
+ * playing the bytes must be EXACTLY what they were before the feature existed,
+ * because every byte budget in this file asserts against those numbers. The
+ * second half is the reason the feature exists — a frame where every row
+ * changes tears without the bracket.
+ */
+function testVideoSyncOutput(): void {
+  console.log("\n\x1b[1m  Synchronized output while a video plays\x1b[0m");
+
+  const rt = makeRt();
+  const frame = (n: string) => [`row A ${n}`, `row B ${n}`, `row C ${n}`];
+
+  write(rt, frame("1"), 40, 3);
+  const quiet = write(rt, frame("2"), 40, 3);
+  assertEqual(quiet.includes("\x1b[?2026h"), false, "no video: no BSU");
+  assertEqual(quiet.includes("\x1b[?2026l"), false, "no video: no ESU");
+
+  // Register a PLAYING player against this runtime — `videoActive` is what the
+  // writer gates on, and it is keyed by runtime identity.
+  const pack = encodePack(
+    { width: 8, height: 8, fps: 10, frameCount: 4, durationMs: 400, sourceSha1: "0".repeat(40) },
+    [0, 1, 2, 3].map(i => new Uint8Array([i])),
+  );
+  const player = new VideoPlayer(pack, { autoplay: true });
+  registerPlayer(rt as unknown as Parameters<typeof registerPlayer>[0], player);
+
+  const playing = write(rt, frame("3"), 40, 3);
+  assertEqual(playing.includes("\x1b[?2026h"), true, "video playing: BSU present");
+  assertEqual(playing.includes("\x1b[?2026l"), true, "video playing: ESU present");
+  assertEqual(
+    playing.indexOf("\x1b[?2026h") < playing.indexOf("row A 3") &&
+    playing.indexOf("row A 3") < playing.indexOf("\x1b[?2026l"),
+    true,
+    "the rows are INSIDE the bracket",
+  );
+  // The cursor park must be inside it too, or the cursor visibly jumps.
+  assertEqual(
+    playing.lastIndexOf("\x1b[3;") < playing.indexOf("\x1b[?2026l"),
+    true,
+    "the cursor park is inside the bracket",
+  );
+
+  // Pausing puts the byte stream back exactly as it was.
+  player.pause();
+  const paused = write(rt, frame("4"), 40, 3);
+  assertEqual(paused.includes("2026"), false, "paused again: bracket gone");
+
+  // A frame with NO changes emits nothing at all, video or not — the bracket
+  // must not resurrect the zero-byte case.
+  player.play();
+  const unchanged = write(rt, frame("4"), 40, 3);
+  assertEqual(unchanged, "", "an unchanged frame still emits zero bytes while playing");
+
+  stopAllVideo(rt as unknown as Parameters<typeof stopAllVideo>[0]);
+}
+
 async function testE2EByteBehavior(): Promise<void> {
   console.log("\n\x1b[1m  E2E: startup demo — bytes per keypress\x1b[0m");
   const runDir = join(tmpdir(), `tui-render-diff-test-${Date.now()}`);
@@ -504,6 +565,8 @@ async function main(): Promise<void> {
   // on Windows (the app never reaches its home menu, no bytes flow). The 79
   // deterministic grid/byte tests above still run there; only the live-app
   // section is POSIX-only.
+  testVideoSyncOutput();
+
   if (process.platform === "win32") {
     console.log("\n\x1b[1m  E2E: startup demo — bytes per keypress\x1b[0m");
     console.log("  \x1b[2mskipped on Windows: PTY emulator cannot drive live apps (see comment)\x1b[0m");
