@@ -73,5 +73,55 @@ for (const [fontName] of Object.entries(fonts)) {
   });
 }
 
+// ─── Letterform legibility ────────────────────────────────
+
+// A banner font whose glyphs align perfectly and still spell a different word is
+// no use. `Block` shipped three letters drawn as a horizontal BAR between two
+// full-height stems, which is the letter H (or U, depending how high the bar
+// sat), and a real terminal capture of the odyssey demo read
+// "TRY: TERHINALTUI.DEU" and "HATCHING". The three shapes below are pinned
+// verbatim because they were redrawn deliberately and a silent revert is exactly
+// the failure that shipped: what each must show is an interior stroke that
+// CHANGES COLUMN as it changes row, which is the only cue at four rows that
+// separates M from H, V from U and W from H.
+const BLOCK_LETTERFORMS: Record<string, string[]> = {
+  // A descending V between the stems, not a high crossbar.
+  M: ["█▄ ▄█", "█▀▄▀█", "█   █", "█   █"],
+  // Converging strokes ending in a one-column point, not a flat base — with the
+  // point CONNECTED (sharing a column with the row above it, so the join is a
+  // shared edge rather than a corner touch, which renders as a detached speck)
+  // and the stems at FULL height until they meet. Both halves of that matter,
+  // and an earlier fix traded one for the other: joining at `▀█▀` connected the
+  // point but cut the stems off after two rows, leaving V squat beside the
+  // full-height letters next to it. Joining at `█▄█` gets both.
+  V: ["█ █", "█ █", "█▄█", " ▀"],
+  // Two V's sharing a centre stem, not a bar with straight legs — and by the
+  // same rule as V, the two feet attached rather than floating under it.
+  W: ["█   █", "█   █", "█▄█▄█", " ▀ ▀ "],
+};
+
+for (const [letter, art] of Object.entries(BLOCK_LETTERFORMS)) {
+  test(`Block "${letter}" keeps its redrawn letterform`, () => {
+    const got = renderBanner(letter, { font: "Block" }).map(l => l.trimEnd());
+    const want = art.map(l => l.trimEnd());
+    if (got.join("\n") !== want.join("\n")) {
+      throw new Error(`\nexpected:\n${want.join("\n")}\ngot:\n${got.join("\n")}`);
+    }
+  });
+}
+
+// The general form of the same defect, swept over every bundled face: a letter
+// that renders identically to a different letter cannot be read as itself.
+const CONFUSABLE: Array<[string, string]> = [["M", "H"], ["V", "U"], ["W", "H"], ["O", "Q"], ["I", "L"]];
+for (const fontName of Object.keys(fonts)) {
+  for (const [a, b] of CONFUSABLE) {
+    test(`${fontName} "${a}" is not the same glyph as "${b}"`, () => {
+      const artA = renderBanner(a, { font: fontName }).map(l => l.trimEnd()).join("\n");
+      const artB = renderBanner(b, { font: fontName }).map(l => l.trimEnd()).join("\n");
+      if (artA === artB) throw new Error(`${a} and ${b} render identically`);
+    });
+  }
+}
+
 console.log(`\n  ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
