@@ -53,7 +53,7 @@ import { getGraphicsSink } from "./Image.js";
 import { getGraphicsCapability } from "../image/capability.js";
 import { canPlaceholder, encodePlacement, encodeTransmit, nextImageId } from "../image/kitty.js";
 import {
-  VideoPlayer, registerPlayer, type Repaintable,
+  VideoPlayer, registerPlayer, type PixelPlacement, type Repaintable,
 } from "../video/player.js";
 import { resolveSource, type VideoSourceOk } from "../video/source.js";
 
@@ -281,7 +281,21 @@ function frameRowsFor(
   const frame = player.currentFrame();
   const key = `${frame}|${geom.cols}x${geom.rows}|${tier}|${colorMode}|${opts.invert ? 1 : 0}`;
   const cached = player.cachedRows(key);
-  if (cached) return cached;
+  if (cached) {
+    // A memo hit on the CELL path is self-contained and can be returned as is.
+    // On the PIXEL path it is not: the rows reference an image the terminal
+    // holds, and the runtime deletes any image that stops being placed. So the
+    // placement has to be re-declared on every hit — the same "every frame,
+    // unconditionally" rule the still-image path follows — or a repaint
+    // between two clock ticks frees the pixels the rows on screen point at and
+    // the picture stops after a frame or two.
+    const placement = player.cachedPlacement(key);
+    if (placement === null) return cached;
+    if (getGraphicsSink()?.graphicsPlace(placement.id, placement.transmit) === true) return cached;
+    // The id died (its transmission failed). Rebuild rather than keep pointing
+    // at it — the next block re-negotiates and may land on cells.
+    player.invalidateRows();
+  }
 
   const bytes = player.frameBytes(frame);
   if (!bytes) return player.lastGoodRows ?? altRows(block, opts, geom, ctx, "no frame");
@@ -296,7 +310,9 @@ function frameRowsFor(
   // Real pixels, where the terminal can draw them. Tried BEFORE the cell path
   // and falls through to it on any refusal, so nothing here can cost a frame.
   const pixels = pixelRows(decoded.pixels, geom, opts.mode ?? "auto");
-  if (pixels !== null) return player.putRows(key, frameIfAsked(pixels, geom, opts, ctx));
+  if (pixels !== null) {
+    return player.putRows(key, frameIfAsked(pixels.rows, geom, opts, ctx), pixels.placement);
+  }
 
   const factor = subCellFactor(tier);
   const background = backgroundOf(opts, ctx.theme);
@@ -350,7 +366,7 @@ function pixelRows(
   pixels: PixelBuffer,
   geom: ImageGeometry,
   mode: ImageMode,
-): string[] | null {
+): { rows: string[]; placement: PixelPlacement } | null {
   // An explicitly pinned tier means the author wants that tier, including in
   // snapshot tests where a transmission would make output machine-dependent.
   if (mode !== "auto") return null;
@@ -379,10 +395,9 @@ function pixelRows(
   // `sent` is captured rather than re-derived because unlike a still there is
   // no source to go back to — the buffer IS the frame, and it is released with
   // the closure as soon as the runtime has used it.
-  if (!sink.graphicsPlace(id, () => encodeTransmit(id, sent, geom.cols, geom.rows))) {
-    return null;
-  }
-  return encodePlacement(id, geom.cols, geom.rows);
+  const transmit = () => encodeTransmit(id, sent, geom.cols, geom.rows);
+  if (!sink.graphicsPlace(id, transmit)) return null;
+  return { rows: encodePlacement(id, geom.cols, geom.rows), placement: { id, transmit } };
 }
 
 /** Nominal kitty cell size in pixels. Same estimate `Image.ts` transmits against. */

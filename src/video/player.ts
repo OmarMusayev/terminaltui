@@ -43,6 +43,18 @@ import { decodePack, frameAt, frameDelayMs, openPack, type TvfPack } from "./pac
 /** How a player is currently behaving. Drives what the renderer draws. */
 export type PlaybackState = "idle" | "playing" | "paused" | "error";
 
+/**
+ * A kitty image the memoised rows point at.
+ *
+ * Carried through the memo so a cache hit can re-declare the placement. The
+ * transmit thunk is kept alongside the id because the runtime may not have
+ * written the image yet on the frame the memo was filled.
+ */
+export interface PixelPlacement {
+  id: number;
+  transmit: () => string;
+}
+
 export interface VideoPlayerOptions {
   /** Presentation rate cap. Clamped to the pack's own rate. */
   fps?: number;
@@ -119,6 +131,17 @@ export class VideoPlayer {
   /** One-entry row memo. See the file docblock on identity. */
   private memoKey = "";
   private memoRows: string[] | null = null;
+  /**
+   * The graphics placement those rows depend on, when they are placeholder
+   * cells rather than glyphs.
+   *
+   * Memoised rows are not self-contained on the pixel path: they REFERENCE an
+   * image the terminal holds, and the runtime deletes any image that stops
+   * being placed. So the memo has to carry enough to re-declare the placement
+   * on every hit, or a repaint between clock ticks silently frees the pixels
+   * the rows on screen are pointing at.
+   */
+  private memoPlacement: PixelPlacement | null = null;
   /** Last successfully rendered rows, re-emitted when a frame fails to decode. */
   lastGoodRows: string[] | null = null;
 
@@ -309,11 +332,24 @@ export class VideoPlayer {
     return this.memoKey === key ? this.memoRows : null;
   }
 
-  putRows(key: string, rows: string[]): string[] {
+  /** The placement memoised rows depend on, or null when they are glyphs. */
+  cachedPlacement(key: string): PixelPlacement | null {
+    return this.memoKey === key ? this.memoPlacement : null;
+  }
+
+  putRows(key: string, rows: string[], placement: PixelPlacement | null = null): string[] {
     this.memoKey = key;
     this.memoRows = rows;
+    this.memoPlacement = placement;
     this.lastGoodRows = rows;
     return rows;
+  }
+
+  /** Drop the memo, so the next render rebuilds from scratch. */
+  invalidateRows(): void {
+    this.memoKey = "";
+    this.memoRows = null;
+    this.memoPlacement = null;
   }
 }
 

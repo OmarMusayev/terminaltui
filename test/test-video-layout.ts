@@ -23,6 +23,7 @@ import { renderVideo, videoBlockRows, videoCellSize } from "../src/components/Vi
 import { clearVideoSourceCache } from "../src/video/source.js";
 import { setGraphicsCapability } from "../src/image/capability.js";
 import { setGraphicsSink } from "../src/components/Image.js";
+import { setNowFn } from "../src/video/player.js";
 import { focusSlotsOf, frameHintRows, isControlledVideo } from "../src/image/frame.js";
 import { setColorMode } from "../src/style/colors.js";
 import jpeg from "jpeg-js";
@@ -272,6 +273,51 @@ test("the pixel path changes the picture but NOT the block's height", () => {
     // every focus rect on the page.
     eq(pixels, cells, "pixel rows vs cell rows");
   } finally {
+    setGraphicsSink(null);
+    setGraphicsCapability(null as never);
+  }
+});
+
+test("a memoised pixel frame RE-PLACES its image on every repaint", () => {
+  // The runtime deletes any image id that stops being placed. Memoised rows on
+  // the pixel path are not self-contained — they reference that image — so a
+  // repaint between two clock ticks that returned the rows without re-placing
+  // freed the pixels underneath them. Symptom: one or two frames appear and
+  // then playback goes blank.
+  setGraphicsCapability({ kitty: true, kittyPlaceholders: true, source: "env", probed: false } as never);
+  const placed: number[] = [];
+  setGraphicsSink({ graphicsPlace(id: number) { placed.push(id); return true; } } as never);
+  const prevNow = setNowFn(() => 5_000_000);
+  try {
+    const block = video(PACK, { autoplay: true });
+    const deps = { rt: RT, blockKey: "replace", projectDir: DIR };
+    for (let i = 0; i < 3; i++) renderVideo(block, ctx(40), deps);
+    eq(placed.length, 3, "placed once per repaint");
+    eq(new Set(placed).size, 1, "the SAME id — a repaint must not mint a new image");
+  } finally {
+    setNowFn(prevNow);
+    setGraphicsSink(null);
+    setGraphicsCapability(null as never);
+  }
+});
+
+test("each clock tick mints a NEW image id", () => {
+  setGraphicsCapability({ kitty: true, kittyPlaceholders: true, source: "env", probed: false } as never);
+  const placed: number[] = [];
+  setGraphicsSink({ graphicsPlace(id: number) { placed.push(id); return true; } } as never);
+  let t = 6_000_000;
+  const prevNow = setNowFn(() => t);
+  try {
+    const block = video(PACK, { autoplay: true });
+    const deps = { rt: RT, blockKey: "tick", projectDir: DIR };
+    renderVideo(block, ctx(40), deps);
+    t += 200; renderVideo(block, ctx(40), deps);
+    t += 200; renderVideo(block, ctx(40), deps);
+    // Re-transmitting onto a LIVE id is unspecified (kitty #8701), so a new
+    // frame must be a new id, not a rewrite of the old one.
+    eq(new Set(placed).size, 3, "three frames, three ids");
+  } finally {
+    setNowFn(prevNow);
     setGraphicsSink(null);
     setGraphicsCapability(null as never);
   }
