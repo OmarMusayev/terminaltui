@@ -35,7 +35,7 @@ import type { VideoBlock } from "../config/types.js";
 import type { BorderStyle } from "../style/borders.js";
 import type { Theme } from "../style/theme.js";
 import type {
-  ImageAlign, ImageHeader, ImageMode, ImageRenderOptions, ImageTier, RGB,
+  ImageAlign, ImageHeader, ImageMode, ImageRenderOptions, ImageTier, PixelBuffer, RGB,
 } from "../image/types.js";
 
 import { imageCellSize as computeCellSize, hasBorder, type ImageGeometry } from "../image/geometry.js";
@@ -49,6 +49,9 @@ import { getBorderChars } from "../style/borders.js";
 import { fgColor, dim, getColorMode, hexToRgb, reset } from "../style/colors.js";
 import { stringWidth } from "./base.js";
 
+import { getGraphicsSink } from "./Image.js";
+import { getGraphicsCapability } from "../image/capability.js";
+import { canPlaceholder, encodePlacement, encodeTransmit, nextImageId } from "../image/kitty.js";
 import {
   VideoPlayer, registerPlayer, type Repaintable,
 } from "../video/player.js";
@@ -290,6 +293,11 @@ function frameRowsFor(
     return player.lastGoodRows ?? altRows(block, opts, geom, ctx, decoded.detail);
   }
 
+  // Real pixels, where the terminal can draw them. Tried BEFORE the cell path
+  // and falls through to it on any refusal, so nothing here can cost a frame.
+  const pixels = pixelRows(decoded.pixels, geom, opts.mode ?? "auto");
+  if (pixels !== null) return player.putRows(key, frameIfAsked(pixels, geom, opts, ctx));
+
   const factor = subCellFactor(tier);
   const background = backgroundOf(opts, ctx.theme);
   const grid = {
@@ -309,6 +317,88 @@ function frameRowsFor(
   }, ctx.theme);
 
   return player.putRows(key, frameIfAsked(body, geom, opts, ctx));
+}
+
+/**
+ * Transmit one frame as real pixels and return its placement rows, or null to
+ * fall through to cells.
+ *
+ * I ORIGINALLY RULED THIS OUT ON A NUMBER THAT DESCRIBED A DIFFERENT CODE PATH.
+ * The still-image path resamples a source UP to `cols*10 x rows*20` before
+ * transmitting — for a 200x56-cell block that is 2000x1120, 11.4 MB a frame,
+ * 137 MiB/s at 12 fps, which is obviously impossible and is what "video must
+ * be cells" was based on.
+ *
+ * A video frame does not need any of that. The pack frame is already about the
+ * right size, and kitty's `s`/`v` (source pixel dimensions) are independent of
+ * `c`/`r` (the cell footprint) — the terminal scales it. Transmitting the pack
+ * frame at its NATIVE size measures 351 KB, 0.40 ms, and 4.1 MiB/s at 12 fps.
+ * That is about 7x the cell path's bytes and completely unremarkable for a
+ * local pty, in exchange for actual pixels instead of quadrant glyphs.
+ *
+ * A FRESH ID EVERY FRAME, deliberately: `kitty.ts` documents that
+ * re-transmitting onto a live id is unspecified (kitty issue #8701). The
+ * runtime's own departure sweep deletes the previous id once it stops being
+ * placed, so this costs one ~26-byte delete per frame and no new lifecycle.
+ * The id space is 9.1M wide — 105 hours of continuous 24 fps playback.
+ *
+ * The kitty image CACHE is deliberately not used. It is a byte-LRU sized for
+ * stills; one entry per frame fills it in seconds and then evicts continuously,
+ * firing eviction callbacks for ids the sweep has already retired.
+ */
+function pixelRows(
+  pixels: PixelBuffer,
+  geom: ImageGeometry,
+  mode: ImageMode,
+): string[] | null {
+  // An explicitly pinned tier means the author wants that tier, including in
+  // snapshot tests where a transmission would make output machine-dependent.
+  if (mode !== "auto") return null;
+  if (videoDisabled()) return null;
+
+  const sink = getGraphicsSink();
+  if (sink === null) return null; // rendering outside a frame (unit test, embedder)
+  if (getGraphicsCapability()?.kittyPlaceholders !== true) return null;
+
+  // One row and one column diacritic from a 297-entry table addresses a
+  // placement cell, so that is a hard ceiling on both dimensions. Refuse rather
+  // than clamp: a clamped index maps two image rows onto one terminal row and
+  // draws a plausible-but-wrong picture.
+  if (!canPlaceholder(geom.cols, geom.rows)) return null;
+
+  // Never send more pixels than the terminal can put on screen. A cell is
+  // roughly 10x20 px, so the block displays at about cols*10 x rows*20; every
+  // pixel past that is bytes the terminal throws away during its own downscale.
+  // Usually a no-op — a pack frame is normally SMALLER than its footprint, and
+  // kitty upscales it — but it is what stops a 4K pack transmitting 12 MB a
+  // frame into a block that is 200 cells wide.
+  const sent = fitToDisplay(pixels, geom.cols * KITTY_CELL_PX.w, geom.rows * KITTY_CELL_PX.h);
+
+  const id = nextImageId();
+  // The thunk is invoked at most once per id, by the runtime, after the frame.
+  // `sent` is captured rather than re-derived because unlike a still there is
+  // no source to go back to — the buffer IS the frame, and it is released with
+  // the closure as soon as the runtime has used it.
+  if (!sink.graphicsPlace(id, () => encodeTransmit(id, sent, geom.cols, geom.rows))) {
+    return null;
+  }
+  return encodePlacement(id, geom.cols, geom.rows);
+}
+
+/** Nominal kitty cell size in pixels. Same estimate `Image.ts` transmits against. */
+const KITTY_CELL_PX = { w: 10, h: 20 } as const;
+
+/** Box-filter a frame down to at most `maxW` x `maxH`, preserving aspect. */
+function fitToDisplay(px: PixelBuffer, maxW: number, maxH: number): PixelBuffer {
+  const scale = Math.min(1, maxW / px.width, maxH / px.height);
+  if (scale >= 1) return px;
+  const w = Math.max(1, Math.round(px.width * scale));
+  const h = Math.max(1, Math.round(px.height * scale));
+  return {
+    data: resampleToGrid(px, w, h, { background: { r: 0, g: 0, b: 0 } }),
+    width: w,
+    height: h,
+  };
 }
 
 /**

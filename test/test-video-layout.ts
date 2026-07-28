@@ -21,6 +21,8 @@ import { video } from "../src/config/parser.js";
 import { encodePack } from "../src/video/pack.js";
 import { renderVideo, videoBlockRows, videoCellSize } from "../src/components/Video.js";
 import { clearVideoSourceCache } from "../src/video/source.js";
+import { setGraphicsCapability } from "../src/image/capability.js";
+import { setGraphicsSink } from "../src/components/Image.js";
 import { focusSlotsOf, frameHintRows, isControlledVideo } from "../src/image/frame.js";
 import { setColorMode } from "../src/style/colors.js";
 import jpeg from "jpeg-js";
@@ -233,6 +235,61 @@ test("maxHeight caps the block, which is how fitPage grants rows", () => {
   const capped = videoCellSize(video(PACK, { maxHeight: 6 }), 60, undefined, DIR).blockRows;
   if (capped >= tall) throw new Error(`maxHeight did not cap: ${capped} >= ${tall}`);
   if (capped > 6) throw new Error(`maxHeight exceeded: ${capped} > 6`);
+});
+
+// ─── The pixel path ───────────────────────────────────────
+
+test("on kitty a playing video transmits pixels and places them as cells", () => {
+  setGraphicsCapability({ kitty: true, kittyPlaceholders: true, source: "env", probed: false } as never);
+  let transmits = 0;
+  setGraphicsSink({
+    graphicsPlace(_id: number, transmit: () => string) { transmits++; transmit(); return true; },
+  } as never);
+  try {
+    const rows = renderVideo(video(PACK, { autoplay: true }), ctx(40), {
+      rt: RT, blockKey: "kitty-on", projectDir: DIR,
+    });
+    eq(transmits, 1, "one transmission for the frame");
+    if (!rows.some(r => r.includes("\u{10EEEE}"))) {
+      throw new Error("no placeholder cells — the pixel path did not produce a placement");
+    }
+  } finally {
+    setGraphicsSink(null);
+    setGraphicsCapability(null as never);
+  }
+});
+
+test("the pixel path changes the picture but NOT the block's height", () => {
+  const block = video(PACK, { autoplay: true, border: true, controls: true });
+  const cells = draw(block, ctx(40)).length;
+
+  setGraphicsCapability({ kitty: true, kittyPlaceholders: true, source: "env", probed: false } as never);
+  setGraphicsSink({ graphicsPlace: () => true } as never);
+  try {
+    const pixels = renderVideo(block, ctx(40), { rt: RT, blockKey: "kitty-h", projectDir: DIR }).length;
+    // Invariant #2 across the two rendering paths, not just across states: a
+    // terminal that gains or loses pixel support mid-session must not reflow
+    // every focus rect on the page.
+    eq(pixels, cells, "pixel rows vs cell rows");
+  } finally {
+    setGraphicsSink(null);
+    setGraphicsCapability(null as never);
+  }
+});
+
+test("a pinned tier refuses pixels, so snapshots stay byte-stable", () => {
+  setGraphicsCapability({ kitty: true, kittyPlaceholders: true, source: "env", probed: false } as never);
+  let transmits = 0;
+  setGraphicsSink({ graphicsPlace() { transmits++; return true; } } as never);
+  try {
+    renderVideo(video(PACK, { autoplay: true, mode: "quadrant" }), ctx(40), {
+      rt: RT, blockKey: "pinned", projectDir: DIR,
+    });
+    eq(transmits, 0, "an explicit mode must never transmit");
+  } finally {
+    setGraphicsSink(null);
+    setGraphicsCapability(null as never);
+  }
 });
 
 // ─── Cleanup ──────────────────────────────────────────────

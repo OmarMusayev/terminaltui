@@ -26,7 +26,7 @@ import { Router } from "../navigation/router.js";
 import { FocusManager } from "../navigation/focus.js";
 import type { FocusRect } from "../layout/types.js";
 import { animationEngine } from "../animation/engine.js";
-import { stopAllVideo, sweepPlayers } from "../video/player.js";
+import { stopAllVideo, sweepPlayers, videoActive } from "../video/player.js";
 import { setVideoRepaintHook } from "../video/source.js";
 import { InputModeManager } from "./input-mode.js";
 import { NotificationManager } from "./notifications.js";
@@ -297,9 +297,19 @@ export class TUIRuntime implements RuntimeInternal {
    * placeholder rows with the pixels already in place. It costs one extra frame
    * composition per image per size — never on a steady-state frame, because
    * nothing is queued then.
+   *
+   * A PLAYING VIDEO IS EXEMPT. It transmits a new id every frame, so "one extra
+   * composition per image" becomes one extra composition per FRAME, forever —
+   * the whole page laid out, composed and diffed twice, 12 times a second, and
+   * two full frames written where one was wanted. The guarantee the repaint
+   * buys is not needed there either: the thing it protects against is a
+   * placement that sits on screen indefinitely with no pixels behind it, and a
+   * video re-places 83 ms later regardless. The worst case is that the very
+   * first frame of a clip is blank on a terminal that does not self-repaint,
+   * and the second one is not.
    */
   private settleGraphics(): void {
-    if (this.drainGraphics() && !this.graphicsRepainting) {
+    if (this.drainGraphics() && !this.graphicsRepainting && !videoActive(this)) {
       this.graphicsRepainting = true;
       try {
         this.invalidateFrame();

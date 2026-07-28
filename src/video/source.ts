@@ -256,7 +256,7 @@ function startBackgroundPack(abs: string, cachePath: string): void {
   const width = DEFAULT_PACK_WIDTH;
   const child = spawn(ffmpegBinary(), [
     "-v", "error", "-i", abs, "-an", "-sn", "-dn",
-    "-vf", `fps=${DEFAULT_PACK_FPS},scale=${width}:-2:flags=lanczos`,
+    "-vf", `fps=${DEFAULT_PACK_FPS},scale='min(iw,${width})':-2:flags=lanczos`,
     "-f", "image2pipe", "-vcodec", "mjpeg", "-q:v", String(DEFAULT_PACK_QUALITY), "-",
   ], { stdio: ["ignore", "pipe", "pipe"] });
 

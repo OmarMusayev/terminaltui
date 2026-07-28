@@ -345,7 +345,7 @@ async function runVideoCommand() {
 
   Options for pack:
     -o, --out <path>     output path (default: alongside the source)
-    --width <px>         frame width; height follows the aspect (default 400)
+    --width <px>         max frame width; height follows the aspect (default 960)
     --fps <n>            frames per second (default 12)
     --quality <2-31>     JPEG quality, lower is better (default 5)
     --start <seconds>    seek into the source before packing

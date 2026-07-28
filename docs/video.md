@@ -70,7 +70,7 @@ A page that starts moving the moment it is opened can never be screenshotted, an
 Asking a 12 fps pack for 60 fps does not invent frames; it would present each one five times, which is five times the bandwidth for the same picture. Pack at a higher rate if you want a higher rate:
 
 ```bash
-terminaltui video pack clip.mp4 --fps 24 --width 400
+terminaltui video pack clip.mp4 --fps 24
 ```
 
 ## Sources
@@ -91,27 +91,46 @@ terminaltui video pack <source> [options]   build a .tvf frame pack
 terminaltui video info <pack.tvf>           describe an existing pack
 
   -o, --out <path>     output path (default: alongside the source)
-  --width <px>         frame width; height follows the aspect (default 400)
+  --width <px>         max frame width; height follows the aspect (default 960)
   --fps <n>            frames per second (default 12)
   --quality <2-31>     JPEG quality, lower is better (default 5)
   --start <seconds>    seek into the source before packing
   --duration <seconds> how much of the source to take
 ```
 
-**Why 400 px by default.** The quadrant tier samples two sub-pixels per cell horizontally and content is clamped to 99 columns, so the widest sub-cell grid a video is ever drawn into is 198 px. 400 is a little over twice that — enough oversampling that the box filter has real information to average at any block width, without paying for detail the glyph fitter discards anyway.
+**Why 960 px by default, and why it is a ceiling.** `--width` never *enlarges* a source: a 320 px GIF stays 320 px, because upscaling adds bytes and no detail.
 
-## Why playback is cells, even on kitty
+The number matters more than it looks. The quadrant tier samples two sub-pixels per cell horizontally, so a block `N` cells wide needs `2N` pixels just to reach 1:1 — and at 1:1 nothing averages the JPEG's 8x8 DCT blocks away, so each one lands as a 4x4 block of *cells* and the picture reads as visibly blocky. You want roughly 2x that, i.e. `4N` pixels.
 
-For a still image, terminals with a graphics protocol draw real pixels and that is strictly better. For video it is not.
+`fitPage` blocks are composed against the **whole terminal**, not the 99-column content column, so on a 240-column window `N` is 240 and you want ~960 px. That is where the default comes from. A small, fixed-width block needs far less — pack it smaller and save the bytes.
 
-The kitty protocol forbids re-transmitting onto a live image id, so every frame costs a delete plus a full transmit:
+## Pixels on kitty, cells everywhere else
+
+On kitty and Ghostty a playing video is transmitted as **real pixels**, one image per frame, placed with the same Unicode placeholder cells the still-image path uses. Everywhere else — Apple Terminal, tmux, SSH to an unknown client — it is drawn as coloured cells.
+
+Both paths produce **exactly the same number of rows**, so a terminal that gains or loses pixel support does not reflow the page.
+
+The bandwidth is real and worth knowing:
 
 ```
-kitty pixels, per frame     1.5 – 1.9 MB      37 – 44 MiB/s at 24 fps
-quadrant cells, per frame        52 KiB           1.26 MiB/s at 24 fps
+kitty pixels, 854x480 frame     1.6 MB      18.8 MiB/s at 12 fps
+quadrant cells, full width       52 KiB      0.61 MiB/s at 12 fps
 ```
 
-37 MiB/s is not something a local pty absorbs, let alone an SSH link. So motion is drawn in cells everywhere, and the pixel path is saved for the case it actually wins — a frame that is not moving.
+That is ~30x the bytes for a picture that is not made of block glyphs. A local pty absorbs it; an SSH link will not. If playback stutters, force the cell path:
+
+```ts
+video("clip.tvf", { mode: "quadrant" })   // per block
+```
+```bash
+TERMINALTUI_GRAPHICS=off                  # whole session
+```
+
+A pinned `mode` never transmits, which also keeps snapshot tests byte-stable.
+
+**What this is NOT.** An earlier version of this engine drew video as cells on every terminal, on the grounds that pixels cost 37–44 MiB/s. That number was measured against the *still-image* path, which resamples a source UP to `cols*10 x rows*20` before transmitting — 2000x1120, 11.4 MB a frame, for a 200-cell block. A video frame needs none of that: kitty's `s`/`v` (source size) are independent of `c`/`r` (cell footprint), so the pack frame goes out at its native size and the terminal scales it. Measuring the right thing moved the cost by a factor of seven.
+
+A fresh image id is allocated every frame, because re-transmitting onto a live id is unspecified (kitty issue #8701). The runtime's existing departure sweep deletes the previous one, so this costs a ~26-byte delete per frame and no new lifecycle. The id space lasts 105 hours of continuous 24 fps playback.
 
 ## The frame budget
 

@@ -26,10 +26,14 @@ Video. `video("trailer.mp4")` plays a moving picture in the terminal, through th
 
 - **A derived block lost its state key.** `getBlockKey` is a `WeakMap` keyed on object identity, and the page-fit transform returns `{...block, maxHeight}` — a new object — so the renderer addressed one key while everything holding the original block (the focus items, and therefore every input handler) addressed another. It cost a `fitPage` video its entire transport: the player was registered under one key and looked up under the other, so Space did nothing. Now carried across by `inheritBlockKey`.
 
+- **Real pixels on kitty and Ghostty.** A playing video transmits one image per frame at the pack's native size, placed with the same Unicode placeholder cells the still path uses; every other terminal draws coloured cells. Both paths emit exactly the same number of rows, so a terminal that gains or loses pixel support never reflows the page, and a pinned `mode` never transmits (so snapshots stay byte-stable).
+
+  This nearly did not ship. Video was first built cells-only, on a measurement that pixels cost 37–44 MiB/s — but that number came from the *still-image* path, which resamples a source UP to `cols*10 x rows*20` before transmitting: 2000x1120 and 11.4 MB a frame for a 200-cell block. A video frame needs none of it, because kitty's `s`/`v` are independent of `c`/`r`. Sending the pack frame at its native size is 1.6 MB, 18.8 MiB/s at 12 fps. Still ~30x the cell path, so `mode: "quadrant"` and `TERMINALTUI_GRAPHICS=off` are documented escapes for SSH and slow links.
+
 ### Notes
 
-- Playback is **cells, on every terminal**, including ones with a graphics protocol. The kitty protocol forbids re-transmitting onto a live image id, so each frame would cost a delete plus a full transmit — measured at 1.5–1.9 MB per frame, 37–44 MiB/s at 24 fps, which no local pty absorbs and no SSH link survives. The quadrant tier draws the same picture for about 52 KiB.
 - The frame budget at 24 fps is 41.6 ms; the pipeline spends about 2.1 ms of it. CPU is not the limit — the wire is, which is why the pack default is 12 fps rather than 24.
+- The default pack width is a **ceiling** (960 px) and never enlarges a source. It is not 400 px, which was the original value and was wrong: it was derived from the 99-column content cap, and `fitPage` deliberately lifts that cap, so a full-screen block sampled a 400 px pack at 1:1 and rendered its JPEG blocks as 4x4 blocks of cells.
 
 ## [2.2.0] - 2026-07-25
 

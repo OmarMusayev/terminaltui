@@ -39,19 +39,25 @@ import { resampleToGrid } from "../image/resample.js";
 import type { PixelBuffer } from "../image/types.js";
 
 /**
- * Default pack width in PIXELS.
+ * Default pack width in PIXELS, and a CEILING rather than a target — the
+ * scale filter never enlarges a source that is already smaller.
  *
- * The quadrant tier samples 2 sub-pixels per cell horizontally, and the
- * framework clamps content to 99 columns, so the widest sub-cell grid a video
- * is ever drawn into is 198 px. 400 is a touch over 2x that: enough
- * oversampling that the box filter has real information to average at any
- * width up to full-screen, without paying for detail the glyph fitter throws
- * away regardless.
+ * This was 400 px, on the reasoning that the quadrant tier samples 2
+ * sub-pixels per cell and content is clamped to 99 columns, so 198 px is the
+ * widest grid a video is drawn into and 400 is a comfortable 2x.
  *
- * The cost is linear in area — 400 px wide packs the sintel trailer to about
- * 7 MB where 200 px gives 2 MB and visibly softens past a 50-column block.
+ * THAT REASONING WAS WRONG, because `fitPage` deliberately LIFTS the 99-column
+ * cap — a fitted block is composed against the whole terminal. On a 200-column
+ * window a 400 px pack is sampled at exactly 1:1, and at 1:1 nothing averages
+ * the JPEG's 8x8 DCT blocks away: each one lands as a 4x4 block of CELLS and
+ * the picture reads as visibly blocky. Past 200 columns it is upscaling.
+ *
+ * 960 covers a 240-column window at 2x. The cost is linear in area, so the
+ * sintel trailer packs to about 1.4 MB for 5 s at its native 854 px rather
+ * than 445 KB — worth it, because the failure it fixes is the one thing a
+ * viewer actually notices.
  */
-export const DEFAULT_PACK_WIDTH = 400;
+export const DEFAULT_PACK_WIDTH = 960;
 
 /**
  * Default frames per second.
@@ -152,6 +158,7 @@ function packGif(src: string, opts: PackOptions): PackBuildResult {
   const gif = decoded.gif;
   if (gif.frames.length === 0) return { ok: false, reason: "gif contains no frames" };
 
+  // Same never-upscale rule as the ffmpeg path.
   const targetW = Math.max(2, Math.round(opts.width ?? DEFAULT_PACK_WIDTH));
   const scale = Math.min(1, targetW / gif.width);
   // Even dimensions: JPEG chroma subsampling halves both axes, and an odd edge
@@ -208,7 +215,10 @@ function packViaFfmpeg(src: string, opts: PackOptions): PackBuildResult {
   args.push(
     "-i", src,
     "-an", "-sn", "-dn",
-    "-vf", `fps=${fps},scale=${width}:-2:flags=lanczos`,
+    // `min(iw,W)` rather than a flat W: upscaling a 320 px source to 960 adds
+    // bytes and not one pixel of detail, and the pack header would then claim
+    // a resolution the picture does not have.
+    "-vf", `fps=${fps},scale='min(iw,${width})':-2:flags=lanczos`,
     "-f", "image2pipe", "-vcodec", "mjpeg", "-q:v", String(quality),
     "-",
   );

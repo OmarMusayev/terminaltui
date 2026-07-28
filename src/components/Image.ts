@@ -179,6 +179,18 @@ export function setGraphicsSink(sink: GraphicsSink | null): GraphicsSink | null 
 }
 
 /**
+ * The sink for the pass currently rendering, or null outside one.
+ *
+ * Exported for `components/Video.ts`, which needs the identical contract: a
+ * pixel payload cannot be composed into `string[]` (it would be shredded by
+ * `cutToWidth` at the first `m`), so it must be handed to the runtime and
+ * written after the frame through the unfiltered pipe.
+ */
+export function getGraphicsSink(): GraphicsSink | null {
+  return graphicsSink;
+}
+
+/**
  * The client's pty-req TERM for the session being rendered; undefined for a
  * local run, where `process.env.TERM` is authoritative.
  *
