@@ -10,7 +10,7 @@ content: [
 ]
 ```
 
-**There is no video decoder at runtime.** The expensive half of the problem — demuxing, inter-frame decoding, scaling a 854×480 raster down to a 200×56 sub-cell grid — happens once, ahead of time, and what ships is a `.tvf` frame pack of small JPEGs already close to the size they will be drawn at. ffmpeg is needed to *pack* an mp4 and never to play one. A `.gif` needs nothing at all: the GIF decoder is pure TypeScript.
+**There is no video decoder at runtime.** The expensive half of the problem — demuxing, inter-frame decoding, and scaling the source raster down near its terminal display size — happens once, ahead of time, and what ships is a `.tvf` frame pack of small JPEGs. ffmpeg is needed to *pack* an mp4 and never to play one. A `.gif` needs nothing at all: the GIF decoder is pure TypeScript.
 
 ## Quick start
 
@@ -110,14 +110,14 @@ On kitty and Ghostty a playing video is transmitted as **real pixels**, one imag
 
 Both paths produce **exactly the same number of rows**, so a terminal that gains or loses pixel support does not reflow the page.
 
-The bandwidth is real and worth knowing:
+Direct pixel payloads use kitty's level-1 zlib transport when it saves at least 12.5%; tiny or incompressible frames stay on the valid raw path. The bandwidth is real and worth knowing. Measured on the bundled cinema clip:
 
 ```
-kitty pixels, 854x480 frame     1.6 MB      18.8 MiB/s at 12 fps
+kitty pixels, 848x352 frame     437 KiB      5.12 MiB/s at 12 fps
 quadrant cells, full width       52 KiB      0.61 MiB/s at 12 fps
 ```
 
-That is ~30x the bytes for a picture that is not made of block glyphs. A local pty absorbs it; an SSH link will not. If playback stutters, force the cell path:
+That is about 8x the bytes for a picture that is not made of block glyphs. A local pty absorbs it; an SSH link may not. If playback stutters, force the cell path:
 
 ```ts
 video("clip.tvf", { mode: "quadrant" })   // per block
@@ -128,7 +128,7 @@ TERMINALTUI_GRAPHICS=off                  # whole session
 
 A pinned `mode` never transmits, which also keeps snapshot tests byte-stable.
 
-**What this is NOT.** An earlier version of this engine drew video as cells on every terminal, on the grounds that pixels cost 37–44 MiB/s. That number was measured against the *still-image* path, which resamples a source UP to `cols*10 x rows*20` before transmitting — 2000x1120, 11.4 MB a frame, for a 200-cell block. A video frame needs none of that: kitty's `s`/`v` (source size) are independent of `c`/`r` (cell footprint), so the pack frame goes out at its native size and the terminal scales it. Measuring the right thing moved the cost by a factor of seven.
+**What this is NOT.** An earlier version of this engine drew video as cells on every terminal, on the grounds that pixels cost 37–44 MiB/s. That number was measured against the *still-image* path, which resamples a source UP to `cols*10 x rows*20` before transmitting — 2000x1120, 11.4 MB a frame, for a 200-cell block. A video frame needs none of that: kitty's `s`/`v` (source size) are independent of `c`/`r` (cell footprint), so the pack frame goes out at its native size and the terminal scales it. Native-sized transmission cut the original estimate substantially; zlib cuts the measured wire cost by roughly another two thirds.
 
 A fresh image id is allocated every frame, because re-transmitting onto a live id is unspecified (kitty issue #8701). The runtime's existing departure sweep deletes the previous one, so this costs a ~26-byte delete per frame and no new lifecycle. The id space lasts 105 hours of continuous 24 fps playback.
 
@@ -144,6 +144,8 @@ compose and write      0.8 ms
 ------------------------------
 total                  2.1 ms      5% of the budget
 ```
+
+That table is the portable coloured-cell path. On the bundled 848x352 clip, the Kitty transmit encoder — RGB conversion, zlib, base64 and chunk framing — averages 5.44 ms per frame, still inside a 24fps frame budget.
 
 CPU is not the limit — the wire is. The ceiling is how much escape-sequence traffic the terminal's parser will swallow, which is why the pack default is 12 fps.
 

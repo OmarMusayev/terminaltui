@@ -37,6 +37,7 @@
 
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { inflateSync } from "node:zlib";
 
 import {
   encodeTransmit,
@@ -141,6 +142,20 @@ function makeImage(w: number, h: number, opaque: boolean): PixelBuffer {
   return { data, width: w, height: h };
 }
 
+/** Deterministic high-entropy RGB, used to prove compression falls back raw. */
+function makeNoiseImage(w: number, h: number): PixelBuffer {
+  const data = new Uint8ClampedArray(w * h * 4);
+  let s = 0x9e3779b9;
+  for (let i = 0; i < data.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0;
+      data[i + c] = s & 0xff;
+    }
+    data[i + 3] = 255;
+  }
+  return { data, width: w, height: h };
+}
+
 // ─── The decoder: this file's half of the round trip ──────
 
 interface Chunk {
@@ -193,7 +208,12 @@ function decodeTransmit(wire: string): { pixels: PixelBuffer; chunks: Chunk[]; f
   const format = Number(head.get("f"));
   const width = Number(head.get("s"));
   const height = Number(head.get("v"));
-  const bytes = Buffer.from(chunks.map(c => c.payload).join(""), "base64");
+  const encoded = Buffer.from(chunks.map(c => c.payload).join(""), "base64");
+  const compression = head.get("o");
+  if (compression !== undefined && compression !== "z") {
+    throw new Error(`unsupported compression ${JSON.stringify(compression)}`);
+  }
+  const bytes = compression === "z" ? inflateSync(encoded) : encoded;
   const data = new Uint8ClampedArray(width * height * 4);
   if (format === 24) {
     for (let p = 0; p < width * height; p++) {
@@ -429,7 +449,7 @@ console.log("\n\x1b[1m  Transmission — wire format\x1b[0m\n");
 
 // 200x120 opaque = 72000 raw bytes -> 96000 base64 -> 24 chunks. Big enough
 // that chunking, continuation control data and reassembly are all exercised.
-const IMG = makeImage(200, 120, true);
+const IMG = makeNoiseImage(200, 120);
 const WIRE_ID = 0xabcdef;
 const WIRE = encodeTransmit(WIRE_ID, IMG, 60, 30);
 const WIRE_CHUNKS = splitEscapes(WIRE).map(parseChunk);
@@ -471,6 +491,7 @@ test("m=1 on every chunk but the last, m=0 on the last", () => {
   const tiny = splitEscapes(encodeTransmit(1, makeImage(2, 2, true), 2, 1)).map(parseChunk);
   assertEqual(tiny.length, 1, "a 2x2 image is one chunk");
   assertEqual(tiny[0]!.control.get("m"), "0", "the only chunk closes the transfer");
+  assertEqual(tiny[0]!.control.has("o"), false, "a tiny payload stays raw");
 });
 
 test("Control keys appear on the FIRST chunk only", () => {
@@ -486,6 +507,7 @@ test("Control keys appear on the FIRST chunk only", () => {
   assertEqual(head.get("v"), "120", "v carries the source pixel height");
   assertEqual(head.get("c"), "60", "c carries the cell width");
   assertEqual(head.get("r"), "30", "r carries the cell height");
+  assertEqual(head.has("o"), false, "incompressible data stays on the raw fallback");
 
   for (const [i, c] of WIRE_CHUNKS.slice(1).entries()) {
     assertEqual([...c.control.keys()].sort().join(","), "m,q", `continuation ${i} carries only m and q`);
@@ -532,6 +554,25 @@ test("An opaque source transmits as f=24 and decodes BYTE-IDENTICALLY", () => {
   }
   assertEqual(firstBad, -1, `every byte matches (first mismatch at index ${firstBad}: ` +
     `${firstBad >= 0 ? `${IMG.data[firstBad]} -> ${pixels.data[firstBad]}` : "none"})`);
+});
+
+test("A compressible source uses o=z and still decodes BYTE-IDENTICALLY", () => {
+  const src = makeImage(200, 120, true);
+  // Flatten the pseudo-random blue channel so this fixture is intentionally
+  // compressible rather than merely hoping a gradient crosses the threshold.
+  for (let i = 0; i < src.data.length; i += 4) src.data[i + 2] = 64;
+
+  const decoded = decodeTransmit(encodeTransmit(0x010204, src, 60, 30));
+  assertEqual(decoded.chunks[0]!.control.get("o"), "z", "the first chunk opts into zlib");
+  assert(decoded.chunks.length > 1, "the compressed fixture must exercise continuation chunks");
+  for (const [i, chunk] of decoded.chunks.slice(1).entries()) {
+    assertEqual(chunk.control.has("o"), false, `continuation ${i} does not repeat o=z`);
+  }
+  const payloadChars = decoded.chunks.reduce((sum, chunk) => sum + chunk.payload.length, 0);
+  assert(payloadChars < 96000, `compression must shrink the 96000-char raw payload, got ${payloadChars}`);
+  let bad = 0;
+  for (let i = 0; i < src.data.length; i++) if (decoded.pixels.data[i] !== src.data[i]) bad++;
+  assertEqual(bad, 0, "zlib round-trip differing bytes");
 });
 
 test("A source with alpha transmits as f=32 and decodes BYTE-IDENTICALLY", () => {

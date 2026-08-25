@@ -11,10 +11,10 @@ import "@/styles/global.css";
 import MarkCard from "@/components/logo/MarkCard.astro";
 import InContext from "@/components/logo/InContext.astro";
 import PixelMark from "@/components/shared/PixelMark.astro";
-import InContextTile from "@/components/logo/InContext.astro";
 import round1 from "@/data/logo-round1.json";
 import round2 from "@/data/logo-round2.json";
-import { MARK, MARK_TILE, MARK_NAME } from "@/data/logo";
+import markExploration from "@/data/logo-mark.json";
+import { MARK, MARK_NAME } from "@/data/logo";
 
 interface Cand { id: string; name: string; grid: string[]; rationale?: string; risk?: string }
 interface Score { id: string; distinctiveness: number; legibility16: number; brandFit: number; memorability: number; verdict: string }
@@ -54,6 +54,15 @@ const finalists = ranked.slice(0, 7).map(([id], i) => ({ ...byId.get(id)!, rank:
 
 /** The runner-up, shown beside the recommendation so the choice is arguable. */
 const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "tt-a-refined");
+
+/** The first-round mark that got its own deep dive at /logo/tiling/. */
+const tilingSeed = byId.get("frame-tiling-misaligned")!;
+
+/** The mark drawn by hand after all of the above, examined at /logo/mark/. */
+const drawnSeed = markExploration.seed as string[];
+
+/** The best mark the agents produced, shown beside the one that replaced it. */
+const bestGenerated = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "baseline-a-refined");
 ---
 
 <!doctype html>
@@ -230,6 +239,38 @@ const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "t
         </>
       )}
 
+      {/* ── what happened after all of the above ───────────────────────── */}
+      <a class="lx-more lx-more-lead" href="/logo/mark/">
+        <span class="lx-more-art">
+          <PixelMark grid={drawnSeed} size={64} />
+        </span>
+        <span class="lx-more-txt">
+          <b class="pixel">None of these was kept</b>
+          <span>
+            After seeing all sixty-one marks on this page, the client drew his own in the pixel
+            editor. That drawing is examined on its own page: four diagnoses, twenty
+            refinements, and every grid scored against it on the same scale.
+          </span>
+        </span>
+        <span class="lx-more-go pixel" aria-hidden="true">→</span>
+      </a>
+
+      {/* ── the territory that got taken further ───────────────────────── */}
+      <a class="lx-more" href="/logo/tiling/">
+        <span class="lx-more-art">
+          <PixelMark grid={tilingSeed.grid} size={64} />
+        </span>
+        <span class="lx-more-txt">
+          <b class="pixel">The tiling territory, explored to the end</b>
+          <span>
+            <code>frame-tiling-misaligned</code> was pulled out of the first round for a
+            deep dive: six axes of variation, thirty-odd marks, three critics scoring
+            every one. The full sheet is its own page.
+          </span>
+        </span>
+        <span class="lx-more-go pixel" aria-hidden="true">→</span>
+      </a>
+
       {/* ── in context ─────────────────────────────────────────────────── */}
       <section class="lx-sec" aria-labelledby="context">
         <p class="lx-num pixel-eyebrow">{sets && sets.length ? "06" : "05"}</p>
@@ -237,7 +278,7 @@ const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "t
           <h2 id="context" class="lx-h2 pixel">In context</h2>
           <p class="lx-p">
             A mark that only works on a white card at 200px is not a mark. Here is the
-            current front-runner where it will actually live.
+            adopted mark where it actually lives. It is not one of the sixty-one above.
           </p>
         </div>
       </section>
@@ -248,8 +289,10 @@ const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "t
           <div>
             <p class="lx-ctx-id"><code>{MARK_NAME}</code></p>
             <p class="lx-ctx-note">
-              A lowercase <b>t</b> whose foot extends into a rule, with a block cursor
-              resting on it. The letterform and the command line are the same stroke.
+              A tiling layout drawn full bleed: a full-height master pane, a bar across the
+              top, and side bands whose horizontal splits deliberately fail to line up. The
+              accent is <b>the focused pane</b>, which is a real state in a real window
+              manager and in this framework's layout engine.
             </p>
           </div>
         </div>
@@ -260,17 +303,25 @@ const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "t
       <section class="lx-sec" aria-labelledby="pick">
         <p class="lx-num pixel-eyebrow">{sets && sets.length ? "07" : "06"}</p>
         <div class="lx-body">
-          <h2 id="pick" class="lx-h2 pixel">The recommendation</h2>
+          <h2 id="pick" class="lx-h2 pixel">How it ended</h2>
           <p class="lx-p">
-            <b>{MARK_NAME}.</b> Three reasons. It is the only mark in the set where the
-            accent carries meaning — it is a caret, not decoration, which is exactly how
-            the brief rations colour. It says both things the product is at once: a
-            letterform, and a line you type on. And it survives the 16px test with nothing
-            thinner than two device pixels.
+            None of the sixty-one marks on this page was adopted. The strongest of them,
+            <code>baseline-a-refined</code>, held the site for a while: a lowercase <b>t</b>
+            whose foot extends into a rule, with a block cursor on it. It lost to a drawing.
           </p>
           <p class="lx-p">
-            It is wired into the site now, so every direction is already wearing it. The
-            grid lives in one file — swapping it is a one-line change.
+            After seeing every mark here, the client drew <code>{MARK_NAME}</code> by hand in
+            the pixel editor. It was then diagnosed by four independent readings and refined
+            along five mandates against twenty generated alternatives, and it held — the
+            adopted version differs from the drawing by six cells, both of which close a
+            defect rather than change the design. That record is on
+            <a href="/logo/mark/">its own page</a>.
+          </p>
+          <p class="lx-p">
+            The lesson worth keeping: the generated work was useful as criticism and useless
+            as authorship. Thirty-six variants inside the tiling territory could not produce
+            what one person drew in a few minutes, but they could say precisely what was
+            wrong with it, and that is what fixed it.
           </p>
         </div>
       </section>
@@ -284,17 +335,19 @@ const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "t
           </figcaption>
         </figure>
 
-        <figure class="lx-pick-one">
-          <div class="lx-pick-art"><PixelMark grid={MARK_TILE} size={88} /></div>
-          <figcaption>
-            <p class="lx-pick-h pixel">Tile build</p>
-            <p class="lx-pick-t">
-              For an app icon or an avatar, where a mark on a transparent ground would
-              disappear. Fixed-size asset — the 2px knockouts silt up under non-integer
-              scaling, so it is never the primary.
-            </p>
-          </figcaption>
-        </figure>
+        {bestGenerated && (
+          <figure class="lx-pick-one">
+            <div class="lx-pick-art"><PixelMark grid={bestGenerated.grid} size={88} /></div>
+            <figcaption>
+              <p class="lx-pick-h pixel">Best generated</p>
+              <p class="lx-pick-t">
+                <code>baseline-a-refined</code> — the letterform that led this exploration and
+                shipped on the site until the drawing replaced it. Still the strongest thing
+                any of the agents produced.
+              </p>
+            </figcaption>
+          </figure>
+        )}
 
         {runnerUp && (
           <figure class="lx-pick-one">
@@ -343,7 +396,7 @@ const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "t
         color: var(--color-muted);
         padding: 0.45rem 0.7rem;
         cursor: pointer;
-        min-height: 34px;
+        min-height: 44px;
       }
       .lx-theme:hover { color: var(--color-ink); border-color: var(--color-ink); }
 
@@ -459,6 +512,37 @@ const runnerUp = (sets ?? []).flatMap((s) => s.variants).find((v) => v.id === "t
       .lx-pick-t { margin: 0; font-size: 0.875rem; line-height: 1.55; color: var(--color-muted); }
       .lx-pick-t code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-ink); }
       .lx-pick-t b { color: var(--color-ink); font-weight: 600; }
+
+      /* Pointer to the one territory that was taken further. Deliberately a
+         rule-bounded band rather than a card: it is a continuation of the page,
+         not a promotion sitting on top of it. */
+      .lx-more {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1.5rem;
+        margin-top: 3.5rem;
+        padding: 1.5rem 0;
+        border-top: 2px solid var(--color-ink);
+        border-bottom: 1px solid var(--color-line);
+        text-decoration: none;
+        color: var(--color-ink);
+      }
+      .lx-more:hover .lx-more-go { color: var(--color-accent); }
+      /* The lead band gets the accent rule; the one under it stays quiet, so
+         the two pointers read as ranked rather than as a pair of promos. */
+      .lx-more-lead { border-top-color: var(--color-accent); margin-top: 4rem; }
+      .lx-more-lead + .lx-more { margin-top: 0; border-top-width: 1px; border-top-color: var(--color-line); }
+      .lx-more-art { display: grid; place-items: center; }
+      .lx-more-txt { display: grid; gap: 0.4rem; min-width: 0; }
+      .lx-more-txt b { font-size: var(--px-sm); font-weight: 400; }
+      .lx-more-txt span { font-size: 0.875rem; line-height: 1.6; color: var(--color-muted); max-width: 64ch; }
+      .lx-more-txt code { font-family: var(--font-mono); font-size: 0.875em; color: var(--color-ink); }
+      .lx-more-go { font-size: var(--px-sm); color: var(--color-muted); }
+      @media (max-width: 40rem) {
+        .lx-more { grid-template-columns: auto minmax(0, 1fr); }
+        .lx-more-go { display: none; }
+      }
 
       .lx-foot {
         margin-top: 4rem;

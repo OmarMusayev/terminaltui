@@ -1,6 +1,6 @@
 # Themes
 
-terminaltui ships with 10 built-in themes. Set a theme by name or by reference:
+terminaltui ships with 12 built-in themes. Set a theme by name or by reference:
 
 ```ts
 // config.ts

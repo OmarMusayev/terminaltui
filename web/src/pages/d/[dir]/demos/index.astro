@@ -2,10 +2,9 @@
 /**
  * The demo gallery — every real capture we have, at a size you can read.
  *
- * This is the page the frames asset was made for: eleven apps that ship in the
+ * This is the page the frames asset was made for: the apps with captured frames
  * package, each shown as genuine output with the command that runs it.
  */
-import { getCollection } from "astro:content";
 import Shell from "@/layouts/Shell.astro";
 import TerminalFrame from "@/components/shared/TerminalFrame.astro";
 import CopyCommand from "@/components/shared/CopyCommand.astro";
@@ -14,13 +13,18 @@ import { DIRECTION_KEYS, getDirection, baseFor, url } from "@/lib/site";
 import { demos, themes } from "@/data/product";
 import { getFrames } from "@/lib/frames";
 
+interface Props {
+  dir?: string;
+  base?: string;
+}
+
 export async function getStaticPaths() {
   return DIRECTION_KEYS.map((dir) => ({ params: { dir } }));
 }
 
-const { dir } = Astro.params;
-const direction = getDirection(dir!);
-const base = baseFor(dir!);
+const routeDir = Astro.props.dir ?? Astro.params.dir ?? "paper";
+const direction = getDirection(routeDir);
+const base = Astro.props.base ?? baseFor(routeDir);
 
 const swatchFor = (name: string) => themes.find((t) => t.name === name)?.swatch ?? [];
 

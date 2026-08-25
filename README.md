@@ -1,6 +1,6 @@
 # terminaltui
 
-[![CI](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/terminaltui)](https://www.npmjs.com/package/terminaltui) [![license](https://img.shields.io/github/license/OmarMusayev/terminaltui)](LICENSE) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-3323-brightgreen) [![website](https://img.shields.io/badge/website-terminaltui.dev-ff7edb)](https://terminaltui.dev)
+[![CI](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarMusayev/terminaltui/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/terminaltui)](https://www.npmjs.com/package/terminaltui) [![license](https://img.shields.io/github/license/OmarMusayev/terminaltui)](LICENSE) ![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen) ![typescript](https://img.shields.io/badge/TypeScript-strict-blue) ![tests](https://img.shields.io/badge/tests-3334-brightgreen) [![website](https://img.shields.io/badge/website-terminaltui.dev-ff7edb)](https://terminaltui.dev)
 
 > **Next.js for the terminal.** Write a `pages/` directory of TypeScript files. Get an interactive TUI with file-based routing, components, and themes. Distribute it with `npx` — or host it and let people `ssh` in.
 
@@ -50,7 +50,7 @@ If you've used Next.js, you already know the shape: `pages/about.ts` becomes `/a
 
 ## What's new in 2.0
 
-> v2 gives terminaltui a production-grade engine: components now remember their state by where they live, not what they're labeled — so state survives navigation and two same-named accordions stop sharing a brain — and a new line-diffed renderer writes 67.7% fewer bytes to your terminal (269,355 → 87,027 across a 41-keypress scripted nav at 120x40), and exactly zero when nothing changed, which your users feel most over SSH. We didn't take the overhaul on faith: a dual-terminal oracle proved every final frame byte-identical to v1, and 3,323 tests across 52 suites — including a full demo sweep through a real PTY emulator — block every merge. Same pixels, a third of the bytes.
+> v2 gives terminaltui a production-grade engine: components now remember their state by where they live, not what they're labeled — so state survives navigation and two same-named accordions stop sharing a brain — and a new line-diffed renderer writes 67.7% fewer bytes to your terminal (269,355 → 87,027 across a 41-keypress scripted nav at 120x40), and exactly zero when nothing changed, which your users feel most over SSH. We didn't take the overhaul on faith: a dual-terminal oracle proved every final frame byte-identical to v1, and 4,223 tests across 68 suites — including a full demo sweep through a real PTY emulator — pass in the complete validation run. Same pixels, a third of the bytes.
 
 **Migration note (breaking):** component state (accordions, tabs, galleries, button loading) is now keyed by page + tree position instead of display label. Two same-labeled components no longer share state, and state persists across navigation — correct behavior, but observably different if your app relied on the old label sharing. Details in the [CHANGELOG](CHANGELOG.md).
 
@@ -109,7 +109,7 @@ export default function About() {
 
 ## Features
 
-### 30+ Components
+### 42 Components
 
 Cards, tables, timelines, forms, progress bars, galleries, tabs, accordions, and more.
 
@@ -147,11 +147,11 @@ Arrow keys move to the nearest item on screen -- like a TV remote. No configurat
 | Tab | Sequential fallback |
 | 1-9 | Jump to page |
 
-### 10 Themes
+### 12 Themes
 
 ![theme switching](assets/recordings/themes.gif)
 
-cyberpunk, dracula, nord, monokai, solarized, gruvbox, catppuccin, tokyoNight, rosePine, hacker. Plus custom themes.
+flintNight, flintDay, cyberpunk, dracula, nord, monokai, solarized, gruvbox, catppuccin, tokyoNight, rosePine, hacker. Plus custom themes.
 
 ```ts
 export default defineConfig({ theme: "dracula" });
@@ -180,7 +180,7 @@ video("./trailer.mp4", { fitPage: true, controls: true })  // Space plays, arrow
 video("./loop.gif", { autoplay: true, width: 40 })         // zero tooling required
 ```
 
-Moving pictures, through the same cell engine -- and **with no video decoder at runtime**. A source is packed once, ahead of time, into a `.tvf` frame pack of small pre-scaled JPEGs; playback is a 0.6 ms decode into the existing resample-fit-write path, about 5% of a 24fps frame budget. ffmpeg is needed to *pack* an mp4 and never to play one, and a `.gif` needs nothing at all because the GIF decoder is pure TypeScript. On kitty and Ghostty a playing video is transmitted as **real pixels** (the pack frame goes out at its native size and the terminal scales it -- 1.6 MB a frame, 18.8 MiB/s at 12fps); everywhere else it is coloured cells at 52 KiB a frame. Both produce exactly the same row count, so a terminal that gains or loses pixel support never reflows the page, and `mode: "quadrant"` forces cells if the bandwidth bites. `autoplay` defaults to false so a page stays screenshottable, and `TERMINALTUI_VIDEO=off` freezes every video absolutely. See [docs/video.md](docs/video.md).
+Moving pictures, through the same cell engine -- and **with no video decoder at runtime**. A source is packed once, ahead of time, into a `.tvf` frame pack of small pre-scaled JPEGs; playback is a 0.6 ms decode into the existing resample-fit-write path, about 5% of a 24fps frame budget. ffmpeg is needed to *pack* an mp4 and never to play one, and a `.gif` needs nothing at all because the GIF decoder is pure TypeScript. On kitty and Ghostty a playing video is transmitted as **real pixels**: the native pack frame is compressed with kitty's zlib transport and the terminal scales it. The bundled 848x352 demo averages 437 KiB on the wire, or 5.12 MiB/s at 12fps; everywhere else it is coloured cells at about 52 KiB a frame. Both paths produce exactly the same row count, so a terminal that gains or loses pixel support never reflows the page, and `mode: "quadrant"` forces cells if the bandwidth bites. `autoplay` defaults to false so a page stays screenshottable, and `TERMINALTUI_VIDEO=off` freezes every video absolutely. See [docs/video.md](docs/video.md).
 
 ### Forms & Inputs
 
@@ -220,6 +220,7 @@ No setup needed -- run any demo straight from npm:
 ```bash
 npx terminaltui demo restaurant
 npx terminaltui demo dashboard
+npx terminaltui demo cinema
 npx terminaltui demo band
 npx terminaltui demo coffee-shop
 npx terminaltui demo conference
@@ -234,6 +235,7 @@ npx terminaltui demo mac-monitor   # macOS only — live system stats
 |------|-------|------------|
 | Restaurant | gruvbox | Tabbed menu, reservation form, split layout |
 | Dashboard | hacker | Live API data, persistent state, parameterized routes |
+| Cinema | dracula | Video transport, Kitty/Ghostty pixels, portable colour-cell fallback |
 | Band | rosePine | Album cards, tour dates, mailing list |
 | Coffee Shop | catppuccin | Tabbed menu, catering form |
 | Conference | nord | Schedule tabs, speaker grid, sponsor tiers |
@@ -265,6 +267,7 @@ terminaltui demo [name]        # run a built-in demo
 terminaltui build              # bundle for npm publish (includes API routes)
 terminaltui test               # run automated tests on the site in the current directory
 terminaltui art                # manage art assets (list, preview, create, validate)
+terminaltui video pack <file>  # build a reusable .tvf video frame pack
 terminaltui help               # show help
 ```
 
@@ -379,7 +382,7 @@ terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed
 | [docs/routing.md](docs/routing.md) | File-based routing, dynamic routes, middleware |
 | [docs/api-routes.md](docs/api-routes.md) | File-based HTTP API server (api/*.ts) |
 | [docs/state-data.md](docs/state-data.md) | createState, computed, dynamic, fetcher, liveData |
-| [docs/themes.md](docs/themes.md) | The 10 built-in themes + how to write your own |
+| [docs/themes.md](docs/themes.md) | The 12 built-in themes + how to write your own |
 | [docs/images.md](docs/images.md) | Rendering PNG/JPEG -- kitty pixels, cell tiers, detection, resizable frames, caching |
 | [docs/video.md](docs/video.md) | Playing video -- frame packs, the pack CLI, GIF support, the frame budget, tearing |
 | [docs/ascii-art.md](docs/ascii-art.md) | Banners, scenes, icons, dataviz, image-to-ASCII |
@@ -396,7 +399,7 @@ terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed
 
 - **TypeScript** -- strict mode, zero `any` in public API
 - **3 required dependencies** (esbuild, pngjs, jpeg-js) -- all pure JavaScript, no native builds; ssh2 is an optional peer dependency for `serve`
-- **2,713 tests across 41 suites** in the default run, all blocking in CI (~1 minute); `npx tsx test/run-all.ts --demos` adds the PTY-driven sweep of every bundled demo, for 3,600+ tests across 60 suites
+- **3,334 tests across 49 suites** in the default run; `npx tsx test/run-all.ts --all` runs stress, manual health checks and the PTY-driven demo sweep too: 4,223 tests across 68 suites
 - **Apple Terminal compatible** -- truecolor on Terminal.app 470+ (macOS 26), automatic 256-color fallback below that
 
 ## Contributing

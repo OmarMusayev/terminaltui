@@ -34,17 +34,20 @@ else
   echo "have $SRC"
 fi
 
-# A 5 s silent cut. Short enough to loop while developing, long enough to show
-# whether playback drifts. h264_videotoolbox because this is an M4 — libx264
-# -preset slow takes minutes for what the GPU does in seconds.
-ffmpeg -hide_banner -v error -y -ss 20 -t 5 -i "$SRC" \
-  -an -c:v h264_videotoolbox -b:v 1200k devnotes/media/sintel-5s.mp4
+# A bright 5 s silent cut, with the source's baked letterbox bars removed. The
+# old 20–25 s cut spent most of its run in near-black frames and wasted 27% of
+# scarce terminal rows on black bars. 23–28 s stays bright through all 60 packed
+# frames instead of ending on the trailer's black transition; the same crop is
+# valid across the whole source.
+ffmpeg -hide_banner -v error -y -ss 23 -t 5 -i "$SRC" \
+  -vf "crop=848:352:4:64" -an -c:v h264_videotoolbox -b:v 1200k \
+  devnotes/media/sintel-5s.mp4
 
 # An animated GIF of the same three seconds, for whatever pure-JS decode path
 # exists. palettegen/paletteuse rather than the default 256-colour dither, so the
 # GIF's own quantisation isn't what we end up looking at.
-ffmpeg -hide_banner -v error -y -ss 20 -t 3 -i "$SRC" \
-  -vf "fps=12,scale=240:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" \
+ffmpeg -hide_banner -v error -y -ss 23 -t 3 -i "$SRC" \
+  -vf "crop=848:352:4:64,fps=12,scale=240:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" \
   devnotes/media/sintel-3s.gif
 
 ls -la devnotes/media/
@@ -52,8 +55,8 @@ ls -la devnotes/media/
 # ─── The cinema demo's pack ───────────────────────────────
 # demos/cinema/assets/sintel.tvf IS committed — a demo has to run from a fresh
 # clone, and the mp4 it comes from does not. This regenerates it identically.
-npx tsx scripts/tvf-pack.ts devnotes/media/sintel-trailer.mp4 \
-  demos/cinema/assets/sintel.tvf --width 400 --fps 12 --start 20 --duration 5
+npx tsx scripts/tvf-pack.ts devnotes/media/sintel-5s.mp4 \
+  demos/cinema/assets/sintel.tvf --fps 12
 
 # ─── Committed fixtures ───────────────────────────────────
 # Regenerate only on purpose: these are checked in, and changing them changes

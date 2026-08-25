@@ -19,21 +19,22 @@ export default function How() {
       "it once, ahead of time. Playing it back is a 0.6 ms JPEG decode into the\n" +
       "same resampler, glyph fitter and ANSI writer that draw a still image.\n" +
       "\n" +
-      "A `.gif` needs no tooling at all — the GIF decoder is pure TypeScript.",
+      "A `.gif` needs no tooling at all — the GIF decoder is pure TypeScript.\n" +
+      "\n" +
+      "Demo footage: Sintel © Blender Foundation · durian.blender.org · CC-BY 3.0.",
     ),
     divider(),
     markdown(
-      "### Why cells and not pixels\n" +
-      "Terminals with a graphics protocol draw real pixels, and for a still\n" +
-      "image that is strictly better. For video it is not, because the protocol\n" +
-      "forbids re-transmitting onto a live image id: every frame costs a delete\n" +
-      "plus a full transmit.\n" +
+      "### Pixels where they win, cells everywhere else\n" +
+      "Kitty and Ghostty draw the native pack frame as real pixels and scale it\n" +
+      "to the block's cell footprint. Each transfer uses fast zlib when that\n" +
+      "actually saves bytes; other terminals use coloured quadrant cells.\n" +
       "\n" +
-      "    kitty pixels, per frame     1.5 - 1.9 MB      37 - 44 MiB/s at 24 fps\n" +
-      "    quadrant cells, per frame        52 KiB            1.26 MiB/s at 24 fps\n" +
+      "    kitty pixels, 848x352 frame     492 KiB      5.76 MiB/s at 12 fps\n" +
+      "    quadrant cells, full width       52 KiB      0.61 MiB/s at 12 fps\n" +
       "\n" +
-      "So motion is drawn in cells on every terminal, and the expensive path is\n" +
-      "saved for the one case it wins: a paused frame.",
+      "Both paths occupy exactly the same rows, so capability changes never\n" +
+      "reflow the page. `mode: \"quadrant\"` pins the low-bandwidth path.",
     ),
     divider(),
     markdown(
@@ -47,7 +48,8 @@ export default function How() {
       "    ------------------------------\n" +
       "    total                  2.1 ms      5% of the budget\n" +
       "\n" +
-      "CPU is not the limit — the wire is. What decides the ceiling is how much\n" +
+      "The Kitty pixel encoder averages 7.45 ms on this clip. CPU is not the\n" +
+      "limit — the wire is. What decides the ceiling is how much\n" +
       "escape-sequence traffic the terminal will swallow, which is why the pack\n" +
       "default is 12 fps rather than 24.",
     ),

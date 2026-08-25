@@ -1,0 +1,203 @@
+---
+/**
+ * One refinement of the client's own mark.
+ *
+ * Different shape from TilingCard because the question is different: these are
+ * not competing marks, they are edits. So the card leads with what moved, and
+ * every one of them states its cost. A change with no stated cost has not been
+ * thought about.
+ */
+import PixelMark from "@/components/shared/PixelMark.astro";
+
+interface JudgeScore {
+  id: string;
+  score: number;
+  verdict: string;
+  vs_original: "better" | "same" | "worse";
+  claimError?: string;
+}
+
+interface Props {
+  id: string;
+  title: string;
+  grid: readonly string[];
+  change?: string;
+  why?: string;
+  cost?: string;
+  geometry?: string;
+  mean?: number;
+  better?: number;
+  worse?: number;
+  faults?: string[];
+  scores?: Record<string, JudgeScore>;
+  isOriginal?: boolean;
+}
+const {
+  id, title, grid, change, why, cost, geometry,
+  mean, better = 0, worse = 0, faults = [], scores, isOriginal = false,
+} = Astro.props;
+
+const LENS = { brand: "Brand", pixel: "Pixel", product: "Dev" } as Record<string, string>;
+const lenses = scores ? Object.entries(scores) : [];
+
+/** One line, not three: several judges catching the same error reads as a bug. */
+const raised = lenses
+  .map(([k, s]) => (s.claimError ? { lens: k, text: s.claimError } : null))
+  .filter(Boolean) as { lens: string; text: string }[];
+const claim = raised.length
+  ? { ...[...raised].sort((a, b) => b.text.length - a.text.length)[0], n: raised.length }
+  : null;
+
+/** better / same / worse against the mark as drawn, as a bar the eye can read. */
+const same = lenses.length - better - worse;
+---
+
+<figure class:list={["vc", isOriginal && "vc-orig"]} id={id}>
+  <div class="vc-grounds">
+    <div class="vc-g vc-lt"><PixelMark grid={grid} size={100} title={title} accent="#cc3700" /></div>
+    <div class="vc-g vc-dk"><PixelMark grid={grid} size={100} accent="#ff6b3d" /></div>
+  </div>
+
+  <div class="vc-sizes" aria-label="Rendered at 16, 24, 32 and 48 pixels">
+    {[16, 24, 32, 48].map((s) => (
+      <span class="vc-s"><PixelMark grid={grid} size={s} accent="#cc3700" /><em>{s}</em></span>
+    ))}
+  </div>
+
+  <figcaption class="vc-cap">
+    <p class="vc-id">
+      <code>{id}</code>
+      {isOriginal && <span class="vc-tag vc-tag-on">As drawn</span>}
+      {mean !== undefined && <span class="vc-mean tnum">{mean.toFixed(1)}</span>}
+    </p>
+    <p class="vc-title">{title}</p>
+
+    {faults.length > 0 && (
+      <p class="vc-fault"><b>Automated check:</b> {faults.join("; ")}.</p>
+    )}
+
+    {change && <p class="vc-txt"><b>Changed:</b> {change}</p>}
+    {why && <p class="vc-txt">{why}</p>}
+    {cost && <p class="vc-txt vc-cost"><b>Costs:</b> {cost}</p>}
+    {claim && (
+      <p class="vc-txt vc-fault">
+        <b>Claim checked{claim.n > 1 ? ` — ${claim.n} judges` : ` — ${LENS[claim.lens] ?? claim.lens}`}:</b> {claim.text}
+      </p>
+    )}
+
+    {lenses.length > 0 && !isOriginal && (
+      <div class="vc-vs" title={`${better} better, ${same} same, ${worse} worse than the mark as drawn`}>
+        <span class="vc-vs-bar" aria-hidden="true">
+          {Array.from({ length: better }).map(() => <i class="b"></i>)}
+          {Array.from({ length: same }).map(() => <i class="s"></i>)}
+          {Array.from({ length: worse }).map(() => <i class="w"></i>)}
+        </span>
+        <span class="vc-vs-t">
+          {better > 0 && `${better} better`}{better > 0 && (same || worse) ? " · " : ""}
+          {same > 0 && `${same} same`}{same > 0 && worse ? " · " : ""}
+          {worse > 0 && `${worse} worse`}
+        </span>
+      </div>
+    )}
+
+    {lenses.length > 0 && (
+      <dl class="vc-scores">
+        {lenses.map(([k, s]) => (
+          <div><dt>{LENS[k] ?? k}</dt><dd class="tnum">{s.score.toFixed(1)}</dd></div>
+        ))}
+      </dl>
+    )}
+
+    {geometry && <p class="vc-geo">{geometry}</p>}
+  </figcaption>
+</figure>
+
+<style>
+  .vc {
+    margin: 0;
+    border: 1px solid var(--color-line);
+    background: var(--color-bg);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    scroll-margin-top: 4rem;
+  }
+  .vc-orig { border-color: var(--color-ink); border-width: 2px; }
+  .vc:target { border-color: var(--color-accent); }
+
+  /* Both grounds on every card. A mark that only works on one is not finished. */
+  .vc-grounds { display: grid; grid-template-columns: 1fr 1fr; }
+  .vc-g { display: grid; place-items: center; padding: 1.5rem 0.75rem; }
+  .vc-lt { background: #fcfbf9; color: #14140f; }
+  .vc-dk { background: #12120f; color: #f0eee8; }
+
+  .vc-sizes {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-ink);
+  }
+  .vc-s { display: grid; justify-items: center; gap: 0.3rem; }
+  .vc-s em {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-style: normal;
+    color: var(--color-muted);
+  }
+
+  .vc-cap { padding: 0.875rem 1.125rem 1.25rem; display: flex; flex-direction: column; flex: 1; }
+  .vc-id { margin: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .vc-id code { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-ink); }
+  .vc-tag, .vc-mean {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+    padding: 0.15rem 0.35rem;
+  }
+  .vc-tag-on { color: var(--color-accent); border-color: var(--color-accent); }
+
+  .vc-title { margin: 0.5rem 0 0; font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
+  .vc-txt { margin: 0.5rem 0 0; font-size: 0.8125rem; line-height: 1.55; color: var(--color-muted); }
+  .vc-txt b { color: var(--color-ink); font-weight: 500; }
+  .vc-cost b, .vc-fault b { color: var(--color-accent); }
+
+  /* better / same / worse, as ticks. Three judges, so three ticks. */
+  .vc-vs { margin-top: 0.875rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .vc-vs-bar { display: inline-flex; gap: 2px; }
+  .vc-vs-bar i { width: 16px; height: 6px; display: block; }
+  .vc-vs-bar .b { background: var(--color-ink); }
+  .vc-vs-bar .s { background: var(--color-line); }
+  .vc-vs-bar .w { background: var(--color-accent); }
+  .vc-vs-t { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.06em; color: var(--color-muted); }
+
+  .vc-scores { display: flex; margin: 0.75rem 0 0; border: 1px solid var(--color-line); }
+  .vc-scores > div { flex: 1; display: grid; gap: 0.1rem; padding: 0.4rem 0.5rem; min-width: 0; }
+  .vc-scores > div + div { border-left: 1px solid var(--color-line); }
+  .vc-scores dt {
+    font-family: var(--font-display);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  .vc-scores dd { margin: 0; font-size: 0.8125rem; color: var(--color-ink); }
+
+  .vc-geo {
+    margin: 0.75rem 0 0;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--color-muted);
+    overflow-wrap: anywhere;
+    margin-top: auto;
+  }
+</style>

@@ -10,13 +10,18 @@ import { getCollection } from "astro:content";
 import Shell from "@/layouts/Shell.astro";
 import { DIRECTION_KEYS, getDirection, baseFor, url, formatDate, readingTime } from "@/lib/site";
 
+interface Props {
+  dir?: string;
+  base?: string;
+}
+
 export async function getStaticPaths() {
   return DIRECTION_KEYS.map((dir) => ({ params: { dir } }));
 }
 
-const { dir } = Astro.params;
-const direction = getDirection(dir!);
-const base = baseFor(dir!);
+const routeDir = Astro.props.dir ?? Astro.params.dir ?? "paper";
+const direction = getDirection(routeDir);
+const base = Astro.props.base ?? baseFor(routeDir);
 
 const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),

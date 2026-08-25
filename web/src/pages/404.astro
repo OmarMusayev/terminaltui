@@ -1,0 +1,54 @@
+---
+import Shell from "@/layouts/Shell.astro";
+---
+
+<Shell
+  dir="paper"
+  base="/"
+  defaultTheme="light"
+  title="Page not found — terminaltui"
+  description="That terminaltui page does not exist."
+  path="/404.html"
+>
+  <section class="missing wrap">
+    <p class="pixel-eyebrow code">404 / route not found</p>
+    <h1 class="pixel">This file is not a screen.</h1>
+    <p>
+      The route may have moved, or it may never have existed. The documentation
+      and demos are still where they should be.
+    </p>
+    <nav aria-label="Recovery links">
+      <a href="/">Home</a>
+      <a href="/docs/">Documentation</a>
+      <a href="/demos/">Demos</a>
+    </nav>
+  </section>
+</Shell>
+
+<style>
+  .missing {
+    --wrap: 68rem;
+    min-height: 62vh;
+    display: grid;
+    align-content: center;
+    gap: 1.5rem;
+    padding-block: clamp(4rem, 12vw, 9rem);
+  }
+  .code { color: var(--color-accent); margin: 0; }
+  h1 {
+    margin: 0;
+    max-width: 14ch;
+    font-size: clamp(2rem, 7vw, var(--px-xl));
+    line-height: 1.08;
+  }
+  p { margin: 0; max-width: 52ch; color: var(--color-muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; }
+  nav a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-ink);
+    text-underline-offset: 4px;
+  }
+  nav a:hover { color: var(--color-accent); }
+</style>

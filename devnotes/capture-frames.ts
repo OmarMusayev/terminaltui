@@ -3,7 +3,7 @@
  * real rendered screens as colour-accurate HTML fragments for the website.
  *
  * Run: npx tsx devnotes/capture-frames.ts
- * Out: devnotes/frames.json  { [demo]: [{ label, cols, rows, html }] }
+ * Out: web/src/data/frames.json  { [demo]: [{ label, cols, rows, html }] }
  */
 import { TUIEmulator } from "../src/emulator/index.js";
 import type { Cell } from "../src/emulator/types.js";
@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const CAPTURE_THEME = process.env.TERMINALTUI_CAPTURE_THEME ?? "flintNight";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function createRunDir(demo: string): string {
@@ -34,9 +35,13 @@ process.stdout.columns = Number(process.env.COLUMNS ?? 100);
 process.stdout.rows    = Number(process.env.LINES   ?? 32);
 // Dynamic import inside an IIFE: static imports are hoisted above the patch.
 (async () => {
-  const { default: config } = await import("${demoDir}/config.js");
+  const { default: sourceConfig } = await import("${demoDir}/config.js");
   const { runFileBasedSite } = await import("${PROJECT_ROOT}/src/index.js");
-  runFileBasedSite({ config, pagesDir: "${demoDir}/pages", outDir: "${demoDir}/.terminaltui" });
+  runFileBasedSite({
+    config: { ...sourceConfig, theme: ${JSON.stringify(CAPTURE_THEME)} },
+    pagesDir: "${demoDir}/pages",
+    outDir: "${demoDir}/.terminaltui",
+  });
 })();
 `,
   );
@@ -111,6 +116,7 @@ const PLAN: Record<string, { label: string; page?: string }[]> = {
   band:                   [{ label: "home" }, { label: "tour", page: "Shows" }, { label: "discography", page: "Discography" }],
   "coffee-shop":          [{ label: "home" }, { label: "menu", page: "menu" }],
   freelancer:             [{ label: "home" }, { label: "work", page: "work" }, { label: "services", page: "services" }],
+  cinema:                [{ label: "home" }, { label: "how", page: "How it works" }],
 };
 
 const COLS = Number(process.env.COLS ?? 100);
@@ -146,7 +152,7 @@ async function capture(demo: string): Promise<Shot[]> {
 const only = process.argv[2];
 const demos = only ? [only] : Object.keys(PLAN);
 // A single-demo run merges into the existing file rather than clobbering it.
-const outPath = join(PROJECT_ROOT, "devnotes/frames.json");
+const outPath = join(PROJECT_ROOT, "web/src/data/frames.json");
 let out: Record<string, Shot[]> = {};
 if (only && existsSync(outPath)) out = JSON.parse(readFileSync(outPath, "utf8"));
 for (const d of demos) {
@@ -155,4 +161,4 @@ for (const d of demos) {
   console.log(`${out[d].length} frame(s)`);
 }
 writeFileSync(outPath, JSON.stringify(out, null, 1));
-console.log(`\nwrote devnotes/frames.json`);
+console.log(`\nwrote ${outPath}`);

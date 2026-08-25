@@ -1,10 +1,12 @@
 # Changelog
 
-## [2.3.0] - 2026-07-27
+## [2.1.0] - 2026-08-25
+
+### Video playback
 
 Video. `video("trailer.mp4")` plays a moving picture in the terminal, through the same cell engine that draws stills — and with no video decoder at runtime. The expensive half of the problem is moved to build time: a source is packed once into a `.tvf` frame pack of small, already-scaled JPEGs, and playback is a 0.6 ms decode into the existing resample → glyph-fit → ANSI path. ffmpeg is needed to *pack* an mp4 and never to play one; a `.gif` needs nothing at all, because the GIF decoder is now pure TypeScript and ships in the box.
 
-### Added
+#### Added
 
 - **`video(path, options)` and the `video` block.** Takes a `.tvf` pack, a `.gif`, or anything ffmpeg can read. A raw source is packed on first use into `.terminaltui/video/<hash>.tvf` and reused from there. Options mirror `image()` — `width`, `height`, `maxHeight`, `fit`, `align`, `mode`, `dither`, `background`, `invert`, `charset`, `border`, `fitPage` — plus `fps`, `loop`, `autoplay`, `poster` and `controls`.
 
@@ -20,9 +22,9 @@ Video. `video("trailer.mp4")` plays a moving picture in the terminal, through th
 
 - **Synchronized output (DEC 2026) while a video is playing.** Rows are emitted one cursor-position at a time, so a terminal may repaint between any two of them; on a picture where every row changes every frame that is a visible horizontal tear. The batch is now bracketed with BSU/ESU — but only while something is actually moving, so output with no video playing is byte-identical to before and every existing byte-budget assertion still holds.
 
-- **The `cinema` demo.** `npx tsx src/cli/index.ts dev demos/cinema/config.ts`.
+- **The `cinema` demo.** `npx terminaltui demo cinema`.
 
-### Fixed
+#### Fixed
 
 - **A derived block lost its state key.** `getBlockKey` is a `WeakMap` keyed on object identity, and the page-fit transform returns `{...block, maxHeight}` — a new object — so the renderer addressed one key while everything holding the original block (the focus items, and therefore every input handler) addressed another. It cost a `fitPage` video its entire transport: the player was registered under one key and looked up under the other, so Space did nothing. Now carried across by `inheritBlockKey`.
 
@@ -30,16 +32,16 @@ Video. `video("trailer.mp4")` plays a moving picture in the terminal, through th
 
   This nearly did not ship. Video was first built cells-only, on a measurement that pixels cost 37–44 MiB/s — but that number came from the *still-image* path, which resamples a source UP to `cols*10 x rows*20` before transmitting: 2000x1120 and 11.4 MB a frame for a 200-cell block. A video frame needs none of it, because kitty's `s`/`v` are independent of `c`/`r`. Sending the pack frame at its native size is 1.6 MB, 18.8 MiB/s at 12 fps. Still ~30x the cell path, so `mode: "quadrant"` and `TERMINALTUI_GRAPHICS=off` are documented escapes for SSH and slow links.
 
-### Notes
+#### Notes
 
 - The frame budget at 24 fps is 41.6 ms; the pipeline spends about 2.1 ms of it. CPU is not the limit — the wire is, which is why the pack default is 12 fps rather than 24.
 - The default pack width is a **ceiling** (960 px) and never enlarges a source. It is not 400 px, which was the original value and was wrong: it was derived from the 99-column content cap, and `fitPage` deliberately lifts that cap, so a full-screen block sampled a 400 px pack at 1:1 and rendered its JPEG blocks as 4x4 blocks of cells.
 
-## [2.2.0] - 2026-07-25
+### Terminal graphics and compatibility
 
 Real pixels. On kitty and Ghostty, `image()` now transmits the decoded image to the terminal and draws it with Unicode placeholder cells — actual pixels, not block glyphs — while every other terminal keeps the cell renderer. Which path a terminal gets is negotiated automatically, including over SSH, and no probe byte is ever written to a terminal that could be damaged by one. Images can also be resized by the viewer at runtime, and a bigger frame is a fresh resample rather than a magnification, so it carries genuinely more detail. Separately, the 256-color path no longer blotches: the grey-ramp-versus-color-cube decision is taken away from RGB distance in the band where RGB distance oscillates at pixel frequency. And Apple Terminal is no longer capped at 256 colors on macOS 26, which does more for image quality there than any amount of quantizer work could.
 
-### Added
+#### Added
 
 - **The kitty graphics tier.** On kitty and Ghostty an image is transmitted once (`a=T,U=1,t=d`, chunked, `q=2` so nothing lands in stdin) and placed with one `U+10EEEE` cell per image cell, each carrying zero-width row and column diacritics, with the image id in the row's foreground color. The **Unicode-placeholder** variant specifically, because a placement row is measured, clipped, scrolled and diffed exactly like any other row: `stringWidth()` reports it as `cols` columns, `cutToWidth` clips it into a still-valid partial image, `Panel` scrolls it, and an unchanged image writes zero bytes per frame. The classic cursor-anchored placement cannot be used at all here — the framework never emits `\x1b[2J`, so such a placement would outlive the page that drew it.
 
@@ -69,7 +71,7 @@ Real pixels. On kitty and Ghostty, `image()` now transmits the decoded image to 
 
 - **[docs/images.md](docs/images.md)** gains sections on the pixel tier, the detection ladder, resizable frames, 256-color output and both environment knobs; `claude/SKILL.md` and the README are updated to match.
 
-### Fixed
+#### Fixed
 
 - **The `Block` banner font drew M, V and W as H, U and H.** All three were a horizontal bar between two full-height stems, differing only in how high the bar sat, which at four rows is not a cue anyone can read: a real capture of a page set in it showed "TRY: TERMINALTUI.DEV" as "TRY: TERHINALTUI.DEU" and "WATCHING" as "HATCHING" — a mangled URL, from the one face compact enough to set one at mid-range window sizes. The three are redrawn so the interior stroke changes column as it changes row (M gains a descending V, V a one-column point, W a centre stem and two feet), each one column wider because centring a middle stem needs an odd ink width. Pinned verbatim by `test/test-banner-alignment.ts`, which also sweeps every bundled face for letters that render identically to a different letter.
 
@@ -89,18 +91,18 @@ Real pixels. On kitty and Ghostty, `image()` now transmits the decoded image to 
 
 - **`runtime.isBlockFocusable()` disagreed with focus assignment** for a resizable image: it answered from the type-keyed taxonomy while the four walkers that assign focus indices answered from the widened predicate. Routed through the widened one.
 
-### Changed
+#### Changed
 
-- **256-color photographs are slightly more desaturated than in 2.1.0**, uniformly, in exchange for the blotching fix above. Dark and mid-tone regions below the chroma floor now render neutral by rule rather than by accident of the cube's bracket phase. Saturated content above the floor is bit-identical.
+- **256-color photographs are slightly more desaturated than the original cell-image renderer**, uniformly, in exchange for the blotching fix above. Dark and mid-tone regions below the chroma floor now render neutral by rule rather than by accident of the cube's bracket phase. Saturated content above the floor is bit-identical.
 - **An unrecognized remote `TERM` over SSH now negotiates conservatively** — `half` blocks (or `shading` when the same `TERM` also reads as 16-color) — rather than inheriting the server's negotiation, including for a client that sends no `TERM` at all. That is the safe direction, and it is what the remote branch was always meant to do.
 - Unicode detection is broader: `LC_CTYPE` joins `LANG`/`LC_ALL`, the locale match is case-insensitive `utf-?8`, and kitty/Ghostty/Konsole/VTE/Alacritty/foot/Contour/Rio/VS Code/Hyper/Warp/Tabby markers are recognized. Every clause is additive, so nothing that detected as Unicode-capable before can stop doing so.
 - `docs/images.md`'s "why no graphics protocols" section is now "why not iTerm2 or sixel": neither has a cell-anchored variant, so both would need an out-of-band emission plane plus damage tracking that placeholders make unnecessary.
 
-## [2.1.0] - 2026-07-25
+### Image rendering foundation
 
 Images. `image("./photo.png")` now renders real pixels as colored terminal cells — no `sharp`, no native build, no graphics protocol. The block shipped in 1.x and had never drawn anything but the literal text `[Image: ./photo.png]` in a box; `asciiImage()` had never once returned an image either. Both go through one new engine now, and it works on Apple Terminal, over SSH, inside tmux, and in the headless test emulator, because the output is ordinary styled text. Several defects found while building it are fixed too, most of them nothing to do with images — the worst dispatched a terminal's unsolicited replies as keystrokes.
 
-### Added
+#### Added
 
 - **Images render.** `image(path, options?)` decodes PNG and JPEG synchronously and fits every cell to a Unicode block glyph with an independent foreground and background color. Six tiers, negotiated automatically from the viewer's terminal: `quadrant` (2×2 sub-cells, the default at 256-color and truecolor), `half` (1×2, used when a multiplexer is detected), `solid` (background only, needs zero glyph coverage), `shading` (a luminance ramp, 16 colors), `ascii` (no color at all), plus opt-in `braille` for line art. New options: `width`, `height`, `maxHeight`, `fit`, `align`, `mode`, `dither`, `alt`, `background`, `invert`, `charset`, `border`. Full reference in [docs/images.md](docs/images.md).
 
@@ -115,7 +117,7 @@ Images. `image("./photo.png")` now renders real pixels as colored terminal cells
 - **[docs/images.md](docs/images.md)**, added to the README's docs table, plus the `asciiImage()` section that [docs/ascii-art.md](docs/ascii-art.md) was already being advertised as containing. The image entries in `docs/components.md` and `claude/SKILL.md` are rewritten to the real API — both described options that never existed.
 - Three checked-in image fixtures under `test/fixtures/`, and `test/image-quality-harness.ts` — a measurement tool that re-parses rendered ANSI back into pixels and asserts the quality ordering holds at every color mode. Run it with `npx tsx test/image-quality-harness.ts`.
 
-### Fixed
+#### Fixed
 
 - **`asciiImage()` returns an image.** It lazy-loaded `sharp`, which is declared in no manifest and installed nowhere, so every call in the function's history returned `["[Image: install sharp for image support]", "  npm install sharp"]`. It now decodes with the bundled decoders and renders through the shared engine, so a fix in one path reaches both.
 - **Half blocks carry two colors.** The `blocks` renderer painted the *average* of the upper and lower half-pixels as a single foreground color, so the `▀` glyph encoded nothing: measured, it scored within 0.00 dB of a flat one-color cell. It now emits `fg(top) + bg(bottom) + "▀"`, worth **+2.35 dB** in truecolor.
@@ -127,7 +129,7 @@ Images. `image("./photo.png")` now renders real pixels as colored terminal cells
 - **Relative image paths resolve against the project root.** `terminaltui dev demos/x/config.ts` runs from the repo root while the page lives in `demos/x/`, so `./logo.png` resolved against the wrong directory. `runtime.projectDir` is now threaded through both entry points and set before the first layout pass — without that ordering, frame 1 reserved 30 rows for an image the renderer drew in 19. `terminaltui build` output sets it from the bundle's own location.
 - **`serve` config in a file-based project.** `FileBasedConfig` carried no `serve` field, so `defineConfig({ serve: { colorMode: "16" } })` in a file-based `config.ts` was a hard TypeScript error (TS2769) — the option was not merely ignored at runtime, it was unwritable. It is now declared and populated through both entry points.
 
-### Changed
+#### Changed
 
 - **`image()` blocks are centered and unbordered by default.** The old placeholder was left-aligned and always bordered; `align` defaults to `"center"` and the border is opt-in via `border: true` (or a style name, matching `card`/`table`/`panel`).
 - `mode: "blocks"` on an `image()` block is accepted as an alias for the `"half"` tier, so existing pages keep rendering.

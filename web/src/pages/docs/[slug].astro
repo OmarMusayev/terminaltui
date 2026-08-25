@@ -1,0 +1,17 @@
+---
+/** Production Paper documentation pages. */
+import { getCollection } from "astro:content";
+import { docOrder } from "@/data/docs";
+import DocPage from "../d/[dir]/docs/[slug].astro";
+
+export async function getStaticPaths() {
+  const docs = await getCollection("docs");
+  return docs
+    .filter((doc) => docOrder.includes(doc.id))
+    .map((doc) => ({ params: { slug: doc.id }, props: { doc } }));
+}
+
+const { doc } = Astro.props;
+---
+
+<DocPage dir="paper" base="/" {doc} />

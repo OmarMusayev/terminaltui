@@ -36,6 +36,8 @@
  *     for exactly that reason.
  */
 
+import { deflateSync } from "node:zlib";
+
 import type { PixelBuffer } from "./types.js";
 import { MAX_PLACEHOLDER_CELLS, diacriticFor } from "./kitty-diacritics.js";
 
@@ -60,6 +62,23 @@ export const MAX_IMAGE_ID = 0xffffff;
 
 /** Max base64 bytes in a single escape. Fixed by the protocol. */
 const CHUNK_BYTES = 4096;
+
+/**
+ * Compression policy for direct pixel transfers.
+ *
+ * Kitty accepts RFC 1950 zlib data (`o=z`) for raw RGB/RGBA payloads. Level 1
+ * is deliberate: video pays this synchronously for every frame, and on the
+ * bundled cinema clip it cuts the wire by roughly two thirds while staying
+ * comfortably inside a frame budget. Tiny payloads are cheaper to send as-is,
+ * and a compressed result must save at least 12.5% before we opt into it. The
+ * latter keeps photographic noise from paying decompression overhead for a
+ * token reduction while preserving an exact raw fallback for incompressible
+ * data.
+ */
+const MIN_COMPRESS_BYTES = 4096;
+const MAX_COMPRESSED_RATIO_NUM = 7;
+const MAX_COMPRESSED_RATIO_DEN = 8;
+const ZLIB_LEVEL_FAST = 1;
 
 /**
  * Application Programming Command introducer and String Terminator.
@@ -175,6 +194,30 @@ function toBase64(bytes: Uint8Array): string {
     .toString("base64");
 }
 
+interface TransferPayload {
+  bytes: Uint8Array;
+  compressed: boolean;
+}
+
+/** Compress when doing so materially reduces the bytes sent through the pty. */
+function transferPayload(raw: Uint8Array): TransferPayload {
+  if (raw.byteLength < MIN_COMPRESS_BYTES) return { bytes: raw, compressed: false };
+
+  let compressed: Uint8Array;
+  try {
+    compressed = deflateSync(raw, { level: ZLIB_LEVEL_FAST });
+  } catch {
+    // Compression is an optimisation, never a requirement for a valid Kitty
+    // transfer. If zlib cannot allocate, keep the existing raw path usable.
+    return { bytes: raw, compressed: false };
+  }
+  if (
+    compressed.byteLength * MAX_COMPRESSED_RATIO_DEN >
+    raw.byteLength * MAX_COMPRESSED_RATIO_NUM
+  ) return { bytes: raw, compressed: false };
+  return { bytes: compressed, compressed: true };
+}
+
 /**
  * Transmit `pixels` as image `id` and create a virtual placement `cols` x
  * `rows` cells in size, ready for `encodePlacement`.
@@ -193,6 +236,7 @@ function toBase64(bytes: Uint8Array): string {
  *         we hold decoded pixels, not a file.
  *   `q=2` suppress OK *and* error replies. Not cosmetic: any reply is written
  *         to the app's stdin and would be dispatched as keystrokes (§6.1).
+ *   `o=z` when level-1 zlib materially shrinks the payload; otherwise omitted.
  *   `m=1` on every chunk but the last, which carries `m=0`.
  */
 export function encodeTransmit(
@@ -217,10 +261,12 @@ export function encodeTransmit(
 
   const opaque = isOpaque(data);
   const format = opaque ? 24 : 32;
-  const payload = opaque
+  const rawPayload = opaque
     ? toRgb(data, pixelCount)
     : new Uint8Array(data.buffer as ArrayBuffer, data.byteOffset, data.byteLength);
-  const b64 = toBase64(payload);
+  const payload = transferPayload(rawPayload);
+  const b64 = toBase64(payload.bytes);
+  const compressionControl = payload.compressed ? ",o=z" : "";
 
   // Chunk on a multiple of 4 (CHUNK_BYTES is 4096) so no non-final chunk ever
   // splits a base64 quantum — the protocol requires that, and a split quantum
@@ -234,7 +280,7 @@ export function encodeTransmit(
     // continuation makes kitty treat the chunk as a new command and drop the
     // transfer — the single most common implementation bug in this protocol.
     const control = i === 0
-      ? `a=T,U=1,i=${id},f=${format},t=d,s=${width},v=${height},c=${cols},r=${rows},q=2,m=${more}`
+      ? `a=T,U=1,i=${id},f=${format},t=d,s=${width},v=${height},c=${cols},r=${rows},q=2${compressionControl},m=${more}`
       : `m=${more},q=2`;
     parts.push(`${APC}${control};${slice}${ST}`);
   }

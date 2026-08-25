@@ -1,0 +1,14 @@
+---
+/** Production Paper blog posts. */
+import { getCollection } from "astro:content";
+import BlogPost from "../d/[dir]/blog/[slug].astro";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog", ({ data }) => !data.draft);
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+---
+
+<BlogPost dir="paper" base="/" {post} />

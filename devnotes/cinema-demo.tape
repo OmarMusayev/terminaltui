@@ -1,7 +1,9 @@
 # The cinema demo, recorded as a GIF.
 #
-# This is the "show me it works" artifact: boot, open the page, press Space,
+# This is the portable CELL-FALLBACK artifact: boot, open the page, press Space,
 # watch Sintel play in coloured quadrant cells, then scrub with the arrows.
+# VHS runs in xterm.js and cannot see Kitty graphics. Do not present this as
+# evidence of the real-pixel path; use devnotes/kitty-shot.sh for that.
 #
 # Sized 1200x760 rather than full-screen because the GIF has to stay openable —
 # every frame of a terminal video is a frame of the recording too.

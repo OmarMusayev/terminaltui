@@ -156,7 +156,7 @@ const heroKeys = [
 
     {/* ── 2 · the capture. Tight gap: this belongs to the hero. ─────────── */}
     <div class="row row-tight">
-      <Pane index="2" label="capture" meta="welcome/home · 100×32 · cyberpunk">
+      <Pane index="2" label="capture" meta="welcome/home · 100×32 · flintNight">
         <Screen
           demo="welcome"
           label="home"
@@ -180,7 +180,9 @@ const heroKeys = [
               This is the part nobody else does. Ink gives you components. Pastel routes CLI
               subcommands. terminaltui routes screens.
             </p>
-            <pre class="tree"><code>{treeRows.map((r) => (<span class={r.dir ? "tree-d" : "tree-f"}>{r.left}<span class="tree-a">{r.right}</span>{"\n"}</span>))}</code></pre>
+            <pre class="tree"><code>{treeRows.map((r) => (
+              <span class={r.dir ? "tree-d" : "tree-f"}>{r.left}<span class="tree-a">{r.right}</span></span>
+            ))}</code></pre>
           </div>
 
           <div class="tile tile-screen">
@@ -224,7 +226,7 @@ const heroKeys = [
             <tbody>
               {cli.map((c) => (
                 <tr>
-                  <th scope="row" class={c.hero ? "cli-cmd cli-hero" : "cli-cmd"}>{c.cmd}</th>
+                  <th scope="row" class={"hero" in c && c.hero ? "cli-cmd cli-hero" : "cli-cmd"}>{c.cmd}</th>
                   <td class="cli-desc">{c.desc}</td>
                 </tr>
               ))}
@@ -659,8 +661,8 @@ const heroKeys = [
     white-space: pre;
     tab-size: 2;
   }
-  .tree-d { color: var(--color-muted); }
-  .tree-f { color: var(--color-ink); }
+  .tree-d { display: block; color: var(--color-muted); }
+  .tree-f { display: block; color: var(--color-ink); }
   .tree-a { color: var(--color-accent); }
 
   /* ── 4 · distribution ────────────────────────────────────────────────── */

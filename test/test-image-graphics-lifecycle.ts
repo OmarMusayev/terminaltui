@@ -4,7 +4,7 @@
  * fake terminal.
  *
  * `test-image-kitty.ts` pins the wire format and the render path; this pins the
- * three properties that only exist once a runtime is carrying the payload, and
+ * four properties that only exist once a runtime is carrying the payload, and
  * each of them shipped broken:
  *
  *  1. A resize does not re-send pixels the terminal already holds. It used to
@@ -16,8 +16,11 @@
  *  3. A transmission that cannot be built DEMOTES to cells. It used to leave a
  *     permanent grid of placeholder cells addressing pixels that never arrived,
  *     re-deriving the same failure every frame.
+ *  4. A playing video PRELOADS replacement pixels before swapping placeholder
+ *     ids, then deletes the departed id. Placing before transmitting exposed a
+ *     blank wallpaper frame while the terminal decoded every replacement.
  */
-import { chmodSync, copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,7 +28,9 @@ import { fileURLToPath } from "node:url";
 import { TUIRuntime } from "../src/core/runtime.js";
 import type { Site } from "../src/config/types.js";
 import type { TerminalIO } from "../src/core/terminal-io.js";
-import { image } from "../src/index.js";
+import { image, video } from "../src/index.js";
+import { encodePack } from "../src/video/pack.js";
+import { setNowFn, stopAllVideo } from "../src/video/player.js";
 import { setColorMode } from "../src/style/colors.js";
 import { clearImageCache } from "../src/image/cache.js";
 import { PLACEHOLDER_CHAR, __resetImageIds } from "../src/image/kitty.js";
@@ -115,6 +120,21 @@ function setup(): { path: string } {
   return { path };
 }
 
+/** A tiny two-frame pack for exercising the moving pixel lifecycle. */
+function videoPack(): string {
+  const frame = new Uint8Array(readFileSync(FIXTURE));
+  const path = join(dir, `clip-${serial++}.tvf`);
+  writeFileSync(path, encodePack({
+    width: 200,
+    height: 100,
+    fps: 12,
+    frameCount: 2,
+    durationMs: 167,
+    sourceSha1: "0".repeat(40),
+  }, [frame, frame]));
+  return path;
+}
+
 /** Build a runtime whose one content page holds `blocks`. */
 function runtimeWith(blocks: unknown[], io: FakeIO): TUIRuntime {
   const site: Site = {
@@ -141,6 +161,50 @@ console.log("\n\x1b[1m  Kitty graphics lifecycle\x1b[0m\n");
 
 dir = mkdtempSync(join(tmpdir(), "tui-gfx-"));
 try {
+  test("Every playing video frame transmits, places, then deletes in that order", () => {
+    setup();
+    const io = new FakeIO();
+    let clock = 1_000_000;
+    const restoreNow = setNowFn(() => clock);
+    let rt: TUIRuntime | null = null;
+    try {
+      rt = runtimeWith([video(videoPack(), { width: 20, autoplay: true })], io);
+
+      const firstTransmit = io.written.findIndex(bytes => bytes.includes("\x1b_G") && bytes.includes("a=T"));
+      const firstPlacement = io.written.findIndex(bytes => bytes.includes(PLACEHOLDER_CHAR));
+      assert(firstTransmit >= 0, "the first video frame must transmit pixels");
+      assert(firstPlacement >= 0, "the first video frame must place placeholder cells");
+      assert(
+        firstTransmit < firstPlacement,
+        `first transmit write ${firstTransmit} must precede placement write ${firstPlacement}`,
+      );
+
+      // Each tick allocates a new image id. The old frame must stay on screen
+      // until the replacement pixels exist and its placeholder rows are swapped;
+      // only then is deleting the departed id safe.
+      for (let tick = 1; tick <= 3; tick++) {
+        const mark = io.mark;
+        clock += 100;
+        rt.render();
+        const writes = io.written.slice(mark);
+        const transmitAt = writes.findIndex(bytes => bytes.includes("\x1b_G") && bytes.includes("a=T"));
+        const placementAt = writes.findIndex(bytes => bytes.includes(PLACEHOLDER_CHAR));
+        const deleteAt = writes.findIndex(bytes => bytes.includes("\x1b_Ga=d"));
+        assert(transmitAt >= 0, `tick ${tick} must transmit replacement pixels`);
+        assert(placementAt >= 0, `tick ${tick} must place the replacement id`);
+        assert(deleteAt >= 0, `tick ${tick} must delete the departed id`);
+        assert(
+          transmitAt < placementAt && placementAt < deleteAt,
+          `tick ${tick} write order must be transmit < placement < delete, got ` +
+            `${transmitAt} < ${placementAt} < ${deleteAt}`,
+        );
+      }
+    } finally {
+      if (rt !== null) stopAllVideo(rt);
+      setNowFn(restoreNow);
+    }
+  });
+
   test("A resize re-emits the placement cells and re-sends NO pixels", () => {
     const { path } = setup();
     const io = new FakeIO();

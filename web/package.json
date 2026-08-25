@@ -5,9 +5,9 @@
   "private": true,
   "description": "terminaltui.dev — marketing site, docs and blog. Astro + Tailwind v4.",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "astro dev --host 127.0.0.1 --port 4173 --strictPort",
     "build": "astro build",
-    "preview": "astro preview",
+    "preview": "astro preview --host 127.0.0.1 --port 4173 --strictPort",
     "check": "astro check"
   },
   "dependencies": {
@@ -20,8 +20,10 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.6",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "@fontsource/instrument-serif": "^5.3.0"
+    "@fontsource/instrument-serif": "^5.3.0",
+    "typescript": "^5.9.3"
   }
 }

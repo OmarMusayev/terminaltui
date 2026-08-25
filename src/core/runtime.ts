@@ -276,16 +276,31 @@ export class TUIRuntime implements RuntimeInternal {
       g.pendingTransmit = true;
     }
     g.intent.clear();
+
+    // A playing video allocates a fresh image id every frame. Load those
+    // pixels BEFORE writeToTerminal swaps the placeholder cells to the new id:
+    // the previous order painted placeholders first and transmitted second,
+    // while the active-video path deliberately skips the post-transmit repaint.
+    // Kitty does not guarantee that receiving pixels dirties existing
+    // placeholder cells, so the result was intermittent wallpaper/blank frames.
+    // Preloading is double-buffering: frame N remains visible while frame N+1
+    // is decoded by the terminal, then the ordinary synchronized row update
+    // switches to an id that already exists. Departure deletion still happens
+    // afterwards in drainGraphics(), so the old frame cannot vanish early.
+    if (g.pendingTransmit && videoActive(this)) this.flushGraphicsQueue();
   }
 
   /**
-   * Settle this frame's graphics: delete what left the screen, write what is
-   * owed, and repaint if pixels arrived after the cells that reference them.
+   * Settle this frame's graphics: delete what left the screen, write any
+   * remaining payload, and repaint static placements whose pixels arrived
+   * after the cells that reference them.
    *
    * Runs AFTER `renderMain()` — i.e. after `writeToTerminal()` has put the
-   * frame on screen — because the payload must go down the unfiltered
-   * `writeOutput()` pipe and never through the row composer, where `cutToWidth`
-   * would shred base64 at the first `m` and the C0 strip would eat the escape.
+   * frame on screen. A playing video's transmit has already gone down the
+   * unfiltered `writeOutput()` pipe in `graphicsCommit()`, before its row swap;
+   * static-image transmits and all departure deletes are drained here. None of
+   * those payloads can pass through the row composer, where `cutToWidth` would
+   * shred base64 at the first `m` and the C0 strip would eat the escape.
    *
    * THE REPAINT. A placeholder cell references an image by id; a terminal that
    * meets the cell before the transmission has nothing to draw there. kitty and
@@ -298,15 +313,12 @@ export class TUIRuntime implements RuntimeInternal {
    * composition per image per size — never on a steady-state frame, because
    * nothing is queued then.
    *
-   * A PLAYING VIDEO IS EXEMPT. It transmits a new id every frame, so "one extra
-   * composition per image" becomes one extra composition per FRAME, forever —
-   * the whole page laid out, composed and diffed twice, 12 times a second, and
-   * two full frames written where one was wanted. The guarantee the repaint
-   * buys is not needed there either: the thing it protects against is a
-   * placement that sits on screen indefinitely with no pixels behind it, and a
-   * video re-places 83 ms later regardless. The worst case is that the very
-   * first frame of a clip is blank on a terminal that does not self-repaint,
-   * and the second one is not.
+   * A PLAYING VIDEO IS EXEMPT FROM THE REPAINT because `graphicsCommit()`
+   * preloads every replacement id before `writeToTerminal()` swaps its
+   * placeholder rows. That both avoids a second full composition every video
+   * tick and guarantees there is never a placement pointing at pixels that do
+   * not exist yet. The old frame remains visible during the preload and is
+   * deleted only by the departure sweep below, after the synchronized swap.
    */
   private settleGraphics(): void {
     if (this.drainGraphics() && !this.graphicsRepainting && !videoActive(this)) {
@@ -323,8 +335,10 @@ export class TUIRuntime implements RuntimeInternal {
 
   /**
    * One sweep-and-write pass.
-   * @returns True when a transmission was written, i.e. the placeholder rows on
-   *   screen were composed before the pixels they reference existed.
+   * @returns True when a transmission was written during this post-placement
+   *   drain, i.e. the placeholder rows on screen were composed before the
+   *   pixels they reference existed. Playing-video preloads have already been
+   *   written and therefore return false here.
    */
   private drainGraphics(): boolean {
     const g = this.graphics;
@@ -343,9 +357,18 @@ export class TUIRuntime implements RuntimeInternal {
     recycled.clear();
     g.placed = recycled;
 
+    return this.flushGraphicsQueue();
+  }
+
+  /** Write queued graphics bytes without advancing the departure sweep. */
+  private flushGraphicsQueue(): boolean {
+    const g = this.graphics;
+
     const wrote = g.pendingTransmit;
-    g.pendingTransmit = false;
-    if (g.queue.length === 0) return false;
+    if (g.queue.length === 0) {
+      g.pendingTransmit = false;
+      return false;
+    }
 
     // An id counts as DELIVERED only once its bytes have left the process. The
     // bookkeeping used to run at queue time, so a throwing `writeOutput` left
@@ -356,6 +379,7 @@ export class TUIRuntime implements RuntimeInternal {
     g.queue.length = 0;
     for (const id of g.inFlight) g.sent.add(id);
     g.inFlight.length = 0;
+    g.pendingTransmit = false;
     return wrote;
   }
 

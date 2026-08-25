@@ -1,0 +1,660 @@
+---
+/**
+ * The client's own mark, examined.
+ *
+ * He drew this in the pixel editor after seeing thirty-six generated variants
+ * and keeping none of them, then asked the obvious question: why does it work,
+ * where does it not, and what would make it better. This page is that, with the
+ * original scored on the same scale as every proposed edit so the answer can
+ * legitimately be "nothing beat it".
+ *
+ * Every geometric fact stated here is computed from the grid at build time
+ * rather than taken from an agent's description of its own drawing.
+ */
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import "@/styles/global.css";
+import VariantCard from "@/components/logo/VariantCard.astro";
+import PixelMark from "@/components/shared/PixelMark.astro";
+import data from "@/data/logo-mark.json";
+import { MARK_NAME } from "@/data/logo";
+
+interface JudgeScore {
+  id: string;
+  score: number;
+  verdict: string;
+  vs_original: "better" | "same" | "worse";
+  claimError?: string;
+}
+interface Variant {
+  id: string;
+  title: string;
+  grid: string[];
+  change?: string;
+  why?: string;
+  cost?: string;
+  geometry?: string;
+  mandate: string;
+  mandateLabel: string;
+  faults: string[];
+  mean: number;
+  better: number;
+  worse: number;
+  scores: Record<string, JudgeScore>;
+}
+
+const seed = data.seed as string[];
+const diagnoses = data.diagnoses as {
+  lens: string; label: string; reads_as: string;
+  works: string[]; fails: string[]; sharpest_criticism: string; priority: string;
+}[];
+const variants = data.variants as unknown as Variant[];
+const judges = data.judges as { lens: string; overall: string; beats_original: string }[];
+const mandates = data.mandates as { slug: string; label: string }[];
+const synth = data.synth as {
+  intro: string;
+  why_it_works: { claim: string; detail: string }[];
+  why_it_doesnt: { claim: string; detail: string }[];
+  mandateNotes: { slug: string; note: string }[];
+  recommendation: string;
+  disagreements: string;
+};
+
+const original = variants.find((v) => v.id === "ORIGINAL")!;
+const edits = variants.filter((v) => v.id !== "ORIGINAL");
+const rankOf = new Map(variants.map((v, i) => [v.id, i + 1]));
+const noteFor = (slug: string) => synth.mandateNotes.find((n) => n.slug === slug)?.note;
+
+/** How many edits actually outscored the drawing, which is the page's headline. */
+const above = edits.filter((v) => v.mean > original.mean);
+const originalRank = rankOf.get("ORIGINAL")!;
+
+/* ── geometry, measured here rather than quoted ───────────────────────────── */
+const N = 16;
+const at = (g: string[], x: number, y: number) => g[y][x];
+const isInk = (c: string) => c === "#" || c === "+";
+
+function measure(g: string[]) {
+  const pts: [number, number][] = [];
+  let accent = 0;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const c = at(g, x, y);
+    if (isInk(c)) pts.push([x, y]);
+    if (c === "+") accent++;
+  }
+  const runLen = (x: number, y: number, dx: number, dy: number) => {
+    let n = 1;
+    for (let i = 1; ; i++) { const a = x + dx * i, b = y + dy * i; if (a < 0 || b < 0 || a >= N || b >= N || !isInk(at(g, a, b))) break; n++; }
+    for (let i = 1; ; i++) { const a = x - dx * i, b = y - dy * i; if (a < 0 || b < 0 || a >= N || b >= N || !isInk(at(g, a, b))) break; n++; }
+    return n;
+  };
+  let thin = 99;
+  for (const [x, y] of pts) thin = Math.min(thin, Math.min(runLen(x, y, 1, 0), runLen(x, y, 0, 1)));
+
+  let gutter = 99;
+  // A one-cell gutter is a defect of the *edge*, not of each cell along it, so
+  // collect the offending cells and then merge them into the runs a person
+  // would actually point at. Six cells here are two mistakes.
+  const hits: { x: number; y: number; axis: "h" | "v" }[] = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    if (at(g, x, y) !== ".") continue;
+    for (const [dx, dy] of [[1, 0], [0, 1]]) {
+      let a = x, b = y;
+      while (a - dx >= 0 && b - dy >= 0 && at(g, a - dx, b - dy) === ".") { a -= dx; b -= dy; }
+      let e = x, f = y;
+      while (e + dx < N && f + dy < N && at(g, e + dx, f + dy) === ".") { e += dx; f += dy; }
+      const bx = a - dx, by = b - dy, ax = e + dx, ay = f + dy;
+      if (bx < 0 || by < 0 || ax >= N || ay >= N) continue;
+      if (!isInk(at(g, bx, by)) || !isInk(at(g, ax, ay))) continue;
+      const len = Math.abs(e - a) + Math.abs(f - b) + 1;
+      if (len === 1) hits.push({ x, y, axis: dx ? "h" : "v" });
+      gutter = Math.min(gutter, len);
+    }
+  }
+
+  /** Merge same-axis, same-line hits into one described run. */
+  const oneCell: string[] = [];
+  for (const axis of ["h", "v"] as const) {
+    const lines = new Map<number, number[]>();
+    for (const p of hits.filter((p) => p.axis === axis)) {
+      const key = axis === "h" ? p.x : p.y;
+      const along = axis === "h" ? p.y : p.x;
+      lines.set(key, [...(lines.get(key) ?? []), along]);
+    }
+    for (const [key, raw] of [...lines].sort((a, b) => a[0] - b[0])) {
+      const v = [...new Set(raw)].sort((a, b) => a - b);
+      const lo = v[0] + 1, hi = v[v.length - 1] + 1;
+      const span = lo === hi ? `${lo}` : `${lo}–${hi}`;
+      oneCell.push(
+        axis === "h"
+          ? `the vertical gutter at column ${key + 1} narrows to one cell across row${lo === hi ? "" : "s"} ${span}`
+          : `the horizontal gutter at row ${key + 1} is one cell tall across column${lo === hi ? "" : "s"} ${span}`,
+      );
+    }
+  }
+
+  const regions = (pred: (c: string) => boolean) => {
+    const seen = new Set<number>();
+    let count = 0;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const k = y * N + x;
+      if (seen.has(k) || !pred(at(g, x, y))) continue;
+      count++;
+      const q: [number, number][] = [[x, y]];
+      seen.add(k);
+      while (q.length) {
+        const [px, py] = q.pop()!;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = px + dx, ny = py + dy;
+          if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+          const kk = ny * N + nx;
+          if (seen.has(kk) || !pred(at(g, nx, ny))) continue;
+          seen.add(kk);
+          q.push([nx, ny]);
+        }
+      }
+    }
+    return count;
+  };
+
+  const n = pts.length;
+  const cx = pts.reduce((s, p) => s + p[0], 0) / n;
+  const cy = pts.reduce((s, p) => s + p[1], 0) / n;
+  return {
+    ink: n,
+    pct: Math.round((n / 256) * 100),
+    accent,
+    accentRegions: accent ? regions((c) => c === "+") : 0,
+    regions: regions(isInk),
+    thin,
+    gutter: gutter === 99 ? null : gutter,
+    oneCell: [...new Set(oneCell)],
+    cx, cy,
+  };
+}
+const m = measure(seed);
+
+const SPEC: [string, string][] = [
+  ["Coverage", `${m.ink} of 256 cells · ${m.pct}%`],
+  ["Ink regions", String(m.regions)],
+  ["Accent", `${m.accent} cells · ${m.accentRegions} region${m.accentRegions === 1 ? "" : "s"}`],
+  ["Thinnest feature", `${m.thin} cells`],
+  ["Narrowest gutter", m.gutter === null ? "none" : `${m.gutter} cell${m.gutter === 1 ? "" : "s"}`],
+  ["Centre of mass", `${m.cx.toFixed(2)}, ${m.cy.toFixed(2)}`],
+  ["Bleed", "all four edges"],
+];
+
+const LENS_LABEL: Record<string, string> = { brand: "Brand", pixel: "Pixel", product: "Dev" };
+const JUDGE_LABEL: Record<string, string> = {
+  brand: "Brand director",
+  pixel: "Pixel technician",
+  product: "Tiling-WM developer",
+};
+
+const title = "Your mark, examined — terminaltui";
+const description =
+  "The mark drawn by hand in the pixel editor, diagnosed by four lenses, refined along five mandates, and scored against every proposed edit.";
+---
+
+<!doctype html>
+<html lang="en" data-dir="paper" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href="https://terminaltui.dev/logo/mark/" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="https://terminaltui.dev/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="lx-top">
+      <div class="wrap lx-top-in">
+        <a href="/logo/" class="lx-back">← Logo exploration</a>
+        <button type="button" class="lx-theme" data-theme-toggle aria-label="Switch theme">Invert</button>
+      </div>
+    </header>
+
+    <main id="main" class="wrap lx">
+      <header class="lx-head">
+        <p class="pixel-eyebrow lx-eyebrow">Identity · The mark you drew</p>
+        <h1 class="lx-h1 pixel">Your mark, examined</h1>
+        <p class="lx-lede">{synth.intro}</p>
+      </header>
+
+      {/* ── 01 as drawn ────────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="drawn">
+        <p class="lx-num pixel-eyebrow">01</p>
+        <div class="lx-body">
+          <h2 id="drawn" class="lx-h2 pixel">As drawn</h2>
+          <p class="lx-p">
+            Every number below is computed from the grid at build time, not quoted from a
+            description of it. Two of them are defects, and they are the only two things on
+            this page that are not a matter of opinion.
+          </p>
+        </div>
+      </section>
+
+      <div class="mk-hero">
+        <div class="mk-hero-art">
+          <div class="mk-g mk-lt"><PixelMark grid={seed} size={168} accent="#cc3700" title="the mark as drawn" /></div>
+          <div class="mk-g mk-dk"><PixelMark grid={seed} size={168} accent="#ff6b3d" /></div>
+        </div>
+        <div class="mk-hero-side">
+          <div class="mk-sizes">
+            {[16, 24, 32, 48, 64].map((s) => (
+              <span class="mk-sz"><PixelMark grid={seed} size={s} accent="#cc3700" /><em>{s}</em></span>
+            ))}
+          </div>
+          <dl class="mk-spec">
+            {SPEC.map(([k, v]) => (
+              <div><dt>{k}</dt><dd class="tnum">{v}</dd></div>
+            ))}
+          </dl>
+          {m.oneCell.length > 0 && (
+            <p class="mk-defect">
+              <b>{m.oneCell.length === 1 ? "One one-cell gutter" : `${m.oneCell.length} one-cell gutters`}.</b>{" "}
+              {m.oneCell.map((d, i) => (
+                <>{i > 0 ? "; and " : ""}{i === 0 ? d[0].toUpperCase() + d.slice(1) : d}</>
+              ))}. Every other interval in the drawing is even, so these are out of system as
+              well as under the floor. At 16px one cell is one device pixel: the gap closes and
+              the shapes either side fuse.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── 02 why it works ────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="works">
+        <p class="lx-num pixel-eyebrow">02</p>
+        <div class="lx-body">
+          <h2 id="works" class="lx-h2 pixel">Why it works</h2>
+        </div>
+      </section>
+      <ol class="mk-points">
+        {synth.why_it_works.map((p) => (
+          <li><h3>{p.claim}</h3><p>{p.detail}</p></li>
+        ))}
+      </ol>
+
+      {/* ── 03 why it doesn't ──────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="doesnt">
+        <p class="lx-num pixel-eyebrow">03</p>
+        <div class="lx-body">
+          <h2 id="doesnt" class="lx-h2 pixel">Why it doesn't</h2>
+        </div>
+      </section>
+      <ol class="mk-points mk-points-bad">
+        {synth.why_it_doesnt.map((p) => (
+          <li><h3>{p.claim}</h3><p>{p.detail}</p></li>
+        ))}
+      </ol>
+
+      {/* ── 04 the four readings ───────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="readings">
+        <p class="lx-num pixel-eyebrow">04</p>
+        <div class="lx-body">
+          <h2 id="readings" class="lx-h2 pixel">Four readings</h2>
+          <p class="lx-p">
+            Four reviewers saw the mark with no knowledge of each other's response: one judging
+            it as an identity, one measuring it, one asking whether it is a layout a window
+            manager would actually produce, and one who had never heard of the product.
+          </p>
+        </div>
+      </section>
+
+      <div class="mk-diags">
+        {diagnoses.map((d) => (
+          <article class="mk-diag">
+            <h3 class="mk-diag-h pixel-eyebrow">{d.label}</h3>
+            <p class="mk-reads">{d.reads_as}</p>
+            <p class="mk-sub pixel-eyebrow">Works</p>
+            <ul class="mk-list">{d.works.map((w) => <li>{w}</li>)}</ul>
+            <p class="mk-sub pixel-eyebrow">Fails</p>
+            <ul class="mk-list mk-list-bad">{d.fails.map((f) => <li>{f}</li>)}</ul>
+            <p class="mk-sharp"><b>Sharpest criticism.</b> {d.sharpest_criticism}</p>
+            <p class="mk-one"><b>If one thing changed.</b> {d.priority}</p>
+          </article>
+        ))}
+      </div>
+
+      {/* ── 05 the edits ───────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="edits">
+        <p class="lx-num pixel-eyebrow">05</p>
+        <div class="lx-body">
+          <h2 id="edits" class="lx-h2 pixel">What could be better</h2>
+          <p class="lx-p">
+            {edits.length} edits across five mandates, each a different theory of what to fix.
+            None of them starts over: every one is your grid with something moved, and every one
+            has to state what the change costs. The mark as drawn was scored on the same scale,
+            so the honest answer to “does anything beat it” is a number.
+          </p>
+          <p class="mk-headline">
+            <b class="tnum">{above.length}</b> of {edits.length} scored above the mark as drawn,
+            which itself placed <b class="tnum">#{originalRank}</b> of {variants.length}.
+          </p>
+        </div>
+      </section>
+
+      <div class="mk-orig-row">
+        <VariantCard
+          id="ORIGINAL"
+          title={original.title}
+          grid={original.grid}
+          geometry={`${m.ink} ink cells (${m.pct}%); COM (${m.cx.toFixed(2)}, ${m.cy.toFixed(2)}); ${m.regions} ink regions; accent ${m.accent} cells in ${m.accentRegions} regions; thinnest ${m.thin}; narrowest gutter ${m.gutter}`}
+          mean={original.mean}
+          faults={original.faults}
+          scores={original.scores}
+          isOriginal={true}
+        />
+        <div class="mk-orig-note">
+          <p class="lx-p">
+            Your drawing, carried through the whole page for comparison. Each edit below shows a
+            three-tick bar: one tick per judge, dark for better than this, hollow for the same,
+            accent for worse.
+          </p>
+          {judges.map((j) => (
+            <p class="mk-judge">
+              <b>{JUDGE_LABEL[j.lens] ?? j.lens}.</b> {j.beats_original}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      {mandates.map((mn) => {
+        const set = edits.filter((v) => v.mandate === mn.slug);
+        if (!set.length) return null;
+        return (
+          <section class="lx-terr" aria-labelledby={`mn-${mn.slug}`}>
+            <div class="mk-mand-head">
+              <div class="mk-mand-id">
+                <h3 id={`mn-${mn.slug}`} class="lx-h3 pixel">{mn.label}</h3>
+                <code>{mn.slug}-*</code>
+              </div>
+              {noteFor(mn.slug) && <p class="mk-mand-note">{noteFor(mn.slug)}</p>}
+            </div>
+            <div class="lx-grid">
+              {set.map((v) => (
+                <VariantCard
+                  id={v.id}
+                  title={v.title}
+                  grid={v.grid}
+                  change={v.change}
+                  why={v.why}
+                  cost={v.cost}
+                  geometry={v.geometry}
+                  mean={v.mean}
+                  better={v.better}
+                  worse={v.worse}
+                  faults={v.faults}
+                  scores={v.scores}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      {/* ── 06 the scoreboard ──────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="board">
+        <p class="lx-num pixel-eyebrow">06</p>
+        <div class="lx-body">
+          <h2 id="board" class="lx-h2 pixel">The scoreboard</h2>
+          <p class="lx-p">
+            Everything on one scale, the mark as drawn included and highlighted. Judges were
+            told to say “worse than the original” whenever that was the truth, and several did.
+          </p>
+        </div>
+      </section>
+
+      <div class="mk-table-wrap">
+        <table class="mk-table">
+          <thead>
+            <tr>
+              <th scope="col" class="mk-th-l">Grid</th>
+              <th scope="col" class="mk-th-l">Mandate</th>
+              {Object.keys(JUDGE_LABEL).map((k) => <th scope="col">{LENS_LABEL[k]}</th>)}
+              <th scope="col">Mean</th>
+              <th scope="col" class="mk-th-l">vs. as drawn</th>
+            </tr>
+          </thead>
+          <tbody>
+            {variants.map((v) => (
+              <tr class={v.id === "ORIGINAL" ? "mk-tr-orig" : undefined}>
+                <th scope="row" class="mk-td-l">
+                  <a href={`#${v.id}`}>
+                    <PixelMark grid={v.grid} size={18} accent="#cc3700" />
+                    <code>{v.id}</code>
+                  </a>
+                </th>
+                <td class="mk-td-l mk-td-mand">{v.mandateLabel}</td>
+                {Object.keys(JUDGE_LABEL).map((k) => (
+                  <td class="tnum">{v.scores?.[k] ? v.scores[k].score.toFixed(1) : "—"}</td>
+                ))}
+                <td class="tnum mk-td-mean">{v.mean.toFixed(1)}</td>
+                <td class="mk-td-l mk-td-vs">
+                  {v.id === "ORIGINAL" ? "—" : (
+                    <span class="mk-ticks" aria-label={`${v.better} better, ${v.worse} worse`}>
+                      {Array.from({ length: v.better }).map(() => <i class="b"></i>)}
+                      {Array.from({ length: Object.keys(v.scores || {}).length - v.better - v.worse }).map(() => <i class="s"></i>)}
+                      {Array.from({ length: v.worse }).map(() => <i class="w"></i>)}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mk-overalls">
+        {judges.map((j) => (
+          <div class="mk-overall">
+            <h3 class="mk-diag-h pixel-eyebrow">{JUDGE_LABEL[j.lens] ?? j.lens}</h3>
+            <p>{j.overall}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── 07 verdict ─────────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="verdict">
+        <p class="lx-num pixel-eyebrow">07</p>
+        <div class="lx-body">
+          <h2 id="verdict" class="lx-h2 pixel">The verdict</h2>
+          <p class="lx-p mk-rec">{synth.recommendation}</p>
+          <h3 class="lx-h3 pixel mk-h3">Where the judges split</h3>
+          <p class="lx-p">{synth.disagreements}</p>
+        </div>
+      </section>
+
+      <footer class="lx-foot">
+        <p>
+          The mark as drawn plus {edits.length} edits, each scored by three judges. Every grid
+          renders from the same 16&times;16 array the site imports, and every measurement on this
+          page is computed from the grid rather than described. The exploration is preserved
+          as a record; the live site now ships <code>{MARK_NAME}</code>.
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      document.addEventListener("click", (e) => {
+        if (!(e.target as HTMLElement).closest("[data-theme-toggle]")) return;
+        const root = document.documentElement;
+        root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      });
+    </script>
+
+    <style>
+      .lx-top { border-bottom: 1px solid var(--color-line); position: sticky; top: 0; background: var(--color-bg); z-index: 20; }
+      .lx-top-in { display: flex; align-items: center; justify-content: space-between; min-height: 52px; }
+      .lx-back { color: var(--color-muted); text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; min-height: 44px; }
+      .lx-back:hover { color: var(--color-ink); }
+      .lx-theme {
+        font-family: var(--font-display); font-size: var(--px-xs); letter-spacing: 0.1em;
+        text-transform: uppercase; background: none; border: 1px solid var(--color-line);
+        color: var(--color-muted); padding: 0.45rem 0.7rem; cursor: pointer; min-height: 44px;
+      }
+      .lx-theme:hover { color: var(--color-ink); border-color: var(--color-ink); }
+
+      .lx { --wrap: 84rem; padding-block: clamp(3rem, 7vw, 5rem) 4rem; }
+      .lx-eyebrow { color: var(--color-accent); margin: 0 0 1rem; }
+      .lx-h1 { font-size: clamp(2rem, 6vw, var(--px-xl)); margin: 0; line-height: 1.1; }
+      .lx-lede { margin: 1.5rem 0 0; max-width: 62ch; font-size: 1.0625rem; line-height: 1.65; color: var(--color-muted); }
+      .lx-head { padding-bottom: 3rem; border-bottom: 1px solid var(--color-line); }
+
+      .lx-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; padding-top: 3.5rem; margin-bottom: 1.5rem; }
+      @media (min-width: 52rem) { .lx-sec { grid-template-columns: 5rem minmax(0, 1fr); gap: 2rem; } }
+      .lx-num { color: var(--color-accent); margin: 0; padding-top: 0.4rem; }
+      .lx-body { max-width: 62ch; min-width: 0; }
+      .lx-h2 { font-size: var(--px-md); margin: 0 0 1rem; line-height: 1.2; }
+      .lx-h3 { font-size: var(--px-sm); margin: 0 0 0.75rem; }
+      .mk-h3 { margin-top: 2rem; }
+      .lx-p { margin: 0 0 1rem; line-height: 1.65; color: var(--color-muted); }
+      .lx-p:last-child { margin-bottom: 0; }
+      .lx-p b { color: var(--color-ink); font-weight: 600; }
+      .lx-p code, .lx-foot code { font-family: var(--font-mono); font-size: 0.875em; color: var(--color-ink); }
+
+      /* ── hero ─────────────────────────────────────────────────────── */
+      .mk-hero {
+        display: grid; grid-template-columns: minmax(0, 1fr);
+        border: 1px solid var(--color-line);
+      }
+      @media (min-width: 60rem) { .mk-hero { grid-template-columns: 24rem minmax(0, 1fr); } }
+      .mk-hero-art { display: grid; grid-template-columns: 1fr 1fr; }
+      .mk-g { display: grid; place-items: center; padding: 2rem 1rem; }
+      .mk-lt { background: #fcfbf9; color: #14140f; }
+      .mk-dk { background: #12120f; color: #f0eee8; }
+      .mk-hero-side { padding: 1.5rem; min-width: 0; border-top: 1px solid var(--color-line); }
+      @media (min-width: 60rem) { .mk-hero-side { border-top: 0; border-left: 1px solid var(--color-line); } }
+
+      .mk-sizes { display: flex; align-items: flex-end; gap: 1.25rem; flex-wrap: wrap; color: var(--color-ink); margin-bottom: 1.5rem; }
+      .mk-sz { display: grid; justify-items: center; gap: 0.35rem; }
+      .mk-sz em { font-family: var(--font-display); font-size: 10px; font-style: normal; color: var(--color-muted); }
+
+      .mk-spec { margin: 0; display: grid; border-top: 1px solid var(--color-line); max-width: 34rem; }
+      .mk-spec > div {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem;
+        padding: 0.4rem 0; border-bottom: 1px solid var(--color-line);
+      }
+      .mk-spec dt { font-size: 0.8125rem; color: var(--color-muted); }
+      .mk-spec dd { margin: 0; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-ink); }
+
+      .mk-defect {
+        margin: 1.25rem 0 0; max-width: 60ch; font-size: 0.875rem; line-height: 1.6;
+        color: var(--color-muted); border-left: 2px solid var(--color-accent); padding-left: 1rem;
+      }
+      .mk-defect b { color: var(--color-ink); font-weight: 600; }
+
+      /* ── point lists ──────────────────────────────────────────────── */
+      .mk-points {
+        list-style: none; margin: 0; padding: 0;
+        display: grid; gap: 0; grid-template-columns: minmax(0, 1fr);
+        border-top: 1px solid var(--color-ink);
+      }
+      @media (min-width: 56rem) { .mk-points { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (min-width: 84rem) { .mk-points { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      .mk-points li { padding: 1.25rem 1.25rem 1.5rem 0; border-bottom: 1px solid var(--color-line); min-width: 0; }
+      @media (min-width: 56rem) { .mk-points li { border-right: 1px solid var(--color-line); padding-left: 1.25rem; } }
+      .mk-points h3 { margin: 0 0 0.5rem; font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
+      .mk-points p { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--color-muted); }
+      .mk-points-bad { border-top-color: var(--color-accent); }
+      .mk-points-bad h3 { color: var(--color-accent); }
+
+      /* ── diagnoses ────────────────────────────────────────────────── */
+      .mk-diags { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); }
+      @media (min-width: 52rem) { .mk-diags { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (min-width: 88rem) { .mk-diags { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+      .mk-diag { border-top: 2px solid var(--color-ink); padding-top: 0.875rem; min-width: 0; }
+      .mk-diag-h { margin: 0 0 0.75rem; color: var(--color-ink); }
+      .mk-reads { margin: 0 0 1rem; font-size: 0.9375rem; line-height: 1.55; color: var(--color-ink); }
+      .mk-sub { margin: 0 0 0.4rem; color: var(--color-muted); }
+      .mk-list { margin: 0 0 1rem; padding-left: 1.1rem; }
+      .mk-list li { font-size: 0.8125rem; line-height: 1.55; color: var(--color-muted); margin-bottom: 0.4rem; }
+      .mk-list-bad { list-style: none; padding-left: 0; }
+      .mk-list-bad li { padding-left: 1.1rem; position: relative; }
+      .mk-list-bad li::before { content: "×"; position: absolute; left: 0; color: var(--color-accent); }
+      .mk-sharp, .mk-one { margin: 0 0 0.75rem; font-size: 0.8125rem; line-height: 1.55; color: var(--color-muted); }
+      .mk-sharp b { color: var(--color-accent); font-weight: 600; }
+      .mk-one b { color: var(--color-ink); font-weight: 600; }
+
+      /* ── edits ────────────────────────────────────────────────────── */
+      .mk-headline {
+        margin: 1.5rem 0 0; padding: 0.875rem 1rem;
+        border: 1px solid var(--color-ink);
+        font-size: 0.9375rem; line-height: 1.6; color: var(--color-muted);
+      }
+      .mk-headline b { color: var(--color-ink); font-family: var(--font-display); font-size: 1.125rem; }
+
+      .mk-orig-row { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+      @media (min-width: 62rem) { .mk-orig-row { grid-template-columns: 22rem minmax(0, 1fr); } }
+      .mk-orig-note { min-width: 0; }
+      .mk-judge { margin: 0 0 0.875rem; font-size: 0.875rem; line-height: 1.6; color: var(--color-muted); max-width: 68ch; }
+      .mk-judge b { color: var(--color-ink); font-weight: 600; }
+
+      .lx-terr { margin-top: 3rem; }
+      .mk-mand-head {
+        display: grid; gap: 0.5rem 2rem; grid-template-columns: minmax(0, 1fr);
+        padding-bottom: 0.875rem; margin-bottom: 1.25rem; border-bottom: 2px solid var(--color-ink);
+      }
+      @media (min-width: 62rem) { .mk-mand-head { grid-template-columns: 16rem minmax(0, 1fr); align-items: baseline; } }
+      .mk-mand-id { display: flex; align-items: baseline; gap: 0.625rem; flex-wrap: wrap; }
+      .mk-mand-id .lx-h3 { margin: 0; }
+      .mk-mand-id code { font-family: var(--font-mono); font-size: 11px; color: var(--color-muted); }
+      .mk-mand-note { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--color-muted); max-width: 68ch; }
+
+      .lx-grid { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); }
+      @media (min-width: 40rem) { .lx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (min-width: 70rem) { .lx-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      @media (min-width: 92rem) { .lx-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+      /* ── table ────────────────────────────────────────────────────── */
+      .mk-table-wrap { overflow-x: auto; border: 1px solid var(--color-line); }
+      .mk-table { border-collapse: collapse; width: 100%; font-size: 0.8125rem; }
+      .mk-table th, .mk-table td { padding: 0.45rem 0.6rem; text-align: right; white-space: nowrap; }
+      .mk-table th:first-child, .mk-table td:first-child { padding-left: 1rem; }
+      .mk-table th:last-child, .mk-table td:last-child { padding-right: 1rem; }
+      .mk-table thead th {
+        font-family: var(--font-display); font-weight: 400; font-size: 10px;
+        letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted);
+        border-bottom: 1px solid var(--color-line);
+      }
+      .mk-table .mk-th-l, .mk-table .mk-td-l { text-align: left; }
+      .mk-table tbody tr { border-bottom: 1px solid var(--color-line); }
+      .mk-table tbody tr:last-child { border-bottom: 0; }
+      .mk-tr-orig { background: var(--color-surface); }
+      .mk-tr-orig .mk-td-mean { color: var(--color-accent); }
+      .mk-td-l a { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 32px; text-decoration: none; color: var(--color-ink); }
+      .mk-td-l code { font-family: var(--font-mono); font-size: 11px; }
+      .mk-td-l a:hover code { color: var(--color-accent); }
+      .mk-td-mand { color: var(--color-muted); font-size: 11px; }
+      .mk-table tbody td { color: var(--color-muted); }
+      .mk-td-mean { color: var(--color-ink); font-weight: 600; }
+      .mk-ticks { display: inline-flex; gap: 2px; }
+      .mk-ticks i { width: 14px; height: 6px; display: block; }
+      .mk-ticks .b { background: var(--color-ink); }
+      .mk-ticks .s { background: var(--color-line); }
+      .mk-ticks .w { background: var(--color-accent); }
+
+      .mk-overalls { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); margin-top: 2rem; }
+      @media (min-width: 62rem) { .mk-overalls { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      .mk-overall { border-top: 2px solid var(--color-ink); padding-top: 0.875rem; min-width: 0; }
+      .mk-overall p { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--color-muted); }
+
+      .mk-rec { font-size: 1.0625rem; }
+
+      .lx-foot {
+        margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--color-line);
+        color: var(--color-muted); font-size: 0.8125rem;
+      }
+      .lx-foot p { margin: 0; max-width: 70ch; }
+    </style>
+  </body>
+</html>

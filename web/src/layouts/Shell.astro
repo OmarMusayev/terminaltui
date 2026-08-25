@@ -11,6 +11,7 @@ import "@/styles/global.css";
 import Seo from "@/components/shared/Seo.astro";
 import Nav from "@/components/shared/Nav.astro";
 import Footer from "@/components/shared/Footer.astro";
+import { product } from "@/data/product";
 
 export type Direction = "paper" | "phosphor" | "blueprint" | "editorial" | "gallery";
 
@@ -46,6 +47,11 @@ const {
   base = "/",
   class: className = "",
 } = Astro.props;
+
+const shouldNoindex =
+  Astro.url.pathname.startsWith("/d/") ||
+  Astro.url.pathname.startsWith("/logo/") ||
+  path === "/404.html";
 ---
 
 <!doctype html>
@@ -53,7 +59,7 @@ const {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href={`/favicon.svg?v=${product.version}`} type="image/svg+xml" />
     <link
       rel="preload"
       href="/fonts/DepartureMono-Regular.woff2"
@@ -62,7 +68,7 @@ const {
       crossorigin
     />
     <link rel="alternate" type="application/rss+xml" title="terminaltui blog" href="/rss.xml" />
-    <Seo {title} {description} {path} {type} {schema} {article} />
+    <Seo {title} {description} {path} {type} {schema} {article} noindex={shouldNoindex} />
 
     {/* Resolve the theme before first paint so there is never a flash. */}
     <script is:inline define:vars={{ defaultTheme }}>
@@ -90,6 +96,20 @@ const {
 
     <script>
       // Theme toggle. Persists a deliberate choice; otherwise follows the OS.
+      const syncThemeLabels = () => {
+        const current = document.documentElement.dataset.theme;
+        for (const button of document.querySelectorAll("[data-theme-toggle]")) {
+          button.setAttribute(
+            "aria-label",
+            current === "dark" ? "Switch to light theme" : "Switch to dark theme",
+          );
+        }
+      };
+
+      // The inline head script can replace the direction's default with the
+      // stored/OS theme before this button is parsed. Keep its accessible name
+      // in sync with that actual first-paint state as well as later clicks.
+      syncThemeLabels();
       document.addEventListener("click", (e) => {
         const btn = (e.target as HTMLElement).closest("[data-theme-toggle]");
         if (!btn) return;
@@ -97,9 +117,7 @@ const {
         const next = root.dataset.theme === "dark" ? "light" : "dark";
         root.dataset.theme = next;
         try { localStorage.setItem("tt-theme", next); } catch {}
-        for (const b of document.querySelectorAll("[data-theme-toggle]")) {
-          b.setAttribute("aria-label", next === "dark" ? "Switch to light theme" : "Switch to dark theme");
-        }
+        syncThemeLabels();
       });
     </script>
   </body>

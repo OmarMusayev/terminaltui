@@ -286,11 +286,13 @@ export interface PageFitGrant {
  *     rowCap    = clamp(min(maxHeight ?? MAX_IMAGE_ROWS, availRows), 1, MAX)
  *
  * `rowCap` is the ONLY thing either input feeds (`border` and the column budget
- * depend on `availWidth` alone), so setting `maxHeight = budget - border` with
- * `availHeight` left undefined produces the identical `rowCap`, hence the
- * identical cols and blockRows. Swept over budgets 1..60 x bordered/unbordered x
- * width {undefined, 96, 40} x all three fits: 1080 cases, 0 divergences, pinned
- * by test/image-page-fit.test.ts.
+ * depend on `availWidth` alone), so setting `maxHeight = budget - border - hint`
+ * with `availHeight` left undefined produces the identical `rowCap`, hence the
+ * identical cols and blockRows. `hint` is normally zero; a controlled video
+ * spends one row on its transport. The image equivalence is swept over budgets
+ * 1..60 x bordered/unbordered x width {undefined, 96, 40} x all three fits, and
+ * the controlled-video case is swept separately in
+ * test/image-page-fit.test.ts.
  *
  * The equivalence is what lets the budget ride ON THE BLOCK instead of in
  * `RenderContext`. Populating `ctx.panelHeight` at page level — the obvious
@@ -318,7 +320,10 @@ export function pageFitImageBlock<T extends ImageBlock | VideoBlock>(
   // bordered block cannot go below 3 rows at all (the border is dropped only on
   // a WIDTH shortfall), so at a tiny leftover the page scrolls by a row or two
   // instead of the image vanishing. That is the better failure.
-  const room = Math.max(1, Math.floor(budgetRows) - borderChrome(block));
+  const room = Math.max(
+    1,
+    Math.floor(budgetRows) - borderChrome(block) - frameHintRows(block),
+  );
   const declared = normDim(block.maxHeight);
   const maxHeight = declared !== undefined && declared < room ? declared : room;
   if (maxHeight === block.maxHeight) return block;

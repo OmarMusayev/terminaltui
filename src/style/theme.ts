@@ -21,7 +21,9 @@ export type BuiltinThemeName =
   | "catppuccin"
   | "tokyoNight"
   | "rosePine"
-  | "hacker";
+  | "hacker"
+  | "flintNight"
+  | "flintDay";
 
 export const themes: Record<BuiltinThemeName, Theme> = {
   cyberpunk: {
@@ -143,6 +145,56 @@ export const themes: Record<BuiltinThemeName, Theme> = {
     error: "#ff0000",
     border: "#008f11",
     bg: "#0d0208",
+  },
+
+  /**
+   * The restrained pair. Every other theme here is a dark developer palette at
+   * high saturation, which is a fine default for a hobby project and a bad one
+   * for an app someone else's customers will look at. These two are built to be
+   * left on all day and to survive being screenshotted into a document.
+   *
+   * Three constraints shaped them, all of which the loud themes ignore:
+   *
+   *   - `subtle` is painted through the SGR dim escape at nineteen call sites in
+   *     runtime-render, so its own contrast is roughly halved before anyone sees
+   *     it. Both are held above 2.9:1 against `bg` so the hint layer still
+   *     exists after the blend, where most of the palettes above fall under 2.
+   *   - Apple Terminal does not advertise truecolor, so the renderer drops to
+   *     xterm-256 there. No two tokens in either theme quantize to the same
+   *     slot, and none of the coloured ones falls into the 232-255 grey ramp,
+   *     which would silently strip its hue.
+   *   - `success`, `warning` and `error` are separated by lightness rather than
+   *     hue, so the status system survives dichromacy and greyscale printing.
+   *     flintNight runs L* 65 / 76 / 86, flintDay 26 / 30 / 41, ascending in
+   *     both.
+   *
+   * Chroma peaks around a quarter of cyberpunk's, and every neutral sits on one
+   * hue line, so a capture of an app in these reads as a panel rather than as a
+   * hole punched in the page.
+   */
+  flintNight: {
+    accent: "#aec9e7",
+    accentDim: "#7388a0",
+    text: "#f0f2f5",
+    muted: "#adb1b4",
+    subtle: "#61666a",
+    success: "#b9e1c3",
+    warning: "#d7b68d",
+    error: "#ca8f88",
+    border: "#787d81",
+    bg: "#171a1c",
+  },
+  flintDay: {
+    accent: "#265173",
+    accentDim: "#56728f",
+    text: "#1d2022",
+    muted: "#505457",
+    subtle: "#8c9195",
+    success: "#3d694c",
+    warning: "#614112",
+    error: "#702221",
+    border: "#757a7e",
+    bg: "#f6f7f8",
   },
 };
 

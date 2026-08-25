@@ -111,7 +111,7 @@ export interface GraphicsState {
   queue: string[];
   /** Ids whose transmission is IN the queue but not yet written. */
   inFlight: number[];
-  /** A transmission was queued this frame — the placeholder rows need repainting. */
+  /** A transmission was queued this frame; active video preloads it before placement. */
   pendingTransmit: boolean;
 }
 

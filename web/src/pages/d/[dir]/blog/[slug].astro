@@ -4,12 +4,19 @@
  * entirely through tokens, so there is no per-direction branching here.
  */
 import { getCollection, render } from "astro:content";
+import type { CollectionEntry } from "astro:content";
 import Shell from "@/layouts/Shell.astro";
 import TerminalFrame from "@/components/shared/TerminalFrame.astro";
 import StarButton from "@/components/shared/StarButton.astro";
 import { DIRECTION_KEYS, getDirection, baseFor, url, formatDate, readingTime } from "@/lib/site";
 import { product } from "@/data/product";
 import "@/styles/prose.css";
+
+interface Props {
+  dir?: string;
+  base?: string;
+  post: CollectionEntry<"blog">;
+}
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog", ({ data }) => !data.draft);
@@ -18,10 +25,10 @@ export async function getStaticPaths() {
   );
 }
 
-const { dir } = Astro.params;
 const { post } = Astro.props;
-const direction = getDirection(dir!);
-const base = baseFor(dir!);
+const routeDir = Astro.props.dir ?? Astro.params.dir ?? "paper";
+const direction = getDirection(routeDir);
+const base = Astro.props.base ?? baseFor(routeDir);
 const { Content, headings } = await render(post);
 
 const minutes = readingTime(post.body ?? "");

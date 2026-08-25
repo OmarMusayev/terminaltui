@@ -9,13 +9,18 @@ import { DIRECTION_KEYS, getDirection, baseFor, url } from "@/lib/site";
 import { docSections } from "@/data/docs";
 import { product } from "@/data/product";
 
+interface Props {
+  dir?: string;
+  base?: string;
+}
+
 export async function getStaticPaths() {
   return DIRECTION_KEYS.map((dir) => ({ params: { dir } }));
 }
 
-const { dir } = Astro.params;
-const direction = getDirection(dir!);
-const base = baseFor(dir!);
+const routeDir = Astro.props.dir ?? Astro.params.dir ?? "paper";
+const direction = getDirection(routeDir);
+const base = Astro.props.base ?? baseFor(routeDir);
 ---
 
 <Shell

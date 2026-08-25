@@ -423,12 +423,10 @@ export type ImageOptions = Omit<ImageBlock, "type" | "path">;
  * the GIF decoder is pure TypeScript and ships in the box. A site rendering
  * video runs on a machine with no ffmpeg installed.
  *
- * Playback is CELLS, even on terminals with a graphics protocol. Kitty's
- * protocol forbids re-transmitting onto a live image id, so every frame would
- * need a fresh transmit plus a delete — measured at 37-44 MiB/s at 24 fps,
- * which no local pty absorbs and no ssh link survives. The quadrant tier costs
- * 52 KiB/frame for the same picture. Pixels win only when nothing is moving,
- * which is why `poster` upgrades to a real image and motion does not.
+ * In auto mode, Kitty and Ghostty receive real pixels at the pack frame's
+ * native size; other terminals receive the portable coloured-cell ladder.
+ * Both paths occupy exactly the same rows. Pinning a cell `mode` disables the
+ * graphics path, which is useful over SSH and in byte-stable snapshots.
  */
 export interface VideoBlock {
   type: "video";
@@ -455,10 +453,9 @@ export interface VideoBlock {
   /** Horizontal placement inside the block's allocation. Default "center". */
   align?: ImageAlign;
   /**
-   * Force a rendering tier, exactly as on an image — with one difference:
-   * "auto" never resolves to the kitty pixel tier for a PLAYING video, for the
-   * bandwidth reason in this interface's docblock. Pin a cell tier in demos and
-   * snapshot tests so output is byte-stable across terminals.
+   * Force a rendering tier, exactly as on an image. `"auto"` negotiates real
+   * pixels on Kitty/Ghostty and falls back to cells elsewhere; any explicit
+   * mode pins the cell path so demos and snapshots stay byte-stable.
    */
   mode?: ImageMode | "blocks";
   /** Default "auto" (= none). Same reasoning as {@link ImageBlock.dither}. */

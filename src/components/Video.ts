@@ -22,12 +22,10 @@
  *     `writeToTerminal`'s row diff like every other block. Video does not own
  *     the screen.
  *
- * THE KITTY TIER IS DELIBERATELY NOT USED FOR MOTION. `kitty.ts` forbids
- * re-transmitting onto a live image id, so each frame would cost a delete plus
- * a full transmit — measured at 1.5-1.9 MB per frame, 37-44 MiB/s at 24 fps.
- * The quadrant tier draws the same picture for 52 KiB. Pixels are strictly
- * better only when the picture is STILL, which is why `selectTier` is asked
- * for a cell tier here and a paused video is free to be a real image.
+ * On Kitty and Ghostty, auto mode first tries the graphics protocol at the
+ * pack frame's native size. Every other terminal—and any block with an explicit
+ * cell mode—uses the portable tier ladder. Both paths keep identical geometry,
+ * and a refused graphics placement falls through to cells for that frame.
  */
 
 import type { RenderContext } from "./base.js";
@@ -348,9 +346,11 @@ function frameRowsFor(
  * A video frame does not need any of that. The pack frame is already about the
  * right size, and kitty's `s`/`v` (source pixel dimensions) are independent of
  * `c`/`r` (the cell footprint) — the terminal scales it. Transmitting the pack
- * frame at its NATIVE size measures 351 KB, 0.40 ms, and 4.1 MiB/s at 12 fps.
- * That is about 7x the cell path's bytes and completely unremarkable for a
- * local pty, in exchange for actual pixels instead of quadrant glyphs.
+ * frame at its NATIVE size and using kitty's zlib transport makes the bundled
+ * 848x352 clip average 437 KiB of framed/base64 wire and 5.44 ms of encoder
+ * work per frame — 5.12 MiB/s at 12 fps. That is about 8x the cell path's bytes
+ * and practical for a local pty, in exchange for actual pixels instead of
+ * quadrant glyphs.
  *
  * A FRESH ID EVERY FRAME, deliberately: `kitty.ts` documents that
  * re-transmitting onto a live id is unspecified (kitty issue #8701). The

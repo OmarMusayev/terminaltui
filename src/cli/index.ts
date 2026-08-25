@@ -213,6 +213,7 @@ const DEMO_NAMES = [
   "welcome",
   "restaurant",
   "dashboard",
+  "cinema",
   "band",
   "coffee-shop",
   "conference",
@@ -234,6 +235,7 @@ async function runDemo(name?: string) {
     \x1b[1m\x1b[36mwelcome\x1b[0m               5-page guided tour of the framework (also: \x1b[1mterminaltui try\x1b[0m)
     \x1b[36mrestaurant\x1b[0m            Fine dining menu, wine list, reservations
     \x1b[36mdashboard\x1b[0m             Monitoring dashboard with live data
+    \x1b[36mcinema\x1b[0m                Video playback with pixels or portable colour cells
     \x1b[36mband\x1b[0m                  Band site with music, shows, merch
     \x1b[36mcoffee-shop\x1b[0m           Cozy coffee shop with menu and story
     \x1b[36mconference\x1b[0m            Tech conference with schedule and speakers

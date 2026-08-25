@@ -40,12 +40,93 @@ export interface PTYProcess {
 }
 
 /**
+ * Split the documented command-string form without asking a shell to parse it.
+ *
+ * LaunchOptions also has a separate `args` array, but examples intentionally
+ * accept `command: "npx terminaltui dev"`, and internal tests quote absolute
+ * executable paths containing spaces. A whitespace split leaves those quotes
+ * in argv (or splits the path in half), while `shell: true` used to hide the
+ * mistake by parsing the fragments a second time. Keep the small POSIX quoting
+ * grammar we actually need here: single/double quotes, escaped whitespace and
+ * empty quoted arguments. Shell operators and substitutions remain literal
+ * argv data, which is the security property of launching directly.
+ */
+function splitPosixCommand(command: string): string[] {
+  const parts: string[] = [];
+  let token = "";
+  let quote: "'" | '"' | null = null;
+  let started = false;
+
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i]!;
+
+    if (quote === "'") {
+      if (ch === "'") quote = null;
+      else token += ch;
+      started = true;
+      continue;
+    }
+
+    if (quote === '"') {
+      if (ch === '"') {
+        quote = null;
+      } else if (ch === "\\") {
+        const next = command[i + 1];
+        if (next === '"' || next === "\\" || next === "$" || next === "`") {
+          token += next;
+          i++;
+        } else {
+          token += ch;
+        }
+      } else {
+        token += ch;
+      }
+      started = true;
+      continue;
+    }
+
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      started = true;
+    } else if (ch === "\\") {
+      const next = command[i + 1];
+      if (next === undefined) token += ch;
+      else {
+        token += next;
+        i++;
+      }
+      started = true;
+    } else if (/\s/.test(ch)) {
+      if (started) {
+        parts.push(token);
+        token = "";
+        started = false;
+      }
+    } else {
+      token += ch;
+      started = true;
+    }
+  }
+
+  if (quote !== null) throw new Error("Unterminated quote in emulator command");
+  if (started) parts.push(token);
+  if (parts.length === 0) throw new Error("Emulator command cannot be empty");
+  return parts;
+}
+
+/**
  * Spawn a PTY process.
  * Tries node-pty for full terminal emulation, falls back to child_process.
  */
 export async function spawnPTY(options: LaunchOptions): Promise<PTYProcess> {
-  // Parse command into executable and arguments
-  const parts = options.command.split(/\s+/);
+  // Parse command into executable and arguments. The fallback launches this
+  // executable directly on POSIX; local node_modules/.bin paths are added
+  // below so commands such as `tsx` and `npx` do not need a shell lookup.
+  // Preserve the legacy cmd.exe token handoff on Windows; POSIX gets the
+  // quote-aware direct-launch parser above.
+  const parts = process.platform === "win32"
+    ? options.command.split(/\s+/)
+    : splitPosixCommand(options.command);
   const cmd = parts[0];
   const args = [...parts.slice(1), ...(options.args ?? [])];
   const cols = options.cols ?? 80;
@@ -165,15 +246,17 @@ function createChildProcess(
   cwd: string | undefined,
   env: Record<string, string>,
 ): PTYProcess {
-  // Resolve command — if it's "npx", "node", etc. use shell
   const proc: ChildProcess = spawn(cmd, args, {
     cwd: cwd ?? process.cwd(),
     env: { ...env, COLUMNS: String(cols), LINES: String(rows) },
     stdio: ["pipe", "pipe", "pipe"],
-    shell: true,
+    // .cmd launchers require cmd.exe on Windows. POSIX executables resolve
+    // directly through PATH; avoiding a shell there also avoids Node DEP0190
+    // and prevents arguments from being re-interpreted as shell syntax.
+    shell: process.platform === "win32",
     // Own process group (POSIX), so kill() can signal the whole tree:
-    // `npx tsx app.ts` is shell -> npx -> tsx -> node, and signalling only
-    // the direct child orphans the app alive with our pipes held open.
+    // A launcher such as `npx tsx app.ts` still creates a process tree, and
+    // signalling only the direct child can orphan the app with our pipes open.
     detached: process.platform !== "win32",
   });
 
@@ -257,6 +340,8 @@ function createChildProcess(
     },
     get pid() { return proc.pid ?? null; },
     get isRunning() { return running; },
-    get hasOnlcr() { return true; },  // shell: true in spawn sets ONLCR
+    // The pipe fallback models the ordinary terminal newline convention in the
+    // virtual screen even though it has no real slave termios to report ONLCR.
+    get hasOnlcr() { return true; },
   };
 }

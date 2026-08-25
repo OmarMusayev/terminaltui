@@ -3,11 +3,18 @@
  * A documentation page, rendered from the repository's own markdown.
  */
 import { getCollection, render } from "astro:content";
+import type { CollectionEntry } from "astro:content";
 import Shell from "@/layouts/Shell.astro";
 import { DIRECTION_KEYS, getDirection, baseFor, url } from "@/lib/site";
 import { docSections, docMeta, docNeighbours, docOrder } from "@/data/docs";
 import { product } from "@/data/product";
 import "@/styles/prose.css";
+
+interface Props {
+  dir?: string;
+  base?: string;
+  doc: CollectionEntry<"docs">;
+}
 
 export async function getStaticPaths() {
   const docs = await getCollection("docs");
@@ -17,10 +24,10 @@ export async function getStaticPaths() {
   );
 }
 
-const { dir } = Astro.params;
 const { doc } = Astro.props;
-const direction = getDirection(dir!);
-const base = baseFor(dir!);
+const routeDir = Astro.props.dir ?? Astro.params.dir ?? "paper";
+const direction = getDirection(routeDir);
+const base = Astro.props.base ?? baseFor(routeDir);
 const { Content, headings } = await render(doc);
 
 const meta = docMeta(doc.id);

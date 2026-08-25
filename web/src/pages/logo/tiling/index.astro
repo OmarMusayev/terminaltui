@@ -1,0 +1,586 @@
+---
+/**
+ * The tiling territory, explored to the end.
+ *
+ * `frame-tiling-misaligned` was one of twenty-five first-round candidates and
+ * the one the client picked out. This page takes that single idea and pushes it
+ * along six independent axes, then scores every result through three lenses.
+ *
+ * Everything renders from the same 16x16 grids the site imports, so the marks
+ * on this page are the artwork rather than pictures of it.
+ */
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import "@/styles/global.css";
+import TilingCard from "@/components/logo/TilingCard.astro";
+import MarkStrip from "@/components/logo/MarkStrip.astro";
+import InContext from "@/components/logo/InContext.astro";
+import PixelMark from "@/components/shared/PixelMark.astro";
+import data from "@/data/logo-tiling.json";
+import { MARK_NAME } from "@/data/logo";
+
+interface CriticScore {
+  id: string;
+  escapes: number;
+  legible16: number;
+  silhouette: number;
+  authored: number;
+  score: number;
+  verdict: string;
+  claimError?: string;
+}
+interface Variant {
+  id: string;
+  title: string;
+  grid: string[];
+  thesis: string;
+  at16: string;
+  risk: string;
+  geometry: string;
+  axis: string;
+  axisLabel: string;
+  mean: number;
+  spread: number;
+  scores: Record<string, CriticScore>;
+}
+
+const seed = data.seed as { id: string; name: string; grid: string[]; rationale: string; risk: string };
+const axes = data.axes as { slug: string; label: string; prompt?: string }[];
+const variants = data.variants as unknown as Variant[];
+const critiques = data.critiques as { lens: string; overall: string }[];
+const synth = data.synth as {
+  intro: string;
+  axisNotes: { slug: string; note: string }[];
+  finalists: { id: string; case: string; against: string }[];
+  recommendation: string;
+  disagreements: string;
+};
+const rejected = (data.rejected ?? []) as string[];
+
+const byId = new Map(variants.map((v) => [v.id, v]));
+const noteFor = (slug: string) => synth.axisNotes.find((n) => n.slug === slug)?.note;
+
+/** Rank is global across all six axes, so a card can carry its standing. */
+const rankOf = new Map(variants.map((v, i) => [v.id, i + 1]));
+
+const LENSES = [
+  { key: "brand", label: "Brand director", blurb: "Judges the shape in the two seconds before anyone reads the wordmark." },
+  { key: "pixel", label: "Pixel technician", blurb: "Counts cells. Does not care what it means, only whether it physically works." },
+  { key: "user", label: "Target developer", blurb: "Choosing between Ink, Bubble Tea and this. Not a designer." },
+];
+const critiqueOf = (k: string) => critiques.find((c) => c.lens === k);
+
+const top = variants[0];
+/**
+ * The synthesiser argues the finalists in its own order, which is not score
+ * order. Label them with their real standing in the 36 rather than 01..04, so
+ * the numeral never contradicts the score printed beside it.
+ */
+const finalists = synth.finalists
+  .map((f) => ({ ...f, v: byId.get(f.id), rank: rankOf.get(f.id) }))
+  .filter((f) => f.v);
+
+const CRIT_COLS = [
+  { key: "escapes", label: "Escapes" },
+  { key: "legible16", label: "16px" },
+  { key: "silhouette", label: "Silh." },
+  { key: "authored", label: "Authored" },
+] as const;
+
+const title = "The tiling territory — logo exploration — terminaltui";
+const description =
+  "One logo idea pushed along six axes: offset geometry, pane count, symmetry system, ink weight, the focused pane, and concept push. Every variant scored by three independent critics.";
+---
+
+<!doctype html>
+<html lang="en" data-dir="paper" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href="https://terminaltui.dev/logo/tiling/" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="https://terminaltui.dev/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="lx-top">
+      <div class="wrap lx-top-in">
+        <a href="/logo/" class="lx-back">← Logo exploration</a>
+        <button type="button" class="lx-theme" data-theme-toggle aria-label="Switch theme">Invert</button>
+      </div>
+    </header>
+
+    <main id="main" class="wrap lx">
+      <header class="lx-head">
+        <p class="pixel-eyebrow lx-eyebrow">Identity · Territory deep dive</p>
+        <h1 class="lx-h1 pixel">The tiling territory</h1>
+        <p class="lx-lede">{synth.intro}</p>
+      </header>
+
+      {/* ── 01 the origin ──────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="origin">
+        <p class="lx-num pixel-eyebrow">01</p>
+        <div class="lx-body">
+          <h2 id="origin" class="lx-h2 pixel">The mark this came from</h2>
+          <p class="lx-p">
+            <code>{seed.id}</code> was one of twenty-five first-round candidates and scored
+            5.0. It is the idea the client picked out of the sheet, so everything below is
+            a variation on it rather than a fresh start.
+          </p>
+        </div>
+      </section>
+
+      <div class="tl-origin">
+        <div class="tl-origin-art">
+          <PixelMark grid={seed.grid} size={132} title={seed.id} />
+          <div class="tl-origin-sizes">
+            {[16, 24, 32, 48].map((s) => (
+              <span class="tl-os"><PixelMark grid={seed.grid} size={s} /><em>{s}</em></span>
+            ))}
+          </div>
+        </div>
+        <div class="tl-origin-txt">
+          <p class="tl-kicker pixel-eyebrow">The idea</p>
+          <p class="lx-p">{seed.rationale}</p>
+          <p class="tl-kicker pixel-eyebrow">The problem to solve</p>
+          <p class="lx-p tl-risk">{seed.risk}</p>
+          <p class="lx-p tl-small">
+            That risk is the entire assignment. Six agents were each given one axis of
+            variation and told to attack it; three critics then scored the results without
+            seeing each other's cards.
+          </p>
+        </div>
+      </div>
+
+      {/* ── 02 side by side ────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="compare">
+        <p class="lx-num pixel-eyebrow">02</p>
+        <div class="lx-body">
+          <h2 id="compare" class="lx-h2 pixel">All {variants.length}, side by side</h2>
+          <p class="lx-p">
+            Ranked by the mean of the three critics. Compare the shapes first and read the
+            arguments afterwards, because that is the order a stranger meets them in.
+            Every mark links to its full entry.
+          </p>
+        </div>
+      </section>
+
+      <MarkStrip items={variants} size={56} cell={124} />
+
+      <section class="lx-sec tl-sec-tight" aria-labelledby="favicons">
+        <p class="lx-num pixel-eyebrow" aria-hidden="true"></p>
+        <div class="lx-body">
+          <h3 id="favicons" class="lx-h3 pixel">The favicon row</h3>
+          <p class="lx-p tl-small">
+            The same set at a literal 16 pixels, at real size, unmagnified. This is the
+            only test that settles anything: could you find this one in a row of open
+            tabs? Anything that turns to grey mush here is finished, whatever it looks
+            like on a card.
+          </p>
+        </div>
+      </section>
+
+      <MarkStrip items={variants} size={16} labelled={false} />
+
+      {/* ── 03 the six axes ────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="axes">
+        <p class="lx-num pixel-eyebrow">03</p>
+        <div class="lx-body">
+          <h2 id="axes" class="lx-h2 pixel">Six axes</h2>
+          <p class="lx-p">
+            One idea can only be explored properly by deciding what about it is allowed to
+            change. Each axis holds the tiling concept fixed and varies exactly one thing,
+            so the differences between cuts are attributable rather than aesthetic.
+          </p>
+        </div>
+      </section>
+
+      {axes.map((a) => {
+        const marks = variants.filter((v) => v.axis === a.slug);
+        if (!marks.length) return null;
+        return (
+          <section class="lx-terr" aria-labelledby={`ax-${a.slug}`}>
+            <div class="tl-axis-head">
+              <div class="tl-axis-id">
+                <h3 id={`ax-${a.slug}`} class="lx-h3 pixel">{a.label}</h3>
+                <code class="tl-axis-slug">{a.slug}-*</code>
+              </div>
+              {noteFor(a.slug) && <p class="tl-axis-note">{noteFor(a.slug)}</p>}
+            </div>
+            <div class="lx-grid">
+              {marks.map((m) => (
+                <TilingCard
+                  id={m.id}
+                  title={m.title}
+                  grid={m.grid}
+                  thesis={m.thesis}
+                  at16={m.at16}
+                  risk={m.risk}
+                  geometry={m.geometry}
+                  mean={m.mean}
+                  rank={rankOf.get(m.id)}
+                  scores={m.scores}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      {/* ── 04 the scoring ─────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="scores">
+        <p class="lx-num pixel-eyebrow">04</p>
+        <div class="lx-body">
+          <h2 id="scores" class="lx-h2 pixel">Three lenses</h2>
+          <p class="lx-p">
+            The same set went to three reviewers with deliberately incompatible priorities.
+            None saw the others' scores, and each was told to check the authors' geometry
+            claims rather than accept them.
+          </p>
+        </div>
+      </section>
+
+      <div class="lx-crits">
+        {LENSES.map((l) => (
+          <div class="lx-crit">
+            <h3 class="lx-crit-h pixel-eyebrow">{l.label}</h3>
+            <p class="tl-lens-blurb">{l.blurb}</p>
+            <p class="lx-p lx-crit-txt">{critiqueOf(l.key)?.overall}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="tl-table-wrap">
+        <table class="tl-table">
+          <caption class="tl-cap">
+            Every variant, every criterion, every critic. Sorted by mean. Spread is the gap
+            between the highest and lowest overall score, so a large spread marks a mark
+            the reviewers genuinely disagreed about.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" class="tl-th-mark">Mark</th>
+              <th scope="col">Axis</th>
+              {LENSES.map((l) => (
+                <th scope="col" colspan={CRIT_COLS.length + 1} class="tl-th-group">{l.label}</th>
+              ))}
+              <th scope="col" class="tl-th-num">Mean</th>
+              <th scope="col" class="tl-th-num">Spread</th>
+            </tr>
+            <tr class="tl-subhead">
+              <th scope="col"></th>
+              <th scope="col"></th>
+              {LENSES.map(() => (
+                <>
+                  {CRIT_COLS.map((c) => <th scope="col" class="tl-th-num">{c.label}</th>)}
+                  <th scope="col" class="tl-th-num tl-th-total">Sc</th>
+                </>
+              ))}
+              <th scope="col"></th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {variants.map((v, i) => (
+              <tr class={i < 3 ? "tl-tr-top" : undefined}>
+                <th scope="row" class="tl-td-mark">
+                  <a href={`#${v.id}`}>
+                    <PixelMark grid={v.grid} size={18} />
+                    <code>{v.id}</code>
+                  </a>
+                </th>
+                <td class="tl-td-axis">{v.axisLabel}</td>
+                {LENSES.map((l) => {
+                  const s = v.scores?.[l.key];
+                  return (
+                    <>
+                      {CRIT_COLS.map((c) => <td class="tnum">{s ? s[c.key] : "—"}</td>)}
+                      <td class="tnum tl-td-total">{s ? s.score.toFixed(1) : "—"}</td>
+                    </>
+                  );
+                })}
+                <td class="tnum tl-td-mean">{v.mean.toFixed(1)}</td>
+                <td class="tnum tl-td-spread">{v.spread.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <section class="lx-sec tl-sec-tight" aria-labelledby="disagree">
+        <p class="lx-num pixel-eyebrow" aria-hidden="true"></p>
+        <div class="lx-body">
+          <h3 id="disagree" class="lx-h3 pixel">Where they disagreed</h3>
+          <p class="lx-p">{synth.disagreements}</p>
+          {rejected.length > 0 && (
+            <p class="lx-p tl-small">
+              <b>{rejected.length}</b> generated {rejected.length === 1 ? "variant was" : "variants were"} rejected
+              before scoring for failing the grid contract: {rejected.join("; ")}.
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* ── 05 finalists ───────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="finalists">
+        <p class="lx-num pixel-eyebrow">05</p>
+        <div class="lx-body">
+          <h2 id="finalists" class="lx-h2 pixel">The finalists</h2>
+          <p class="lx-p">
+            Each stated twice: the strongest case for it, then the strongest case against.
+            A mark you cannot argue against is a mark nobody has looked at properly.
+          </p>
+        </div>
+      </section>
+
+      <div class="tl-finals">
+        {finalists.map((f) => (
+          <figure class="tl-final">
+            <div class="tl-final-art">
+              <PixelMark grid={f.v!.grid} size={96} title={f.id} />
+              <div class="tl-final-sizes">
+                {[16, 24, 32].map((s) => <PixelMark grid={f.v!.grid} size={s} />)}
+              </div>
+            </div>
+            <figcaption class="tl-final-cap">
+              <p class="tl-final-id">
+                <span class="tl-final-rank pixel" title={`Rank ${f.rank} of ${variants.length}`}>
+                  #{f.rank}
+                </span>
+                <code>{f.id}</code>
+                <b class="tnum">{f.v!.mean.toFixed(1)}</b>
+              </p>
+              <p class="tl-final-title">{f.v!.title}</p>
+              <p class="lx-p tl-final-txt"><b>For:</b> {f.case}</p>
+              <p class="lx-p tl-final-txt tl-against"><b>Against:</b> {f.against}</p>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+
+      {/* ── 06 in context ──────────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="context">
+        <p class="lx-num pixel-eyebrow">06</p>
+        <div class="lx-body">
+          <h2 id="context" class="lx-h2 pixel">In context</h2>
+          <p class="lx-p">
+            The top-scoring mark where it would actually live. A tiling composition has
+            more to lose here than a letterform does, because a browser tab is where its
+            gutters either hold or close up.
+          </p>
+        </div>
+      </section>
+
+      <div class="tl-ctx">
+        <div class="tl-ctx-hero">
+          <PixelMark grid={top.grid} size={84} title={top.id} />
+          <div>
+            <p class="tl-ctx-id"><code>{top.id}</code> · {top.title}</p>
+            <p class="tl-ctx-note">{top.thesis}</p>
+          </div>
+        </div>
+        <InContext grid={top.grid} />
+      </div>
+
+      {/* ── 07 recommendation ──────────────────────────────────────────── */}
+      <section class="lx-sec" aria-labelledby="pick">
+        <p class="lx-num pixel-eyebrow">07</p>
+        <div class="lx-body">
+          <h2 id="pick" class="lx-h2 pixel">The recommendation</h2>
+          <p class="lx-p tl-rec">{synth.recommendation}</p>
+          <p class="lx-p tl-small">
+            This page remains the comparison record. The live site now ships
+            <code>{MARK_NAME}</code> from <code>src/data/logo.ts</code>.
+          </p>
+        </div>
+      </section>
+
+      <footer class="lx-foot">
+        <p>
+          {variants.length} variants across six axes, scored by three critics on four
+          criteria each. Marks render from the same 16&times;16 grids the site imports, so
+          what is on this page is the artwork rather than a picture of it.
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      document.addEventListener("click", (e) => {
+        if (!(e.target as HTMLElement).closest("[data-theme-toggle]")) return;
+        const root = document.documentElement;
+        root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      });
+    </script>
+
+    <style>
+      /* Shared page chrome, matching /logo/. */
+      .lx-top { border-bottom: 1px solid var(--color-line); position: sticky; top: 0; background: var(--color-bg); z-index: 20; }
+      .lx-top-in { display: flex; align-items: center; justify-content: space-between; min-height: 52px; }
+      .lx-back { color: var(--color-muted); text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; min-height: 44px; }
+      .lx-back:hover { color: var(--color-ink); }
+      .lx-theme {
+        font-family: var(--font-display); font-size: var(--px-xs); letter-spacing: 0.1em;
+        text-transform: uppercase; background: none; border: 1px solid var(--color-line);
+        color: var(--color-muted); padding: 0.45rem 0.7rem; cursor: pointer; min-height: 44px;
+      }
+      .lx-theme:hover { color: var(--color-ink); border-color: var(--color-ink); }
+
+      .lx { --wrap: 84rem; padding-block: clamp(3rem, 7vw, 5rem) 4rem; }
+      .lx-eyebrow { color: var(--color-accent); margin: 0 0 1rem; }
+      .lx-h1 { font-size: clamp(2rem, 6vw, var(--px-xl)); margin: 0; line-height: 1.1; }
+      .lx-lede { margin: 1.5rem 0 0; max-width: 62ch; font-size: 1.0625rem; line-height: 1.65; color: var(--color-muted); }
+      .lx-head { padding-bottom: 3rem; border-bottom: 1px solid var(--color-line); }
+
+      .lx-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; padding-top: 3.5rem; margin-bottom: 1.5rem; }
+      @media (min-width: 52rem) { .lx-sec { grid-template-columns: 5rem minmax(0, 1fr); gap: 2rem; } }
+      .tl-sec-tight { padding-top: 2.5rem; }
+      .lx-num { color: var(--color-accent); margin: 0; padding-top: 0.4rem; }
+      .lx-body { max-width: 62ch; min-width: 0; }
+      .lx-h2 { font-size: var(--px-md); margin: 0 0 1rem; line-height: 1.2; }
+      .lx-h3 { font-size: var(--px-sm); margin: 0 0 0.75rem; }
+      .lx-p { margin: 0 0 1rem; line-height: 1.65; color: var(--color-muted); }
+      .lx-p:last-child { margin-bottom: 0; }
+      .lx-p b { color: var(--color-ink); font-weight: 600; }
+      .lx-p code, .tl-small code { font-family: var(--font-mono); font-size: 0.875em; color: var(--color-ink); }
+      .tl-small { font-size: 0.875rem; }
+
+      /* ── origin ───────────────────────────────────────────────────── */
+      .tl-origin {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        border: 1px solid var(--color-line);
+        margin-bottom: 1rem;
+      }
+      @media (min-width: 56rem) { .tl-origin { grid-template-columns: 22rem minmax(0, 1fr); } }
+      .tl-origin-art {
+        display: grid; place-items: center; align-content: center; gap: 1.5rem;
+        padding: 2.5rem 1.5rem; color: var(--color-ink);
+        border-bottom: 1px solid var(--color-line);
+      }
+      @media (min-width: 56rem) { .tl-origin-art { border-bottom: 0; border-right: 1px solid var(--color-line); } }
+      .tl-origin-sizes { display: flex; align-items: flex-end; gap: 1.125rem; }
+      .tl-os { display: grid; justify-items: center; gap: 0.35rem; }
+      .tl-os em { font-family: var(--font-display); font-size: 10px; font-style: normal; color: var(--color-muted); }
+      /* The panel is wide; the text inside it is not. Without a measure these
+         lines run past 130 characters. */
+      .tl-origin-txt { padding: 1.75rem 1.5rem; min-width: 0; }
+      .tl-origin-txt > * { max-width: 64ch; }
+      .tl-kicker { margin: 0 0 0.625rem; color: var(--color-ink); }
+      .tl-kicker + .lx-p { margin-bottom: 1.5rem; }
+      .tl-risk { border-left: 2px solid var(--color-accent); padding-left: 1rem; }
+
+      /* ── axis headers ─────────────────────────────────────────────── */
+      .lx-terr { margin-top: 2.75rem; }
+      .tl-axis-head {
+        display: grid; gap: 0.5rem 2rem;
+        grid-template-columns: minmax(0, 1fr);
+        padding-bottom: 0.875rem; margin-bottom: 1.25rem;
+        border-bottom: 2px solid var(--color-ink);
+      }
+      @media (min-width: 62rem) { .tl-axis-head { grid-template-columns: 16rem minmax(0, 1fr); align-items: baseline; } }
+      .tl-axis-id { display: flex; align-items: baseline; gap: 0.625rem; flex-wrap: wrap; }
+      .tl-axis-id .lx-h3 { margin: 0; }
+      .tl-axis-slug { font-family: var(--font-mono); font-size: 11px; color: var(--color-muted); }
+      .tl-axis-note { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--color-muted); max-width: 68ch; }
+
+      .lx-grid { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); }
+      @media (min-width: 34rem) { .lx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (min-width: 62rem) { .lx-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      @media (min-width: 86rem) { .lx-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+      /* ── critics ──────────────────────────────────────────────────── */
+      .lx-crits { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); margin-top: 0.5rem; }
+      @media (min-width: 62rem) { .lx-crits { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      .lx-crit { border-top: 2px solid var(--color-ink); padding-top: 0.875rem; min-width: 0; }
+      .lx-crit-h { margin: 0 0 0.5rem; color: var(--color-ink); }
+      .tl-lens-blurb { margin: 0 0 0.75rem; font-size: 0.8125rem; line-height: 1.5; color: var(--color-ink); }
+      .lx-crit-txt { font-size: 0.875rem; margin: 0; }
+
+      /* ── the score table ──────────────────────────────────────────── */
+      .tl-table-wrap { margin-top: 2.5rem; overflow-x: auto; border: 1px solid var(--color-line); }
+      .tl-table { border-collapse: collapse; width: 100%; font-size: 0.8125rem; }
+      .tl-cap {
+        caption-side: bottom; text-align: left; padding: 0.875rem 1rem;
+        font-size: 0.8125rem; line-height: 1.55; color: var(--color-muted);
+        border-top: 1px solid var(--color-line); max-width: 78ch;
+      }
+      .tl-table th, .tl-table td { padding: 0.4rem 0.55rem; text-align: right; white-space: nowrap; }
+      .tl-table th:first-child, .tl-table td:first-child { padding-left: 1rem; }
+      .tl-table th:last-child, .tl-table td:last-child { padding-right: 1rem; }
+      .tl-table thead th {
+        font-family: var(--font-display); font-weight: 400; font-size: 10px;
+        letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted);
+        border-bottom: 1px solid var(--color-line);
+      }
+      /* Two classes, so these beat `.tl-table th` (which right-aligns every
+         numeric column) without resorting to !important. */
+      .tl-table .tl-th-group { text-align: center; border-left: 1px solid var(--color-line); color: var(--color-ink); }
+      .tl-subhead th { padding-top: 0.2rem; padding-bottom: 0.5rem; }
+      .tl-subhead th:nth-child(3), .tl-subhead th:nth-child(8), .tl-subhead th:nth-child(13) { border-left: 1px solid var(--color-line); }
+      .tl-table .tl-th-mark,
+      .tl-table .tl-td-mark,
+      .tl-table .tl-td-axis { text-align: left; }
+      .tl-table tbody tr { border-bottom: 1px solid var(--color-line); }
+      .tl-table tbody tr:last-child { border-bottom: 0; }
+      .tl-tr-top { background: var(--color-surface); }
+      /* 32px clears WCAG 2.2 AA (24px minimum) with room, without inflating a
+         33-row datasheet to 44px rows. Every mark is also reachable from the
+         comparison band above, where the targets are full size. */
+      .tl-td-mark a { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 32px; text-decoration: none; color: var(--color-ink); }
+      .tl-td-mark code { font-family: var(--font-mono); font-size: 11px; }
+      .tl-td-mark a:hover code { color: var(--color-accent); }
+      .tl-td-axis { color: var(--color-muted); font-size: 11px; }
+      .tl-table tbody td { color: var(--color-muted); }
+      .tl-td-total { color: var(--color-ink); border-right: 1px solid var(--color-line); }
+      .tl-th-total { border-right: 1px solid var(--color-line); }
+      .tl-td-mean { color: var(--color-ink); font-weight: 600; }
+      .tl-td-spread { color: var(--color-muted); }
+
+      /* ── finalists ────────────────────────────────────────────────── */
+      .tl-finals { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); }
+      @media (min-width: 56rem) { .tl-finals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (min-width: 84rem) { .tl-finals { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+      .tl-final { margin: 0; border: 1px solid var(--color-line); display: flex; flex-direction: column; min-width: 0; }
+      .tl-final-art {
+        display: grid; place-items: center; gap: 1.25rem; padding: 2rem 1rem 1.5rem;
+        color: var(--color-ink); border-bottom: 1px solid var(--color-line);
+      }
+      .tl-final-sizes { display: flex; align-items: flex-end; gap: 1rem; }
+      .tl-final-cap { padding: 1rem 1.125rem 1.25rem; }
+      .tl-final-id { margin: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+      .tl-final-id code { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-ink); }
+      .tl-final-id b { font-family: var(--font-display); font-size: 11px; font-weight: 400; color: var(--color-muted); }
+      .tl-final-rank { color: var(--color-accent); font-size: 14px; }
+      .tl-final-title { margin: 0.5rem 0 0.75rem; font-size: 0.9375rem; font-weight: 600; }
+      .tl-final-txt { font-size: 0.8125rem; margin-bottom: 0.75rem; }
+      .tl-against b { color: var(--color-accent); }
+
+      /* ── in context ───────────────────────────────────────────────── */
+      .tl-ctx { margin-top: 0.5rem; }
+      .tl-ctx-hero {
+        display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap;
+        padding: 2rem; border: 1px solid var(--color-line);
+        background: var(--color-surface); margin-bottom: 1.5rem; color: var(--color-ink);
+      }
+      .tl-ctx-id { margin: 0; font-size: 0.9375rem; color: var(--color-muted); }
+      .tl-ctx-id code { font-family: var(--font-mono); color: var(--color-ink); }
+      .tl-ctx-note { margin: 0.5rem 0 0; max-width: 52ch; color: var(--color-muted); font-size: 0.9375rem; line-height: 1.55; }
+
+      .tl-rec { font-size: 1.0625rem; }
+
+      .lx-foot {
+        margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--color-line);
+        color: var(--color-muted); font-size: 0.8125rem;
+      }
+      .lx-foot p { margin: 0; max-width: 66ch; }
+    </style>
+  </body>
+</html>

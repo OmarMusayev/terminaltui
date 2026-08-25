@@ -1,0 +1,2306 @@
+{
+ "seed": {
+  "id": "frame-tiling-misaligned",
+  "name": "Tiling",
+  "grid": [
+   "................",
+   ".######..++++++.",
+   ".######..++++++.",
+   ".######..++++++.",
+   ".######..++++++.",
+   ".######.........",
+   ".######.........",
+   ".######..######.",
+   ".######..######.",
+   ".######..######.",
+   ".........######.",
+   ".........######.",
+   ".####....######.",
+   ".####....######.",
+   ".####....######.",
+   "................"
+  ],
+  "rationale": "Four solid panes on a single vertical gutter whose horizontal splits deliberately do NOT line up across the gutter — the anti-generic move, since every stock “layout” icon aligns its dividers into a cross, and the notch at the bottom-left keeps the silhouette from being a plain square.",
+  "risk": "It is still a tiled rectangle, so a harsh critic sees the layout icon from every design tool's toolbar before they see terminaltui."
+ },
+ "axes": [
+  {
+   "slug": "offset",
+   "label": "Offset geometry"
+  },
+  {
+   "slug": "count",
+   "label": "Pane count and rhythm"
+  },
+  {
+   "slug": "sym",
+   "label": "Symmetry system"
+  },
+  {
+   "slug": "weight",
+   "label": "Ink weight and bleed"
+  },
+  {
+   "slug": "focus",
+   "label": "The focused pane"
+  },
+  {
+   "slug": "push",
+   "label": "Concept push"
+  }
+ ],
+ "variants": [
+  {
+   "id": "sym-transpose-bracket",
+   "title": "Transposed brackets",
+   "grid": [
+    "................",
+    ".###########....",
+    ".###########....",
+    ".###########....",
+    ".###............",
+    ".###............",
+    ".###............",
+    ".###........###.",
+    ".###........###.",
+    ".###........###.",
+    ".###........###.",
+    ".###........###.",
+    ".......########.",
+    ".......########.",
+    ".......########.",
+    "................"
+   ],
+   "thesis": "The system is reflection across the main diagonal — transpose. Swap every row index with its column index and the mark is unchanged, yet not one diagonal line is drawn. It is two unequal L-brackets, each individually self-transpose: a large one (arms 11 long, 3 thick) anchored top-left and a smaller one (arms 8 long) anchored bottom-right, interlocking around an open 8x8 field. Because the two brackets are different sizes it is not 180-symmetric — transpose is the only operation that fixes it. The meaning is exact for this product: a layout engine that treats a row split and a column split as the same operation, so its mark is invariant when you swap the axes.",
+   "at16": "3px strokes around an 8px void — the strongest silhouette of the six at small size, and the only one that could never be mistaken for a rectangle. The size difference between the two brackets is 3 cells, enough that the interlock still reads as two unequal things rather than a symmetric frame. With no accent, the colour and monochrome versions are the same mark, so nothing degrades.",
+   "risk": "It stops being a picture of tiled panes: brackets read as crop marks, quotation glyphs, or a resize/expand UI control, and two interlocking L's are a well-trodden logo genre in their own right. It also abandons the seed's founding premise of solid panes, so the client may judge it a different territory rather than an exploration of this one — the strongest mark here and the least faithful brief-answer.",
+   "geometry": "96 ink cells, no accent; COM (7.22, 7.22), off centre by 0.28 on both axes (equal by construction); symmetry: main-diagonal reflection only (transpose verified true; C2, C4 and both orthogonal mirrors verified false); thinnest stroke 3 cells (bracket thickness); minimum clear gutter 8 cells between the two brackets.",
+   "axis": "sym",
+   "axisLabel": "Symmetry system",
+   "mean": 7.5,
+   "spread": 1,
+   "ink": 96,
+   "scores": {
+    "brand": {
+     "id": "sym-transpose-bracket",
+     "escapes": 8,
+     "legible16": 8,
+     "silhouette": 9,
+     "authored": 8,
+     "score": 7,
+     "verdict": "The only mark in the set you could pick out of a row of favicons without squinting: two unequal 3-thick L-brackets round a verified clean 8x8 void, transpose-invariant with C2/C4/both mirrors verified false, no accent to lose. It buys that by ceasing to depict panes at all, and interlocking corner brackets are their own crowded genre — crop marks, focus reticles, the macOS fullscreen control."
+    },
+    "pixel": {
+     "id": "sym-transpose-bracket",
+     "escapes": 8,
+     "legible16": 9,
+     "silhouette": 9,
+     "authored": 8,
+     "score": 8,
+     "verdict": "By measurement the most robust object in all 36: 3-cell strokes, a minimum interior gap of 8 cells (nothing else exceeds 3), only 2 cells close under bloom, 6 lost to a circle crop, no accent so mono and colour are the same drawing. Transpose verified true with C2, C4 and both mirrors verified false, and the 11-versus-8 arm difference keeps it from reading as a symmetric frame — the one mark here whose silhouette could not be mistaken for a rectangle."
+    },
+    "user": {
+     "id": "sym-transpose-bracket",
+     "escapes": 9,
+     "legible16": 9,
+     "silhouette": 9,
+     "authored": 8,
+     "score": 7.5,
+     "verdict": "The strongest pure mark in the set: unmistakable silhouette, identical in color, dark, and monochrome, and the transpose invariance (verified) is a clever product metaphor. But it has quietly left the territory — it is brackets, not panes, and interlocking L's are a crowded logo genre of their own."
+    }
+   }
+  },
+  {
+   "id": "weight-gutter-inverted",
+   "title": "Gutters as ink",
+   "grid": [
+    ".......###......",
+    ".......###......",
+    ".......###......",
+    ".......###......",
+    "##########......",
+    "##########......",
+    "##########......",
+    ".......###......",
+    ".......###......",
+    ".......###......",
+    ".......#########",
+    ".......#########",
+    ".......#########",
+    ".......###......",
+    ".......###......",
+    ".......###......"
+   ],
+   "thesis": "Invert figure and ground completely: the panes become holes that open to the outside edges and the only ink is the divider system — a 3-cell spine at cols 7-9 running the full height, one 3-cell arm running left at rows 4-6, one running right at rows 10-12. With no outer boundary the silhouette is an offset skeleton instead of a tiled rectangle, so the misalignment stops being an internal detail and becomes the entire shape. Bars are 3 cells, not 2, because a skeleton with no fill behind it needs more weight than a wall between two solids does.",
+   "at16": "The lightest variant is the most legible one: 34% ink, zero interior detail to lose, and the two arms are four rows apart so the offset reads at a glance. In light mode the panes simply are the page, which is the most honest possible statement of the idea.",
+   "risk": "There are no panes here, so there is nowhere honest for the accent to live and the mark forfeits the focused-window signal entirely; and out of context the shape reads as a pipe fitting or a mis-drawn H before it reads as a tiling.",
+   "geometry": "87 ink cells (34.0%), no accent; CoM (7.72, 7.62), off (+0.22, +0.12); no symmetry; thinnest stroke 3 cells (spine width and arm height); the 'gutters' are the panes — 4x7, 9x7, 10x6 and 3x6, each opening to two edges.",
+   "axis": "weight",
+   "axisLabel": "Ink weight and bleed",
+   "mean": 6.7,
+   "spread": 1,
+   "ink": 87,
+   "scores": {
+    "brand": {
+     "id": "weight-gutter-inverted",
+     "escapes": 9,
+     "legible16": 8,
+     "silhouette": 8,
+     "authored": 6,
+     "score": 7,
+     "verdict": "The strongest answer to the actual brief: inverting figure and ground removes the bounding rectangle entirely, so there is no square left to mistake for a toolbar button, and at 34% ink with uniform 3-cell strokes and zero interior detail it is one of the two most robust marks at 16px. It pays for that with no accent, no focused-window signal, and a real risk of reading as a pipe fitting or a mis-drawn H rather than a tiling."
+    },
+    "pixel": {
+     "id": "weight-gutter-inverted",
+     "escapes": 7,
+     "legible16": 9,
+     "silhouette": 6,
+     "authored": 6,
+     "score": 6,
+     "verdict": "Lightest at 34% ink, 3-cell strokes throughout, one connected region, no interior detail to lose and only 3 cells clipped by a circle — with transpose-bracket the safest drawing here. The form itself is the ceiling: an offset skeleton reads as a pipe fitting or a mis-drawn H, and having deleted the panes there is nothing left to misalign and nowhere honest for the accent."
+    },
+    "user": {
+     "id": "weight-gutter-inverted",
+     "escapes": 8,
+     "legible16": 9,
+     "silhouette": 7,
+     "authored": 7,
+     "score": 7,
+     "verdict": "The one real figure/ground move in the set: 34% ink, a single connected region, nothing to lose at 16px, and it accidentally resembles a box-drawing glyph — the most terminal-native thing here. The stated risk is real too: cold, it can read as a pipe fitting or a mis-set H."
+    }
+   }
+  },
+  {
+   "id": "push-cascade",
+   "title": "Descending cascade",
+   "grid": [
+    "##########......",
+    "##########......",
+    "##########......",
+    "##########......",
+    "................",
+    "................",
+    "...####..####...",
+    "...####..####...",
+    "...####..####...",
+    "...####..####...",
+    "................",
+    "................",
+    "......++########",
+    "......++########",
+    "......++########",
+    "......++########"
+   ],
+   "thesis": "Three windows stepping down and to the right — 4 rows tall each, 2-row gutters, each shifted 3 cells right of the one above — with the top step running off the left edge and the bottom step off the right, so it reads as an endless cascade cropped by the frame rather than as three neat boxes. The middle window is itself split into two 4-wide tiles, which keeps the tiling DNA inside the cascade instead of abandoning it. A 2x4 accent block sits at the leading edge of the frontmost window: the cursor, and the only thing that breaks the mark's exact 180-degree rotational symmetry.",
+   "at16": "The strongest of the six at 16px — three big masses, 2px gutters, no fine detail to lose, and the staircase silhouette is still legible at 12px. The 2-cell accent survives as a coloured leading edge rather than as a distinct block, which is a fair trade. Nothing in it depends on a feature under 4 cells except the accent.",
+   "risk": "'Cascade Windows' was a literal toolbar button from Windows 3.1 through XP, so this may swap one stock icon for an older and more embarrassing one. Worse, a cascade is the opposite of tiling — it arguably misrepresents what the framework's layout engine actually does.",
+   "geometry": "ink 112 cells (accent 8, 7.1%); centre of mass exactly (7.50, 7.50); monochrome silhouette has exact 180-degree rotational symmetry, broken only by the accent; thinnest ink stroke 4 cells, accent stripe 2 wide; gutters all 2 (rows 4-5, rows 10-11, cols 7-8).",
+   "axis": "push",
+   "axisLabel": "Concept push",
+   "mean": 6.7,
+   "spread": 2,
+   "ink": 112,
+   "scores": {
+    "brand": {
+     "id": "push-cascade",
+     "escapes": 7,
+     "legible16": 9,
+     "silhouette": 8,
+     "authored": 8,
+     "score": 6,
+     "verdict": "The most robust mark at favicon size — three 4-tall masses, 43.8% ink, exact C2 broken only by the accent, COM dead centre, and a staircase outline that still reads at 12px. Two real objections: a cascade is the opposite of tiling so the mark misdescribes the product, and stepped bars is the house style of every growth-metrics startup on earth."
+    },
+    "pixel": {
+     "id": "push-cascade",
+     "escapes": 6,
+     "legible16": 9,
+     "silhouette": 8,
+     "authored": 9,
+     "score": 8,
+     "verdict": "Every claim verified: COM exactly (7.50,7.50), exact C2 of the monochrome silhouette, uniform +3 step, uniform 4-row bands, min ink run 4, all gutters 2, nothing closes under bloom. Three stepping masses running off both edges is the second-strongest silhouette here; the only soft spot is the accent, 2 cells wide and butted straight against the ink it belongs to, so in light mode it is a low-contrast sliver and in mono it vanishes into the bar."
+    },
+    "user": {
+     "id": "push-cascade",
+     "escapes": 7,
+     "legible16": 9,
+     "silhouette": 7,
+     "authored": 8,
+     "score": 6,
+     "verdict": "As pure form it is top-three: exact C2, three clean steps, legible below 16px. But it draws cascading windows — the literal Windows 3.1 toolbar button and the opposite of what a tiling engine does — so the better it reads, the more wrong it is about the product."
+    }
+   }
+  },
+  {
+   "id": "offset-master-stack",
+   "title": "Master and stack",
+   "grid": [
+    "...........+++++",
+    "...........+++++",
+    "#########..+++++",
+    "#########..+++++",
+    "#########..+++++",
+    "#########.......",
+    "#########.......",
+    "#########..#####",
+    "#########..#####",
+    "#########..#####",
+    "#########..#####",
+    "#########..#####",
+    "#########..#####",
+    "...........#####",
+    "...........#####",
+    "...........#####"
+   ],
+   "thesis": "The offset pushed to its limit: a 9x11 master pane on the left whose top and bottom edges (rows 2 and 12) sit at least 2 cells clear of every edge in the 5-wide stack on the right (rows 0, 4, 7 and 15). Not one horizontal line is shared and no two edges come within a single cell of each other, so nothing anywhere can be misread as a near-miss. This is the master-and-stack state of an actual tiling window manager, which no design-tool layout button depicts, because those always draw an even grid. Accent is the smaller stack pane.",
+   "at16": "The strongest of the six at favicon size: one big mass, a slotted bar, one red pane, all instantly legible. Nothing important is lost, and the 2- and 3-row bites at the master's ends still register as steps because the master is 9 cells wide.",
+   "risk": "With only three panes it is the simplest mark here, and simple plus a red block in the top-right corner is one step from a 'document with a highlight' glyph. The accent also sits in a corner, exactly where the brief warns an accent stops meaning anything and starts decorating.",
+   "geometry": "169 cells, accent 25 (14.8%); COM (7.73, 7.33), 0.23 right and 0.17 high; no symmetry; thinnest stroke 5 cells; all gutters 2 cells; minimum clearance between any master edge and any stack edge is 2 cells.",
+   "axis": "offset",
+   "axisLabel": "Offset geometry",
+   "mean": 6.2,
+   "spread": 2.5,
+   "ink": 169,
+   "scores": {
+    "brand": {
+     "id": "offset-master-stack",
+     "escapes": 4,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 7,
+     "score": 5,
+     "verdict": "The cleanest and most confident build on this axis and every stated clearance is real, but 'wide block left, slotted bar right, coloured rectangle in the top-right corner' is the page-layout wireframe with a highlight, and the accent is doing corner decoration rather than naming a focused window."
+    },
+    "pixel": {
+     "id": "offset-master-stack",
+     "escapes": 4,
+     "legible16": 9,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 6,
+     "verdict": "The 2-cell minimum-clearance rule is real — I checked every master edge against every stack edge — and with min run 5 and only three objects this is among the most bulletproof at 16px. Two demerits: it is visually indistinguishable from a page-with-right-rail wireframe, and 12 of its 25 accent cells (48%) sit outside an avatar circle crop."
+    },
+    "user": {
+     "id": "offset-master-stack",
+     "escapes": 7,
+     "legible16": 9,
+     "silhouette": 7,
+     "authored": 8,
+     "score": 7.5,
+     "verdict": "Three unequal masses, not one shared edge anywhere, and it reads at every size — the one variant that looks like an actual dwm screen rather than an icon of one. The corner-parked red pane flirts with decoration, but since it is a pane the accent still means focus."
+    }
+   }
+  },
+  {
+   "id": "weight-subtract-void",
+   "title": "Closed pane",
+   "grid": [
+    "................",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..........",
+    ".#####..........",
+    ".#####..+++++++.",
+    "........+++++++.",
+    "........#######.",
+    "........#######.",
+    "........#######.",
+    "........#######.",
+    "................"
+   ],
+   "thesis": "Reach low ink by subtraction rather than by hollowing: three solid panes inside a 1-cell margin with the entire bottom-left quadrant, 5x5, simply gone. Columns are 5 and 7 cells so the surviving ink balances against the void instead of collapsing leftward; the left column runs unbroken to row 9 and stops dead, while the right column's divider sits at rows 7-8, so the two horizontal events are two rows apart and neither crosses the gutter. The accent is a 2-cell title bar on top of the lower-right pane, landing at exactly the height where the left column dies.",
+   "at16": "A missing pane is legible at one-device-pixel-per-cell in a way a 2px hole is not — set against the hollow build this is the clean test of subtraction versus hollowing, and subtraction wins outright. At 50% ink it is the lightest solid-pane build in the set and it holds its shape with no interior detail at all.",
+   "risk": "With a whole quadrant removed it stops obviously reading as a tiling and starts reading as a sidebar-plus-content web wireframe, or simply as an unfinished mark; and the 1-cell margin is invisible at 16px, so it buys nothing until sticker size.",
+   "geometry": "129 ink cells (50.4%), accent 14 (10.9%, one region); CoM (8.21, 6.63), off (+0.71, -0.87); no symmetry; thinnest stroke 2 cells (accent title bar); vertical gutter 2 cells, horizontal gutter 2 cells; 1-cell margin all round; void 5x5 at bottom-left.",
+   "axis": "weight",
+   "axisLabel": "Ink weight and bleed",
+   "mean": 5.7,
+   "spread": 1,
+   "ink": 129,
+   "scores": {
+    "brand": {
+     "id": "weight-subtract-void",
+     "escapes": 4,
+     "legible16": 7,
+     "silhouette": 6,
+     "authored": 6,
+     "score": 5,
+     "verdict": "Subtraction genuinely beats hollowing — a 5x5 missing quadrant is the only weight move here that changes the outline rather than the texture, and at 50% ink it holds with no interior detail to lose. But an L-shaped stack of panes with a coloured cap is a sidebar-plus-content wireframe with a bite taken out, and COM at (+0.71, -0.87) makes it lean hard up-right."
+    },
+    "pixel": {
+     "id": "weight-subtract-void",
+     "escapes": 5,
+     "legible16": 8,
+     "silhouette": 7,
+     "authored": 6,
+     "score": 6,
+     "verdict": "The finding is correct and my bloom test backs it: a 5x5 missing quadrant survives everything, where a 2-cell hole does not — subtraction genuinely beats hollowing at this size. Only the 7x2 accent bar sits below 3 cells and it has clear ground above it so it reads; the cost is COM 1.12 cells off diagonally and a shape that says sidebar-plus-content more than tiling."
+    },
+    "user": {
+     "id": "weight-subtract-void",
+     "escapes": 6,
+     "legible16": 8,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 6,
+     "verdict": "The missing quadrant is the most legible low-ink move in the weight axis and it survives 16px cleanly; but 'sidebar wireframe' is a fair read, and a red title bar is chrome from the wrong kind of window manager."
+    }
+   }
+  },
+  {
+   "id": "offset-half-brick-bond",
+   "title": "Half brick bond",
+   "grid": [
+    "#####...........",
+    "#####...........",
+    "#####...........",
+    "#####..#########",
+    ".......#########",
+    ".......#########",
+    "+++++..#########",
+    "+++++...........",
+    "+++++...........",
+    "+++++..#########",
+    ".......#########",
+    ".......#########",
+    "#####..#########",
+    "#####...........",
+    "#####...........",
+    "#####..........."
+   ],
+   "thesis": "A 5-wide rail of three 4-tall panes on a 6-row period, set against a 9-wide column of two 4-tall panes offset by exactly 3 rows, half the period. Every joint on the left therefore lands on the horizontal centre-line of a pane on the right and vice versa: that is masonry running bond, a pattern with a name, not a slip. The half-offset is also what forces the right column to sit 3 rows in from the top and bottom, so the silhouette break is a consequence of the system rather than a notch added afterwards. Accent is the rail's middle pane, the focused one.",
+   "at16": "The unequal column widths carry it: a thin rail of three against a wide slab of two survives, and the accent lands as one clear red brick. The casualty is the 'exactly half' precision, which at 16px just reads as offset, still the right story.",
+   "risk": "Narrow left rail plus wide right block is the shape of every sidebar-and-content icon ever drawn, and the staggered joints that distinguish it are the first thing to soften. It is also the least centred of the six, sitting 0.59 cells left of the field centre.",
+   "geometry": "132 cells, accent 20 (15.2%); COM (6.91, 7.50), 0.59 left of centre; horizontal mirror only; thinnest stroke 4 cells; all gutters 2 cells; offset 3 rows on a 6-row period.",
+   "axis": "offset",
+   "axisLabel": "Offset geometry",
+   "mean": 5.3,
+   "spread": 3,
+   "ink": 132,
+   "scores": {
+    "brand": {
+     "id": "offset-half-brick-bond",
+     "escapes": 4,
+     "legible16": 6,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 4,
+     "verdict": "Running bond is a real system and the half-period offset checks out, but at 16px the eye reads horizontal stripes, not masonry, and the 5-wide rail of three dashes looks like a scrollbar parked beside a slab. The horizontal mirror symmetry flattens it further — a bond pattern should feel like it continues, and a mirrored one visibly stops."
+    },
+    "pixel": {
+     "id": "offset-half-brick-bond",
+     "escapes": 3,
+     "legible16": 9,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5,
+     "verdict": "Every number checks out (132/20 cells, COM -0.59 x, exact top-bottom mirror, min run 4, bond offset exactly 3 on a 6 period) and at 12px the rail-versus-slab contrast is still the first thing you see. But 5-wide rail plus 9-wide slab is the sidebar-and-content wireframe, and the top-bottom mirror symmetry makes it sit there like wallpaper instead of reading as a stagger."
+    },
+    "user": {
+     "id": "offset-half-brick-bond",
+     "escapes": 6,
+     "legible16": 8,
+     "silhouette": 7,
+     "authored": 8,
+     "score": 7,
+     "verdict": "The running-bond stagger genuinely reads as a system rather than a slip, and one red brick in a rail of three identical ones is the cleanest focus statement in the offset axis. At a squint it is still sidebar-plus-content, which is the only thing keeping it out of the top tier."
+    }
+   }
+  },
+  {
+   "id": "offset-stepped-cascade",
+   "title": "Stepped cascade",
+   "grid": [
+    "####............",
+    "####............",
+    "####..++++......",
+    "####..++++......",
+    "......++++..####",
+    "......++++..####",
+    "####........####",
+    "####........####",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "......####..####",
+    "......####..####",
+    "............####",
+    "............####"
+   ],
+   "thesis": "Three identical 4-wide columns, each a 4-tall pane above a 6-tall pane, with the entire column translated down exactly 2 rows per step across two 2-cell gutters. Because the offset is a pure translation and not a mirror, the three gaps land at rows 4-5, 6-7 and 8-9 and read as a staircase descending left to right; only rows 10-11 carry ink in all three columns at once. Accent is the middle column's upper pane, the one the cascade is currently on.",
+   "at16": "The descent is what survives: mass top-left, mass bottom-right, a clear drift between them. The six panes merge into three drifting stacks, which is the intended reading anyway.",
+   "risk": "A staircase reads as motion, and motion in a static mark reads as collapse; a critic can call this a wall falling over rather than a cascade of panes. It is also the busiest composition of the six, six panes and four voids on a 16-cell field.",
+   "geometry": "120 cells, accent 16 (13.3%); COM (7.50, 7.70), 0.20 low; no symmetry of any kind; thinnest stroke 4 cells; gutters 2 cells, plus 8-cell voids where a column has stepped away; step 2 rows per column.",
+   "axis": "offset",
+   "axisLabel": "Offset geometry",
+   "mean": 5.3,
+   "spread": 2,
+   "ink": 120,
+   "scores": {
+    "brand": {
+     "id": "offset-stepped-cascade",
+     "escapes": 5,
+     "legible16": 4,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4,
+     "verdict": "The 2-row-per-column translation is exact and the down-right drift is a genuinely non-generic move, but six 4-wide blocks and four voids on a 16-cell field resolve into scatter, not staircase — in the favicon row this is one of the noisiest tiles. The idea needs three masses, not six."
+    },
+    "pixel": {
+     "id": "offset-stepped-cascade",
+     "escapes": 6,
+     "legible16": 8,
+     "silhouette": 7,
+     "authored": 8,
+     "score": 6,
+     "verdict": "Geometry verified exactly as claimed: three identical columns, uniform +2 step, only rows 10-11 carry ink in all three, min run 4, all gutters 2. Real staircase silhouette with 4x4 voids at both far corners; the cost is six objects at 47% ink, which at 12px fragments into three drifting stacks, and three equal-width columns still flirts with the equalizer/bar-chart read."
+    },
+    "user": {
+     "id": "offset-stepped-cascade",
+     "escapes": 7,
+     "legible16": 6,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 6,
+     "verdict": "The 2-rows-per-column drift is visibly rule-based, but six blocks sliding down-right read as Tetris mid-collapse more than as a workspace, and it is busy for a tab icon."
+    }
+   }
+  },
+  {
+   "id": "sym-point-rotation",
+   "title": "Half-turn split",
+   "grid": [
+    "................",
+    ".......########.",
+    ".......########.",
+    ".++++..########.",
+    ".++++..########.",
+    ".++++..########.",
+    ".++++..########.",
+    "................",
+    "................",
+    ".########..####.",
+    ".########..####.",
+    ".########..####.",
+    ".########..####.",
+    ".########.......",
+    ".########.......",
+    "................"
+   ],
+   "thesis": "The system is C2 — 180-degree point rotation about the field centre. The field is two full-width bands (rows 1-6, rows 9-14); each band carries a vertical gutter, and the two gutters sit at rotated positions (cols 5-6 above, cols 9-10 below) so no divider ever crosses the band gutter. The small 4x4 pane in each band is inset two rows from that band's outer edge, which notches the top-left and bottom-right corners as a rotational pair. Every element is the half-turn image of another, so nothing in the composition can be an accident.",
+   "at16": "All four panes are 4x4 or 8x6 with 2px gaps, so everything survives cleanly and the opposed dividers stay readable as two mismatched splits. The 2-row corner notches are 2px and register as a slight step rather than a shape. The accent is a solid 4x4 vermilion square at the upper left, the first thing the eye lands on.",
+   "risk": "This is the seed's own trick turned ninety degrees — horizontal bands with opposed vertical splits instead of vertical columns with opposed horizontal splits — so anyone who has seen the seed sees the same move again. And the silhouette leans hard on 2-cell corner notches; if those close up in a dark tab you are left with a plain divided square, the exact layout-toolbar read the brief is paying to kill.",
+   "geometry": "128 ink cells (112 ink + 16 accent = 12.5%); COM (7.50, 7.50), dead centre; symmetry C2 (180-degree rotation, verified cell-by-cell; no mirror, no C4); thinnest stroke 4 cells (the two 4x4 panes); gutters exactly 2 cells (cols 5-6, cols 9-10, rows 7-8).",
+   "axis": "sym",
+   "axisLabel": "Symmetry system",
+   "mean": 5.3,
+   "spread": 2,
+   "ink": 128,
+   "scores": {
+    "brand": {
+     "id": "sym-point-rotation",
+     "escapes": 3,
+     "legible16": 7,
+     "silhouette": 4,
+     "authored": 7,
+     "score": 4,
+     "verdict": "C2 verified cell-by-cell and every pane is 4x4 or 8x6 as claimed, so it holds cleanly at 16px — but this is the seed's own trick rotated 90 degrees, and the whole silhouette argument rests on two 2-cell corner nibbles in an otherwise complete 14x14 square. A red square in the top-left corner is not a focused pane, it is a corner."
+    },
+    "pixel": {
+     "id": "sym-point-rotation",
+     "escapes": 4,
+     "legible16": 9,
+     "silhouette": 5,
+     "authored": 9,
+     "score": 6,
+     "verdict": "The C2 claim is exact — I mapped every cell — COM is dead centre, min run 4, and only 6 cells are lost to a circle crop, making it one of the three most robust drawings in the set. It is also, as the author concedes, the seed turned 90 degrees, and the outline is a 14x14 box relieved only by two 4x2 corner notches."
+    },
+    "user": {
+     "id": "sym-point-rotation",
+     "escapes": 5,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 8,
+     "score": 6,
+     "verdict": "Immaculately paired (C2 verified) and everything holds at 16px, but it is the seed turned 90 degrees, and the solid red 4x4 pane is doing more branding than the composition earns."
+    }
+   }
+  },
+  {
+   "id": "focus-floating-pane",
+   "title": "Floated out of the tiling",
+   "grid": [
+    "........++++++..",
+    "........++++++..",
+    "######..++++++..",
+    "######..++++++..",
+    "######..........",
+    "######..........",
+    "######...#######",
+    "######...#######",
+    "######...#######",
+    "######...#######",
+    "######...#######",
+    "######...#######",
+    "######...#######",
+    "######...#######",
+    "######..........",
+    "######.........."
+   ],
+   "thesis": "Focus as z-order. Two ink panes hold a tiled column layout; a 6x4 accent block sits above the right pane, overhanging its left edge by one cell into the gutter and running off the top of the canvas — the window popped out of the tiling and floated. The overhang is doing the work: it breaks the grid's own column line, which is the only way a flat 16px drawing can say 'on top'. Three blocks in a pinwheel, no shared edges, so the silhouette can never resolve into a rectangle.",
+   "at16": "Three chunky blocks, none narrower than 6px, with 2-3px of clear ground between them — structurally the most robust of the six and the only one whose accent is a large legible shape rather than a stripe or a dot. What is lost is the one-cell overhang, which is the entire argument for 'floating'; at 16px the accent just sits above and slightly left of the right pane.",
+   "risk": "With no shared edges the tiling reading evaporates — this is three rectangles in a pinwheel, and 'panes' is only one of many things it could be (a bar chart, a logo abstraction, a Mondrian). The seed's whole virtue was that it was legibly a window layout; I may have solved the generic-icon problem by ceasing to depict the subject at all. The 24-cell accent is also the largest here and is doing more visual work than the focus idea can justify.",
+   "geometry": "164 marked (140 ink + 24 accent, 14.6%); COM (6.91, 7.82), offset (-0.59, +0.32); no symmetry, three-block pinwheel; thinnest stroke 6 cells (left slab 6 wide, right slab 7x8, accent 6x4); gutters 2 (cols 6-7 to accent, rows 4-5 accent to right slab, cols 14-15 top-right void) and 3 (cols 6-8 between slabs).",
+   "axis": "focus",
+   "axisLabel": "The focused pane",
+   "mean": 5.3,
+   "spread": 1,
+   "ink": 164,
+   "scores": {
+    "brand": {
+     "id": "focus-floating-pane",
+     "escapes": 5,
+     "legible16": 8,
+     "silhouette": 6,
+     "authored": 5,
+     "score": 5,
+     "verdict": "Structurally the most robust build here — three masses, none under 4 cells, generous ground between them — and the one-cell overhang that constitutes the entire floating argument is invisible at any size. What survives is three rectangles in a pinwheel: Mondrian, or a bar chart, not a window layout.",
+     "claimError": "'thinnest stroke 6 cells' is wrong — the accent block is 6x4, so the thinnest dimension in the mark is 4 cells, not 6. Still legal, but the stated figure is not."
+    },
+    "pixel": {
+     "id": "focus-floating-pane",
+     "escapes": 7,
+     "legible16": 8,
+     "silhouette": 6,
+     "authored": 5,
+     "score": 5,
+     "claimError": "The overhang is 1 cell — below the brief's own 2-cell floor, so the feature carrying the entire concept is sub-threshold by the set's own rule. Unstated: the accent's right edge sits 2 cells inside the right pane's right edge, so it is not an overhanging block, it is a block offset left and short right.",
+     "verdict": "Structurally the most robust masses in the set — min run 6, three chunky blocks, 2-3 cell gutters, nothing that can fail. But once the 1-cell overhang dies you have three rectangles in a pinwheel: the z-order idea is invisible and the misalignment reads as a placement error rather than as float."
+    },
+    "user": {
+     "id": "focus-floating-pane",
+     "escapes": 7,
+     "legible16": 8,
+     "silhouette": 7,
+     "authored": 7,
+     "score": 6,
+     "verdict": "Handsome, chunky, robust — and it could be the logo of any SaaS on earth; the one-cell overhang that means 'floating' is invisible at every size that matters, so the concept ships without its argument."
+    }
+   }
+  },
+  {
+   "id": "sym-pinwheel-void",
+   "title": "Quarter-turn pinwheel",
+   "grid": [
+    "................",
+    ".########..####.",
+    ".########..####.",
+    ".########..####.",
+    ".########..####.",
+    "...........####.",
+    "...........####.",
+    ".####..++..####.",
+    ".####..++..####.",
+    ".####...........",
+    ".####...........",
+    ".####..########.",
+    ".####..########.",
+    ".####..########.",
+    ".####..########.",
+    "................"
+   ],
+   "thesis": "The system is C4 — 90-degree rotation. Four congruent panes, each 8x4, each a quarter turn from the last, so every pane's short edge butts the next pane's long edge and none of them share a divider. The gutters they leave form a four-armed spiral that runs from each outer edge into the middle, and where the spiral lands sits a 2x2 vermilion square: the cursor, the one cell all four panes are arranged around. Each of the four outer edges is bitten exactly once, at a rotationally different point.",
+   "at16": "The pinwheel arms are 2px channels running edge to centre and they hold; the rotation stays legible because each side of the mark breaks in a different place. The 2x2 accent becomes a single vermilion dot rather than a square, which is arguably the better reading — it is a cursor. Everything else is 4px minimum and solid.",
+   "risk": "C4 rotation is the most-used 'this was designed' system in existence, which makes it the most anticipated: four rotated rectangles around a hole is a loading spinner, a Microsoft-family logo, and a hundred seed-stage startup marks. And the outer boundary is still a 14x14 square with four small bites taken out of it, so the toolbar-button read is wounded, not killed.",
+   "geometry": "132 ink cells (128 ink + 4 accent = 3.0%); COM (7.50, 7.50), dead centre; symmetry C4 (90-degree rotation, verified; implies C2, no mirror axis); thinnest stroke 2 cells (the accent), panes 4x8; gutters exactly 2 cells (cols 5-6, cols 9-10, rows 5-6, rows 9-10).",
+   "axis": "sym",
+   "axisLabel": "Symmetry system",
+   "mean": 5.2,
+   "spread": 3.5,
+   "ink": 132,
+   "scores": {
+    "brand": {
+     "id": "sym-pinwheel-void",
+     "escapes": 2,
+     "legible16": 7,
+     "silhouette": 3,
+     "authored": 8,
+     "score": 3,
+     "verdict": "C4 is real, the four 8x4 panes are genuinely congruent, and the 2x2 centre dot is the best-argued accent in the set — and it renders as a loading spinner. Four rotated bars around a hole is the single most-used startup mark of the last fifteen years, and the outline is a 14x14 square with four 2-cell nibbles."
+    },
+    "pixel": {
+     "id": "sym-pinwheel-void",
+     "escapes": 4,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 9,
+     "score": 6,
+     "verdict": "C4 verified true, four congruent 8x4 panes, dead-centre COM, 2-cell arms running edge to centre that hold under mild bloom — technically excellent. The accent is 4 cells, 3.0%, an isolated 2x2 island; that is a 4-pixel bet at favicon size, and four rotated rectangles around a hole is the most anticipated logo system there is."
+    },
+    "user": {
+     "id": "sym-pinwheel-void",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 6,
+     "authored": 9,
+     "score": 6.5,
+     "verdict": "Verified C4 with a 2x2 cursor at the exact centre — instantly reads as designed, and the panes-orbiting-a-cursor idea is genuinely apt. But it is also a loading-spinner / Windows-family mark and maximally centred-everything, which this client explicitly rejects."
+    }
+   }
+  },
+  {
+   "id": "push-cursor-pane",
+   "title": "Cursor as fourth pane",
+   "grid": [
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######.........",
+    "#######.........",
+    ".........#######",
+    ".........#######",
+    "+++......#######",
+    "+++......#######",
+    "+++......#######",
+    "+++......#######",
+    "+++......#######",
+    "+++......#######"
+   ],
+   "thesis": "A three-pane layout in which the fourth pane is missing and a block cursor stands in its place: the cursor is 3x6, a true 1:2 character cell, sitting in the bottom-left slot that a 7x6 pane would otherwise have filled. The 6x6 void left over is the whole point — the mark puts pane scale and character scale side by side and makes the eye compare them. The two columns keep the seed's gene, splitting at rows 6-7 on the right and rows 8-9 on the left so no divider crosses the gutter.",
+   "at16": "Three simple masses plus a vermilion bar; everything in it survives at 16px. The 6x6 bottom-left void is far too large to fill in, so the missing pane still reads as deliberate. The cursor at 3px wide is thin but holds because it is 6 cells tall.",
+   "risk": "Strip the colour and the cursor is just a small pane, at which point the mark is a three-pane layout with a badly balanced corner — the entire concept rests on the accent, and the brief requires the mark to work as a monochrome silhouette. It is also the closest of the six to the seed and therefore adds the least new territory.",
+   "geometry": "ink 172 cells (accent 18, 10.5%); centre of mass (7.92, 6.80) = +0.42 / -0.70; no symmetry axis; thinnest stroke 3 cells (cursor width); gutters all 2 (cols 7-8, rows 6-7, rows 8-9), plus an L-shaped void of 9x2 and 6x6 at bottom-left.",
+   "axis": "push",
+   "axisLabel": "Concept push",
+   "mean": 5.2,
+   "spread": 2.5,
+   "ink": 172,
+   "scores": {
+    "brand": {
+     "id": "push-cursor-pane",
+     "escapes": 5,
+     "legible16": 8,
+     "silhouette": 6,
+     "authored": 6,
+     "score": 5,
+     "verdict": "The 6x6 corner void is the largest deliberate hole in any of the full-bleed builds and it survives monochrome as a small block sitting alone in an empty slot, which is more than most accents here manage. But two-thirds of the mark above it is the plain 2-column seed at 67% ink, so the toolbar critic still gets most of what they came for."
+    },
+    "pixel": {
+     "id": "push-cursor-pane",
+     "escapes": 3,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4,
+     "verdict": "The 6x6 void is far too large to fill in and the 3x6 cursor holds because it is 6 tall, so it does work at 16px. It works as a two-column full-bleed tiling with a corner missing — closest of the six to the seed — and the concept fails twice over: in monochrome the cursor is just a small pane, and a circle crop removes 10 of its 18 cells."
+    },
+    "user": {
+     "id": "push-cursor-pane",
+     "escapes": 6,
+     "legible16": 8,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 6.5,
+     "verdict": "Putting a character-scale cursor in a pane-scale slot is the truest terminal statement in the set and every element survives 16px; but the top half is still the classic quartered split, and in monochrome the cursor demotes to a small, oddly-placed pane."
+    }
+   }
+  },
+  {
+   "id": "count-bar-and-two",
+   "title": "Bar, tag, two panes",
+   "grid": [
+    "................",
+    ".++++..########.",
+    ".++++..########.",
+    ".++++..########.",
+    "................",
+    "................",
+    ".#########..###.",
+    ".#########..###.",
+    ".#########..###.",
+    ".#########..###.",
+    ".#########..###.",
+    ".#########..###.",
+    ".#########..###.",
+    ".#########......",
+    ".#########......",
+    "................"
+   ],
+   "thesis": "Drop the pane count to two and spend the saved ink on chrome instead: a 4x3 accent tag and an 8x3 status bar across the top, then a 9x9 main window and a 3x7 side window below. The bar is the single most specific thing on a tiling-WM screen and no design-tool layout icon has one, so it does more anti-generic work than any pane arrangement can. The accent is the active workspace tag — the one element on a real dwm bar that is ever coloured — and the side pane stopping two rows early puts a bite in the bottom-right corner.",
+   "at16": "The 3px bar with its red tag survives as a distinct band above a body, which is the whole idea, and the main pane is the largest single block in the set so it anchors hard. The 3-wide side pane and the 2-row corner bite are the first casualties — they compress into a slightly irregular right edge.",
+   "risk": "The mark hands its entire meaning to a 3px bar, and a bar above a body is also exactly what a browser window, a title bar, and every \"application window\" icon look like — that is a worse cliché than the layout icon it was meant to dodge. Underneath it, the two panes are the plainest possible split.",
+   "geometry": "138 ink cells (12 accent, 8.7%); COM (6.96, 7.76) → off (-0.54, +0.26); no symmetry; thinnest stroke 3 cells (bar height, side-pane width); all gutters 2 (cols 5-6 in the bar, cols 10-11 between panes, rows 4-5 between bar and body).",
+   "axis": "count",
+   "axisLabel": "Pane count and rhythm",
+   "mean": 5,
+   "spread": 2,
+   "ink": 138,
+   "scores": {
+    "brand": {
+     "id": "count-bar-and-two",
+     "escapes": 4,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5,
+     "verdict": "The segmented status bar with a coloured workspace tag is the most product-specific single element anyone drew, and it survives at 16px — but a band above a body is the universal application-window glyph, and beneath it sit the two plainest rectangles in the set. Right instinct, wrong container."
+    },
+    "pixel": {
+     "id": "count-bar-and-two",
+     "escapes": 2,
+     "legible16": 8,
+     "silhouette": 3,
+     "authored": 6,
+     "score": 4,
+     "verdict": "All 138 cells account for exactly as described and the 3-cell bar survives 12px legibly. That is the problem: my downsample looks precisely like a browser window — coloured tab, title band, content area, right rail — which is a worse cliché than the one being escaped."
+    },
+    "user": {
+     "id": "count-bar-and-two",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 6,
+     "verdict": "The status bar with one colored workspace tag is the most terminal-specific piece of chrome anywhere in this set; the trouble is that bar-over-body is also every OS's window icon, so the truest detail buys the most generic frame."
+    }
+   }
+  },
+  {
+   "id": "push-t-panes",
+   "title": "Panes build the t",
+   "grid": [
+    ".....#####......",
+    ".....#####......",
+    ".....#####......",
+    "................",
+    "................",
+    "###..#####..####",
+    "###..#####..####",
+    "###..#####..####",
+    "###..#####..####",
+    ".....#####......",
+    ".....#####......",
+    ".....#####......",
+    ".....#####..++++",
+    ".....#####..++++",
+    ".....#####..++++",
+    ".....#####..++++"
+   ],
+   "thesis": "Five tiles on 2-cell gutters that assemble into a lowercase t: a 5x3 ascender pane, a 2-row gutter, a crossbar built from three separate tiles (3 wide left arm, 5 wide stem, 4 wide right arm), an 11-row stem, and a 4x4 accent block dropped where the foot would kick right. There is no bounding rectangle anywhere in the mark, so there is nothing to mistake for a window frame. The gutters are load-bearing: they are what makes a letterform read as a tiling rather than as type.",
+   "at16": "Stem, crossbar and accent block are four distinct masses at 16px and the letter holds. The rows 3-4 gutter above the ascender may optically close in light mode, fusing the ascender into the stem — which if anything improves the t. The 4x4 accent block reads as a cursor parked at the lower right.",
+   "risk": "A letterform abdicates the tiling idea: with arms this short it can read as a dagger, a plus or an unhappy cross, and it fights the wordmark's own t sitting two centimetres away on the page. It is also the variant most likely to be described as 'a t' rather than as terminaltui.",
+   "geometry": "ink 114 cells (accent 16, 14.0%); centre of mass (8.19, 8.45) = +0.69 / +0.95, deliberately down-right like the glyph; no symmetry axis; thinnest stroke 3 cells (left arm); gutters 2 (rows 3-4, cols 3-4, cols 10-11) and 3 (rows 9-11, right arm to foot).",
+   "axis": "push",
+   "axisLabel": "Concept push",
+   "mean": 5,
+   "spread": 4,
+   "ink": 114,
+   "scores": {
+    "brand": {
+     "id": "push-t-panes",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 6,
+     "authored": 4,
+     "score": 3,
+     "verdict": "Both arms sit at the same rows 5-8, so this is a plus or a dagger, not a t, and the 2-row break in the ascender makes the top look detached rather than tiled. COM at (+0.69, +0.95) is nearly a full cell down-right, and the 4x4 accent square floats free of the letterform with no relationship to it."
+    },
+    "pixel": {
+     "id": "push-t-panes",
+     "escapes": 7,
+     "legible16": 6,
+     "silhouette": 7,
+     "authored": 5,
+     "score": 5,
+     "verdict": "No bounding rectangle anywhere and min run 3, so the letterform silhouette genuinely survives and could not be mistaken for a tile grid. But COM is 1.17 cells low-right, and the detached 4x4 accent parked in the bottom-right corner loses 10 of its 16 cells (62%) to an avatar circle crop — the second-worst accent placement here."
+    },
+    "user": {
+     "id": "push-t-panes",
+     "escapes": 8,
+     "legible16": 7,
+     "silhouette": 7,
+     "authored": 8,
+     "score": 7,
+     "verdict": "The best concept-push: a pixel t assembled from tiles with a red block cursor parked at the baseline right of the stem — which is exactly what a shell prompt looks like, so the mark says two true things at once. The real risks are that it reads as a plus/cross first and that it will argue with the wordmark's own t."
+    }
+   }
+  },
+  {
+   "id": "offset-pinwheel-slabs",
+   "title": "Pinwheel slabs",
+   "grid": [
+    "###########..+++",
+    "###########..+++",
+    "###########..+++",
+    "###########..+++",
+    "###########..+++",
+    "###########..+++",
+    ".............+++",
+    ".............+++",
+    "###.............",
+    "###.............",
+    "###..###########",
+    "###..###########",
+    "###..###########",
+    "###..###########",
+    "###..###########",
+    "###..###########"
+   ],
+   "thesis": "The largest offset available: the vertical gutter does not step, it teleports, from cols 11-12 in the top half to cols 3-4 in the bottom half, an 8-cell jump. What remains is a 180-degree-symmetric pinwheel, an 11x6 slab top-left with a 3x8 tab running down its right, and the identical pair rotated a half turn beneath. The two tabs overlap rows 6-9, so the halves interlock instead of falling apart into two separate bars. Accent is the upper tab, the narrow focused column.",
+   "at16": "Two heavy slabs and a red sliver: bold and unmistakable, and the 3px tab still reads clearly as vermilion. The pinwheel logic itself does not survive, and at 16px this becomes offset bars with a red edge, which is a decent second-best.",
+   "risk": "The 3-cell tabs are the thinnest shapes in the entire set and they carry the whole pinwheel argument; lose them and this is two offset bars. At 70% ink it is also the second-heaviest mark here, and the accent tab touching the top-right corner is a hair away from being a decorative flag.",
+   "geometry": "180 cells, accent 24 (13.3%); COM (7.50, 7.50), dead centre; exact 180-degree rotational symmetry of the ink silhouette with the accent as the only asymmetry; thinnest stroke 3 cells (the tabs); gutters 2 cells plus a 4-row void mid-column; gutter displacement 8 cells between halves.",
+   "axis": "offset",
+   "axisLabel": "Offset geometry",
+   "mean": 4.8,
+   "spread": 1.5,
+   "ink": 180,
+   "scores": {
+    "brand": {
+     "id": "offset-pinwheel-slabs",
+     "escapes": 4,
+     "legible16": 6,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4,
+     "verdict": "Two heavy slabs with a red flag on the top-right corner; at 70% ink and only 8 of 60 perimeter cells empty the pinwheel argument never surfaces, and the 3-cell tabs carrying it are the thinnest shapes in the set. The accent hugging two edges is exactly the decorative-corner failure the brief warns about.",
+     "claimError": "'The two tabs overlap rows 6-9, so the halves interlock' is false. The accent tab occupies rows 0-7 and the ink tab rows 8-15 — they abut, they never overlap, and the mark separates cleanly into two non-interlocking halves along the row 7/8 line. Nothing holds the halves together."
+    },
+    "pixel": {
+     "id": "offset-pinwheel-slabs",
+     "escapes": 5,
+     "legible16": 6,
+     "silhouette": 5,
+     "authored": 8,
+     "score": 5,
+     "verdict": "C2 verified exact with the accent as the sole asymmetry and COM dead centre — the authoring evidence is genuine. But rows 6-9 carry nothing except a 3-cell tab at one edge, so the middle of the mark is a near-void that the whole interlock hangs on, and the corner-anchored accent loses 42% of itself to a circle crop."
+    },
+    "user": {
+     "id": "offset-pinwheel-slabs",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 5.5,
+     "verdict": "The C2 interlock checks out, but the vermilion tab glued to the top-right corner is exactly the decorative corner accent the brief bans, and the 3-wide tabs are the frailest strokes in the whole set."
+    }
+   }
+  },
+  {
+   "id": "count-master-stack",
+   "title": "Master and stack",
+   "grid": [
+    "................",
+    "...........####.",
+    "...........####.",
+    ".########..####.",
+    ".########..####.",
+    ".########.......",
+    ".########.......",
+    ".########..++++.",
+    ".########..++++.",
+    ".########..++++.",
+    ".########.......",
+    ".########.......",
+    ".########..####.",
+    "...........####.",
+    "...........####.",
+    "................"
+   ],
+   "thesis": "State the real layout literally: one 8x10 master pane on the left and a stack of three windows (4x4, 4x3, 4x3) in a single 4-wide column on the right — dwm/i3's default and the most recognisable tiling arrangement in existence. The stack column runs the full 14 rows while the master is inset two rows top and bottom, so the left edge of the silhouette is bitten twice and the mark is not a tiled square. The accent is the middle stack window, not the master: focus is on the small pane, which is what actually happens when you are editing in one window and watching three others.",
+   "at16": "The master survives as one confident block and the stack survives as three separated ticks — 4x4/4x3/4x3 with 2px gaps is right at the edge but holds. The two 2-row bites out of the left edge shrink to 2px steps, which is enough to stop the outline reading as a rectangle but not enough to be a feature.",
+   "risk": "This is the most literal cut and therefore the most generic-looking: to anyone who has never run a tiling WM, \"big block left, three small blocks right\" is a Bootstrap grid icon or a page-with-a-right-rail wireframe, not a terminal. The master-and-stack reading is only legible to the audience that already knows the product.",
+   "geometry": "120 ink cells (12 accent, 10.0%); COM (7.17, 7.43) vs (7.5,7.5) → off (-0.33, -0.07); no symmetry, deliberately staggered; thinnest stroke 3 cells (stack window height); all gutters exactly 2 (col 9-10 vertical, rows 5-6 and 10-11 horizontal).",
+   "axis": "count",
+   "axisLabel": "Pane count and rhythm",
+   "mean": 4.8,
+   "spread": 1.5,
+   "ink": 120,
+   "scores": {
+    "brand": {
+     "id": "count-master-stack",
+     "escapes": 2,
+     "legible16": 7,
+     "silhouette": 4,
+     "authored": 7,
+     "score": 4,
+     "verdict": "Textbook master-and-stack, every dimension as stated, and the most literal answer in the set — which is the problem: an 8x10 block beside three stacked ticks inside a 14x14 box is the Bootstrap-grid / page-with-right-rail wireframe, and the 2-row bites in the left edge are too shallow to argue otherwise."
+    },
+    "pixel": {
+     "id": "count-master-stack",
+     "escapes": 3,
+     "legible16": 6,
+     "silhouette": 4,
+     "authored": 6,
+     "score": 5,
+     "verdict": "Verified: master 8x10 inset exactly 2 rows from the stack at both ends, stack windows 4x4/4x3/4x3, all gutters 2, COM (7.17,7.43). The 3-cell stack windows are the weak point — at 12px they smear into a dashed rail — and the outline is a 14x14 box with two 2-row nibbles, which is not an outline."
+    },
+    "user": {
+     "id": "count-master-stack",
+     "escapes": 5,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 7,
+     "score": 5.5,
+     "verdict": "Product-true — dwm's default, focus on a stack window — but visually it is big-block-left, three-ticks-right: a Bootstrap grid icon to anyone who has not run i3, exactly as the author fears."
+    }
+   }
+  },
+  {
+   "id": "offset-jogged-gutter",
+   "title": "Jogged gutter",
+   "grid": [
+    "######..####....",
+    "######..####....",
+    "######..####....",
+    "######..####....",
+    "######..########",
+    "######..########",
+    "######..########",
+    "######......####",
+    "######......####",
+    "##########..####",
+    "##########..####",
+    "##########..####",
+    "....######..####",
+    "....######..####",
+    "....######..####",
+    "....######..####"
+   ],
+   "thesis": "Invert the premise of the axis: keep the splits and move the divider instead. One continuous stepped gutter runs down cols 6-7 for seven rows, jogs right across a 6-cell horizontal segment at rows 7-8, then continues down cols 10-11, dividing the field into exactly two panes rather than four. The left pane widens from 6 cells to 10 at the jog while the right narrows from 8 to 4, and 4x4 bites at top-right and bottom-left keep the outline off a rectangle.",
+   "at16": "The white Z-seam is 2px, continuous, and it holds: this reads as one dark tile cut by a step. The two panes survive; that the right pane is wide at the top and narrow at the bottom is about the last thing anyone registers.",
+   "risk": "At 72% ink this is very nearly a filled square with a crack in it, which is the exact silhouette failure the brief bans, and in dark mode it is a solid light block doing the same thing. It also surrenders the 'panes' read: two regions is not obviously a tiling.",
+   "geometry": "184 ink cells, 0 accent; COM (7.28, 7.50), 0.22 left; no symmetry; thinnest stroke 4 cells (the right pane's limbs); gutter 2 cells, widening to 6 across the jog; exactly 2 connected regions.",
+   "axis": "offset",
+   "axisLabel": "Offset geometry",
+   "mean": 4.7,
+   "spread": 2,
+   "ink": 184,
+   "scores": {
+    "brand": {
+     "id": "offset-jogged-gutter",
+     "escapes": 4,
+     "legible16": 7,
+     "silhouette": 4,
+     "authored": 6,
+     "score": 4,
+     "verdict": "The stepped Z-seam is genuinely legible at 16px and more distinctive than most of the set, but at 71.9% ink with only 18 of 60 bounding-perimeter cells empty this is the filled-square-with-a-crack the brief explicitly bans, and two amorphous regions is not a tiling. The author's self-assessment is honest and correct."
+    },
+    "pixel": {
+     "id": "offset-jogged-gutter",
+     "escapes": 3,
+     "legible16": 9,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 4,
+     "claimError": "The stated geometry of the two panes is wrong. The left region is 6 wide (rows 0-8), 10 wide (rows 9-11), then 6 wide again shifted right (cols 4-9, rows 12-15); the right region is 4 wide (rows 0-3), 8 wide (rows 4-6), then 4 wide (rows 7-15). Neither 'widens from 6 to 10' nor 'narrows from 8 to 4' — both bulge and return, so this is an interlock, not a single stepped gutter.",
+     "verdict": "At 71.9% ink the silhouette is a solid square with a crack in it plus two 4x4 corner bites — that is rule 5 in everything but name, and in dark mode it is a light blob. Physically robust (min run 4, 2 components, nothing closes under bloom) but it has traded the four-pane read for a shape with no outline."
+    },
+    "user": {
+     "id": "offset-jogged-gutter",
+     "escapes": 6,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 7,
+     "score": 6,
+     "verdict": "A bold stamp with a memorable Z-seam, but at 72% ink it is a filled square with a crack — a glowing slab in dark mode — and two regions stops reading as a tiling at all."
+    }
+   }
+  },
+  {
+   "id": "focus-block-cursor",
+   "title": "Cursor in the open pane",
+   "grid": [
+    "##########......",
+    "##########......",
+    "##++....##..####",
+    "##++....##..####",
+    "##++....##..####",
+    "##......##..####",
+    "##......##..####",
+    "##########..####",
+    "##########..####",
+    "............####",
+    "............####",
+    "########....####",
+    "########....####",
+    "########....####",
+    "########....####",
+    "########....####"
+   ],
+   "thesis": "Give focus two independent signals that agree. The focused pane is the only one drawn OPEN — a 10x9 frame with 2-cell walls and a 6x5 interior — while the other two panes are solid ink, so it is the one pane you can see into. Inside that interior, at the top-left where a fresh prompt puts it, sits a 2-wide x 3-tall accent block cursor. The hollow also fixes the seed's core problem outright: a mark with a hole in it cannot be mistaken for a filled layout tile.",
+   "at16": "The frame and its 6x5 window survive comfortably — the hole is the mark's whole identity and it is 6px across. The cursor is 2x3 device pixels: it reads as a decisive dot of vermilion in a window, which is exactly what a cursor looks like at that scale, but it is a dot, not a shape. Everything else is 2px walls and solid blocks, all safe.",
+   "risk": "Six accent cells is the smallest bet on the page and at a browser-tab size it is a speck that could equally be dust, a notification badge, or a rendering artefact — the 'cursor' reading is available only to someone who already knows to look for it. Worse, a hollow rectangle containing a small mark is the universal picture-frame / image-placeholder glyph, so I may have escaped the layout toolbar only to land in the media toolbar.",
+   "geometry": "162 marked (156 ink + 6 accent, 3.7%); COM (7.29, 7.74), offset (-0.21, +0.24); frame is doubly mirror-symmetric about its own centre, whole mark asymmetric; thinnest stroke 2 cells (frame walls, cursor width); gutters 2 (cols 10-11, rows 9-10) and 4 (cols 8-11 between bottom and right panes); interior void never narrower than 2 cells.",
+   "axis": "focus",
+   "axisLabel": "The focused pane",
+   "mean": 4.7,
+   "spread": 3,
+   "ink": 162,
+   "scores": {
+    "brand": {
+     "id": "focus-block-cursor",
+     "escapes": 3,
+     "legible16": 6,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 3,
+     "verdict": "The author called it exactly: a 2-cell-walled rectangle with a 6x5 hole and a small coloured mark inside is the universal image-placeholder glyph, and the 16px render lands there immediately. Six accent cells is the smallest bet in the set and in monochrome the cursor fuses into the frame wall, turning the hole into an L-shaped notch."
+    },
+    "pixel": {
+     "id": "focus-block-cursor",
+     "escapes": 5,
+     "legible16": 6,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 5,
+     "verdict": "The frame is the good part: 2-cell walls with a 6x5 interior that still measures 4-5 cells wide after mild bloom, and a hole is a real silhouette asset. The cursor is 6 cells wedged into the frame's inner corner touching ink on two sides — in light mode that is vermilion on near-black at 6 device pixels, and a hollow rectangle with a speck in it is the image-placeholder glyph."
+    },
+    "user": {
+     "id": "focus-block-cursor",
+     "escapes": 7,
+     "legible16": 6,
+     "silhouette": 6,
+     "authored": 7,
+     "score": 6,
+     "verdict": "The open pane kills the filled-tile read, which is real progress; but the cursor is butted directly against the frame wall, so it reads as a lump on the wall rather than a mark inside the window, and in monochrome it deforms the frame instead of disappearing gracefully."
+    }
+   }
+  },
+  {
+   "id": "focus-solid-among-outlines",
+   "title": "One solid, two open",
+   "grid": [
+    "#######.........",
+    "#######.........",
+    "##...##..#######",
+    "##...##..#######",
+    "##...##..##...##",
+    "#######..##...##",
+    "#######..##...##",
+    ".........##...##",
+    ".........##...##",
+    "#######..##...##",
+    "#######..##...##",
+    "#######..##...##",
+    "#######..#######",
+    "#######..#######",
+    "#######.........",
+    "#######........."
+   ],
+   "thesis": "No accent at all. Three panes: two drawn as 2-cell-walled outlines and one — bottom-left, 7x7 — drawn solid. Weight alone carries focus, and it carries it more forcefully than colour does, because a filled shape against outlined shapes is a figure/ground difference rather than a hue difference. Two hollows also gut the layout-icon reading: every toolbar layout glyph is filled tiles, none of them are open frames.",
+   "at16": "The best-behaved of the six. Two 3px holes and 2px walls are exactly at the survival threshold and hold at pixel-exact 16px; the solid block is unambiguous. Because there is no colour to lose, the tab favicon, the sticker, the monochrome stamp and the OG image are all the same drawing — nothing degrades between contexts.",
+   "risk": "The 3-cell interiors are the whole idea and they are one bad downscale away from filling in — at 15px or on a low-DPI render the frames turn into blobs and the mark becomes three solid tiles, i.e. the exact generic layout icon the brief is trying to escape. And in refusing the accent it gives up the house style's one recurring colour, so it will be the odd mark out on a page where vermilion appears three times.",
+   "geometry": "149 marked (149 ink + 0 accent, 0%); COM (6.62, 7.77), offset (-0.88, +0.27); each frame doubly mirror-symmetric about its own centre, whole mark asymmetric; thinnest stroke 2 cells (frame walls); interior voids 3x3 and 3x8; gutters 2 (cols 7-8, rows 7-8).",
+   "axis": "focus",
+   "axisLabel": "The focused pane",
+   "mean": 4.7,
+   "spread": 2,
+   "ink": 149,
+   "scores": {
+    "brand": {
+     "id": "focus-solid-among-outlines",
+     "escapes": 4,
+     "legible16": 6,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4,
+     "verdict": "Figure/ground as a focus device is the right instinct and refusing the accent means the favicon, the sticker and the stamp are one drawing — but at 16px it resolves to a square with two slots cut in it, and the 3-cell interiors are one imperfect downscale from blobbing into three solid tiles, which is the generic icon exactly. COM off 0.88 left with nothing in the composition to justify it."
+    },
+    "pixel": {
+     "id": "focus-solid-among-outlines",
+     "escapes": 5,
+     "legible16": 3,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4,
+     "verdict": "Under mild bloom the 3x3 interior collapses to a single cell and the 3x8 pinches at both ends — at 12px the top-left hole is a 1px speck — so the one distinction the mark exists to make is the first thing to go. Having no accent is a genuine strength (mono equals colour) but COM at -0.88 in x is the largest single-axis drift here with nothing visible explaining it."
+    },
+    "user": {
+     "id": "focus-solid-among-outlines",
+     "escapes": 7,
+     "legible16": 6,
+     "silhouette": 6,
+     "authored": 6,
+     "score": 6,
+     "verdict": "Focus by weight instead of hue is the right monochrome-first instinct and nothing degrades between contexts; but the 3-wide interiors are one bad downscale from turning it into three solid tiles, and at COM -0.88 it leans visibly left."
+    }
+   }
+  },
+  {
+   "id": "focus-edge-rail",
+   "title": "Focus border rail",
+   "grid": [
+    "................",
+    ".#######........",
+    ".#######........",
+    ".#######........",
+    ".#######..++####",
+    ".#######..++####",
+    ".#######..++####",
+    "..........++####",
+    "..........++####",
+    ".#######..++####",
+    ".#######..++####",
+    ".#######..++####",
+    ".#######..++####",
+    "..........++####",
+    "..........++####",
+    "................"
+   ],
+   "thesis": "This is the tiling-WM focus border, drawn at the only thickness a 16px grid allows: a 2-cell accent rail running the full 11-row height of the right pane's leading edge, inside the pane's own footprint so the ink gutter stays a clean 2. Two ink panes stacked on the left, one railed pane on the right, splits misaligned in both directions. The accent is not a region of the pane, it IS the pane's border — strip the colour and the pane is simply whole again.",
+   "at16": "The rail is 2px of vermilion 11px tall — a legible coloured edge, not a speck, and the strongest of the six at tab size for pure colour presence. The left column's two panes and their 2px gutter hold apart. Both the 3-deep top-right notch and the 2-deep bottom-left notch survive; the 1-cell outer margins do not, so the mark sits slightly tighter in its box than drawn.",
+   "risk": "A rail parallel to a gutter of the same width reads as a third pane, not as a border — at 16px there is nothing to tell a viewer that the accent stripe belongs to the block beside it rather than standing on its own. That collapses the whole idea into 'four panes, one of them narrow and orange', which is decoration wearing a meaning costume. It is also the lowest-ink variant here, so it will feel thin against the other marks on a page.",
+   "geometry": "136 marked (114 ink + 22 accent, 16.2%); COM (8.12, 7.61), offset (+0.62, +0.11); no mirror symmetry, no rotational symmetry; thinnest stroke 2 cells (accent rail 2x11); gutters 2 (cols 8-9 vertical, rows 7-8 in left column), outer margin 1 cell at col 0, row 0, row 15.",
+   "axis": "focus",
+   "axisLabel": "The focused pane",
+   "mean": 4.5,
+   "spread": 2.5,
+   "ink": 136,
+   "scores": {
+    "brand": {
+     "id": "focus-edge-rail",
+     "escapes": 3,
+     "legible16": 5,
+     "silhouette": 4,
+     "authored": 4,
+     "score": 3,
+     "verdict": "The render confirms the author's own diagnosis: a 2-wide vermilion rail set beside a 2-wide gutter reads as a narrow third pane, not as a focus border, and in monochrome it merges into its neighbour leaving three plain rectangles. Nothing at 16px can tell a viewer the stripe belongs to the block beside it.",
+     "claimError": "The 'bottom-left notch' is 1 cell deep, not 2: the left column ends at row 13 and the right pane at row 14, so relative to the mark's own bounding box the step is a single row — below the brief's 2-cell floor and the first thing to vanish. Row 15 is outer margin, not notch."
+    },
+    "pixel": {
+     "id": "focus-edge-rail",
+     "escapes": 4,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5,
+     "verdict": "The rail is 2 cells wide and the gutter beside it is also 2 cells wide — measured identical — so there is literally no cue at 16px that says border-of-that-pane rather than narrow third pane; the stated risk is confirmed by geometry, not intuition. It does survive as colour (2x11 is a real stripe) and at 16.2% it is right on the accent ceiling."
+    },
+    "user": {
+     "id": "focus-edge-rail",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5.5,
+     "verdict": "The focus border is the most tiling-WM-true accent idea here, and it fails exactly the way the author predicts: a 2-wide rail beside a 2-wide gutter reads as a fourth, orange pane rather than as a border belonging to its neighbour."
+    }
+   }
+  },
+  {
+   "id": "weight-full-bleed-bite",
+   "title": "Full bleed, bitten",
+   "grid": [
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    ".........#######",
+    ".........#######",
+    "#######..#######",
+    "#######..#######",
+    "#######.........",
+    "#######.........",
+    "....###..+++++++",
+    "....###..+++++++",
+    "....###..+++++++",
+    "....###..+++++++"
+   ],
+   "thesis": "Push ink to the ceiling: the four panes run off all four edges so the only white left is the gutter system itself, and a 4x4 bite out of the bottom-left corner stops the outline closing into a square. Because every gutter now reaches an edge, the four panes are physically disconnected rectangles — the mark is held together by the reader, not by ink, which is the opposite of how a toolbar layout icon works. Splits sit at rows 6-7 on the left and rows 10-11 on the right, a four-row offset, twice the seed's stagger.",
+   "at16": "The heaviest build survives best: at 16px it is a solid dark stamp with three 2px white channels cut clean through it and an orange foot in the corner. Nothing has interior detail small enough to lose. The 4x4 corner bite is the weakest element — it reads as one missing block rather than as a notch.",
+   "risk": "At maximum ink this is the variant closest to the accusation being fixed, because a full-bleed tiled square is exactly what every design tool's 'layout' button looks like; the bite and the four-row offset are carrying all the differentiation and the bite is small.",
+   "geometry": "180 ink cells (70.3% of field), accent 28 (15.6% of ink, one region); CoM (8.03, 6.81), off (+0.53, -0.69); no symmetry; thinnest stroke 3 cells (bottom-left leg, cols 4-6); every gutter 2 cells and every gutter opens to an edge.",
+   "axis": "weight",
+   "axisLabel": "Ink weight and bleed",
+   "mean": 4.3,
+   "spread": 1,
+   "ink": 180,
+   "scores": {
+    "brand": {
+     "id": "weight-full-bleed-bite",
+     "escapes": 3,
+     "legible16": 8,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 4,
+     "verdict": "A bold, unmissable stamp at 16px with nothing fine enough to lose, and precisely the accusation the brief hired us to answer: at 70.3% ink with a complete 16x16 bleed, delete the gutters and you have a square with one corner missing. COM off (+0.53, -0.69) leans up-right for no stated reason.",
+     "claimError": "'the four panes are physically disconnected rectangles' — the bottom-left mass is not a rectangle: cols 0-6 rows 8-11 plus the 3-wide leg at cols 4-6 rows 12-15 make it an L, which is also why the 4x4 bite reads as a chip rather than a step."
+    },
+    "pixel": {
+     "id": "weight-full-bleed-bite",
+     "escapes": 2,
+     "legible16": 9,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 4,
+     "claimError": "'accent 28 (15.6% of ink)' — 15.6% is the share of total marked cells; as a share of ink alone it is 28/152 = 18.4%.",
+     "verdict": "Nothing in it can fail at 16px (min run 3, all channels 2 and open to an edge), which is exactly why it is the closest thing here to the accusation: a full-bleed tiled square with one 4x4 corner bite. COM (+0.53,-0.69) leans top-right while the only compositional event is bottom-left, so the imbalance reads as unresolved rather than composed."
+    },
+    "user": {
+     "id": "weight-full-bleed-bite",
+     "escapes": 4,
+     "legible16": 9,
+     "silhouette": 4,
+     "authored": 6,
+     "score": 5,
+     "verdict": "Indestructible at 16px precisely because it is the generic full-bleed layout tile; one 4x4 bite and an orange foot are not enough differentiation, and in dark mode it is a glowing slab."
+    }
+   }
+  },
+  {
+   "id": "weight-crop-bleed",
+   "title": "Cropped tiling",
+   "grid": [
+    "................",
+    "................",
+    "..######..######",
+    "..######..######",
+    "..######..######",
+    "..######..######",
+    "..######..######",
+    "..........######",
+    "..........######",
+    "..######..######",
+    "..######..######",
+    "..######........",
+    "..######........",
+    "..######..++++++",
+    "..######..++++++",
+    "..######..++++++"
+   ],
+   "thesis": "Answer 'where does the mark end' with: nowhere, on two sides. A 2-cell margin holds the top and left clear while all four panes run hard off the bottom and right edges, so the mark reads as a viewport onto a tiling that continues past the frame rather than as a complete object — the one thing a toolbar icon never does, since those are always fully contained and centred. The accent sits on the pane clipped by both bleed edges: the focused window is the one running off the screen. Splits at rows 7-8 left, rows 11-12 right.",
+   "at16": "The asymmetric margin is the only cue in the whole set that survives losslessly at favicon size, because it is 2px of clean background on two sides and nothing else here has it. The rest reads as the family standard: solid blocks, 2px channels, orange in the lower right.",
+   "risk": "It is off-centre by a full cell in x and 0.83 in y, and 'deliberate crop' is a story that has to be told — cold, it looks like a positioning bug; it is also the variant that sits closest to the seed's own composition.",
+   "geometry": "144 ink cells (56.2%), accent 18 (12.5%, one region); CoM (8.50, 8.33), off (+1.00, +0.83) — deliberate, ink bleeds bottom-right and floats top-left; no symmetry; thinnest stroke 3 cells (accent pane height); all gutters 2 cells; margin 2 cells top and left, 0 bottom and right.",
+   "axis": "weight",
+   "axisLabel": "Ink weight and bleed",
+   "mean": 4.3,
+   "spread": 2,
+   "ink": 144,
+   "scores": {
+    "brand": {
+     "id": "weight-crop-bleed",
+     "escapes": 3,
+     "legible16": 6,
+     "silhouette": 4,
+     "authored": 4,
+     "score": 3,
+     "verdict": "At exactly +1.00 in x it sits on the brief's stated limit, and the render settles the argument: 2px of margin on two sides does not read as a deliberate crop, it reads as a mark that failed to centre. Inside the frame it is the seed almost unaltered."
+    },
+    "pixel": {
+     "id": "weight-crop-bleed",
+     "escapes": 5,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 4,
+     "score": 5,
+     "verdict": "Cleanly built — 6-wide panes, min run 3, four objects, immaculate at 12px — and the 2-cell margin on two sides is a genuine silhouette event, the only one of its kind in the set. But COM is 1.30 cells off diagonally, past the brief's own tolerance, 56% of the accent falls outside a circle crop, and any rounded-corner icon mask cuts precisely the bleed edges the whole story depends on."
+    },
+    "user": {
+     "id": "weight-crop-bleed",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 5,
+     "verdict": "'Viewport onto a larger tiling' is a good story, but at COM offset (+1.00, +0.83) the cold read is a favicon pasted off-centre — 'deliberate crop' and 'positioning bug' are the same pixels, as the author concedes."
+    }
+   }
+  },
+  {
+   "id": "weight-focus-solid",
+   "title": "Master and stack",
+   "grid": [
+    "#########..#####",
+    "#########..#####",
+    "##.....##..#####",
+    "##.....##..#####",
+    "##.....##..#####",
+    "##.....##..#####",
+    "#########..#####",
+    "#########..#####",
+    "...........#####",
+    "...........#####",
+    "#########.......",
+    "#########.......",
+    "##.....##..+++++",
+    "##.....##..+++++",
+    "#########..+++++",
+    "#########..+++++"
+   ],
+   "thesis": "Vary the weight inside one mark: a wide 9-cell master column carrying two hollow frames, beside a narrow 5-cell stack column carrying two solid panes, the lower of which is the accent. That is the master/stack layout every tiling WM ships with, and the width inequality is what buys legible 5x4 and 5x2 holes — at equal 7-cell columns the holes shrink to 3 wide and the whole variant degenerates into the hollow build with one pane filled. Splits at rows 8-9 left and rows 10-11 right, each opening to its own edge so nothing ever crosses.",
+   "at16": "The weight contrast is what survives: two visibly hollow shapes on the left, two visibly solid on the right, orange block in the corner. The lower-left hole reduces to a 5x2 dash but still reads as a slot rather than a speck, which is exactly why the master column had to be 9 cells wide.",
+   "risk": "Two hollow and two solid is a hedge — it is not the literal one-focused-window-among-outlines picture, and a viewer is as likely to read the hollow panes as empty or broken as unfocused.",
+   "geometry": "166 ink cells (64.8%), accent 20 (12.0%, one region); CoM (7.80, 7.39), off (+0.30, -0.11); no symmetry; thinnest stroke 2 cells (frame walls); all gutters 2 cells; columns 9 and 5 cells wide; holes 5x4 and 5x2.",
+   "axis": "weight",
+   "axisLabel": "Ink weight and bleed",
+   "mean": 4.2,
+   "spread": 2.5,
+   "ink": 166,
+   "scores": {
+    "brand": {
+     "id": "weight-focus-solid",
+     "escapes": 3,
+     "legible16": 6,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 3,
+     "verdict": "Only 8 of 60 perimeter cells are empty — this is as close to the banned filled square as anything in the set, and the hollow-versus-solid hedge means the viewer is as likely to read the outlined panes as broken as unfocused. The 5x2 lower hole is a dash the moment anything downscales imperfectly."
+    },
+    "pixel": {
+     "id": "weight-focus-solid",
+     "escapes": 5,
+     "legible16": 5,
+     "silhouette": 4,
+     "authored": 6,
+     "score": 4,
+     "verdict": "The 9-wide master does buy a 5x4 hole that survives, but the lower hole is 5x2 and mild bloom already pinches it to 3x2 — lose it and half the hollow-versus-solid argument goes with it. 47 cells (28%) fall outside an avatar circle including 55% of the accent, and the outline is a full-bleed rectangle whose only events are the two offset edge gaps."
+    },
+    "user": {
+     "id": "weight-focus-solid",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5.5,
+     "verdict": "Hollow master beside solid stack is a hedge that reads as inconsistency rather than hierarchy, and the orange block sitting in the bottom-right corner is decoration territory."
+    }
+   }
+  },
+  {
+   "id": "focus-master-strip",
+   "title": "Master over stack strip",
+   "grid": [
+    "..##############",
+    "..##############",
+    "..##############",
+    "..##############",
+    "..##############",
+    "..##############",
+    "..##############",
+    "..##############",
+    "..##############",
+    "................",
+    "................",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####"
+   ],
+   "thesis": "Rotate the split 90 degrees off the seed: one 14x9 master pane over a detached strip of three 4x5 panes, and fill the middle strip pane entirely with accent. Focus reads because the accent pane is one of three IDENTICAL siblings — the eye has a control group, so the colour can only mean 'this one, not those two'. The 2-cell void column at top-left under which the leftmost strip pane still runs to the edge makes the silhouette a pinwheel rather than a stack.",
+   "at16": "The strip survives: three 4px blocks with 2px slots between them stay separate, and a 4x5 vermilion block is unmistakable colour at that size. The master slab reduces to a plain bar, which is fine — it is ground for the strip, not a shape to read. The 2-cell notch at top-left is the first thing to disappear.",
+   "risk": "The big undivided top slab does a lot of nothing: strip it and the mark is a heading bar over three tabs, which is a browser, not a tiling WM. It is also the closest of the six to a stock 'window with toolbar' glyph, and the three equal bottom panes could read as a segmented control or a progress tracker rather than panes.",
+   "geometry": "186 marked (166 ink + 20 accent, 10.8%); COM (8.18, 6.90), offset (+0.68, -0.60); strip mirror-symmetric about x=7.5, whole mark asymmetric; thinnest stroke 4 cells (strip panes 4x5); gutters 2 (cols 4-5, cols 10-11, rows 9-10), top-left void 2 cells wide.",
+   "axis": "focus",
+   "axisLabel": "The focused pane",
+   "mean": 4.2,
+   "spread": 2.5,
+   "ink": 186,
+   "scores": {
+    "brand": {
+     "id": "focus-master-strip",
+     "escapes": 2,
+     "legible16": 7,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 3,
+     "verdict": "A 14x9 undivided slab over three equal blocks is a toolbar over a dock, or a segmented control, or a slide over its thumbnails — anything but a tiling window manager. The accent works exactly as designed (one of three identical siblings, unmistakable at 16px) and it is working inside the wrong picture."
+    },
+    "pixel": {
+     "id": "focus-master-strip",
+     "escapes": 3,
+     "legible16": 8,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 4,
+     "verdict": "Min run 4 and three well-separated 4x5 strip panes make it safe at 16px, but at 72.7% ink it is the heaviest mark here and my 12px render is unambiguously a heading bar over three tabs. The entire silhouette argument is a 2x9 notch at top-left, which is both the smallest feature and the one the author admits goes first."
+    },
+    "user": {
+     "id": "focus-master-strip",
+     "escapes": 5,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5.5,
+     "verdict": "The accent logic — one colored sibling among three identical ones — is the cleanest focus semantics in the entire set, but it is mounted under a 126-cell slab that reads as a browser toolbar over three tabs."
+    }
+   }
+  },
+  {
+   "id": "offset-interlock-pair",
+   "title": "Interlocking pair",
+   "grid": [
+    "#######.........",
+    "#######.........",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    ".........#######",
+    ".........#######",
+    "#######.........",
+    "#######.........",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    ".........#######",
+    ".........#######"
+   ],
+   "thesis": "Two 7x6 panes per column across a single 2-cell gutter, with the smallest offset this grid permits: the left column's split sits at rows 6-7, the right column's at rows 8-9. Because the offset equals exactly one gutter width, the two gaps interlock rather than nearly align, and the whole figure is exactly 180-degree rotation-symmetric about (7.5, 7.5). The columns bleed off all four edges but stop 2 rows short at opposite ends, so the outline is a stepped Z, not a rectangle. This answers the axis at its low end: two cells is enough offset, provided it is systematic rather than approximate.",
+   "at16": "The 2px white Z through the middle holds and four panes stay four. What dies is the justification for the stagger: the 2-row bites at top-right and bottom-left flatten into a slightly ragged square rather than reading as a deliberate step.",
+   "risk": "Of the six this sits closest to the seed and to a plain quartered window; a hostile critic who does not register the 2-cell stagger sees a 2x2 grid with a wonky middle, which is precisely the toolbar icon we were hired to escape.",
+   "geometry": "168 ink cells, 0 accent; COM (7.50, 7.50), dead centre; 180-degree rotational symmetry, no mirror; thinnest stroke 6 cells (four identical 7x6 panes); every gutter exactly 2 cells.",
+   "axis": "offset",
+   "axisLabel": "Offset geometry",
+   "mean": 4,
+   "spread": 2,
+   "ink": 168,
+   "scores": {
+    "brand": {
+     "id": "offset-interlock-pair",
+     "escapes": 2,
+     "legible16": 8,
+     "silhouette": 3,
+     "authored": 7,
+     "score": 3,
+     "verdict": "Geometrically flawless — exact C2, dead-centre COM, four congruent 7x6 panes, every claim verified — and completely inert: at 16px it is a 2x2 grid whose middle line wobbles, which is the toolbar button with a typo. The 2-cell corner bites are far too small to carry an outline."
+    },
+    "pixel": {
+     "id": "offset-interlock-pair",
+     "escapes": 2,
+     "legible16": 9,
+     "silhouette": 2,
+     "authored": 7,
+     "score": 4,
+     "verdict": "Measured clean: 168 cells, COM exactly (7.50,7.50), exact C2, min run 6, every gutter exactly 2, zero bloom closure, so it will survive anything you throw at it. It survives as a 2x2 grid with a jogged middle — the outline is a full 16x16 square minus two 7x2 corner bites, which is the toolbar button with a wobble."
+    },
+    "user": {
+     "id": "offset-interlock-pair",
+     "escapes": 4,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 7,
+     "score": 5,
+     "verdict": "Everything survives at 16px, but what survives is a quartered dark square with a slightly wonky white seam — I would read it as the layout button from a design tool's toolbar with a glitch. It is the control sample for the axis, not a logo."
+    }
+   }
+  },
+  {
+   "id": "sym-nautilus",
+   "title": "Nautilus subdivision",
+   "grid": [
+    "................",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..#######.",
+    ".#####..........",
+    ".#####..........",
+    ".#####..++..###.",
+    ".#####..++..###.",
+    ".#####......###.",
+    ".#####......###.",
+    ".#####..##..###.",
+    ".#####..##..###.",
+    ".#####..##..###.",
+    "................"
+   ],
+   "thesis": "The system is recursive subdivision, turning always the same way — a nautilus. Take the left strip of the 14x14 field (5 wide), then the top strip of what remains (5 tall), then the right strip of what remains (3 wide), then the bottom strip (3 tall), and what is left over is a 2x2 that becomes the accent. Each cut takes roughly half the remaining short dimension, so the panes shrink 70 cells, 35, 21, 6, 4 as the eye winds clockwise inward. There is no symmetry whatsoever; the composition is provably deliberate because you can watch the rule generate it.",
+   "at16": "The two large panes (5x14 and 7x5) carry the mark and read instantly; the 3-wide right pane holds. The 2x3 and 2x2 terminal panes sit exactly on the pixel floor and will read as two small ticks in the lower middle rather than as distinct panes — the last turn of the spiral is lost, but the impression that detail concentrates toward the centre survives, which is most of the idea.",
+   "risk": "The spiral only reveals itself if you actually trace it; at a glance this is a fat left column plus a scatter of right-hand blocks, which puts it closer to the seed's DNA than any other cut here. And the two smallest panes are precisely what the brief warns against — crisp on a 400px sticker, mush in a tab, so the mark is a different mark at the two sizes.",
+   "geometry": "136 ink cells (132 ink + 4 accent = 2.9%); COM (7.15, 7.01), off centre by 0.35 and 0.49; symmetry: none (C1) — the discipline is the halving rule, not a symmetry group; thinnest stroke 2 cells (2x2 accent and 2x3 pane); gutters exactly 2 cells (cols 6-7, cols 10-11, rows 6-7, rows 10-11).",
+   "axis": "sym",
+   "axisLabel": "Symmetry system",
+   "mean": 4,
+   "spread": 2,
+   "ink": 136,
+   "scores": {
+    "brand": {
+     "id": "sym-nautilus",
+     "escapes": 3,
+     "legible16": 4,
+     "silhouette": 3,
+     "authored": 4,
+     "score": 3,
+     "verdict": "The halving rule is real and the pane areas (70/35/21/6/4) check out exactly, but a rule you have to trace is not a composition — cold, this is a fat left column plus a scatter of right-hand blocks inside a near-complete square (only 8 of 52 perimeter cells empty). The 2x2 and 2x3 terminal panes are ticks, not panes.",
+     "claimError": "The reported COM pair is transposed: actual is (7.01, 7.15), i.e. off -0.49 in x and -0.35 in y. The author states (7.15, 7.01) and attributes 0.35 to x and 0.49 to y — the magnitudes are swapped between axes."
+    },
+    "pixel": {
+     "id": "sym-nautilus",
+     "escapes": 3,
+     "legible16": 4,
+     "silhouette": 4,
+     "authored": 6,
+     "score": 4,
+     "claimError": "COM tuple transposed: measured (7.01,7.15), i.e. off (-0.49,-0.35) — the stated (7.15,7.01) assigns the two errors to the wrong axes.",
+     "verdict": "Pane areas 70/35/21/6/4 verify exactly, so the halving rule genuinely generated this, but nothing in the drawing shows it. The last two turns are a 2x2 and a 2x3 sitting 2 cells apart in the same corner of the mark; my 12px render turns them into '@=' and '=:' rubble, so at tab size this is a fat left column plus a smear."
+    },
+    "user": {
+     "id": "sym-nautilus",
+     "escapes": 6,
+     "legible16": 5,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5,
+     "verdict": "The halving rule is provable on paper and invisible in the mark; at a glance it is a fat sidebar plus scattered right-hand blocks, and the last two turns of the spiral are mush at 16px.",
+     "claimError": "COM axes swapped: stated (7.15, 7.01); actual is (7.01, 7.15) — off 0.49 horizontally and 0.35 vertically, the reverse of the claim."
+    }
+   }
+  },
+  {
+   "id": "focus-title-strip",
+   "title": "Title bar on one pane",
+   "grid": [
+    "++++++++........",
+    "++++++++........",
+    "########..######",
+    "########..######",
+    "########..######",
+    "########..######",
+    "..........######",
+    "..........######",
+    "########..######",
+    "########..######",
+    "########..######",
+    "########..######",
+    "########..######",
+    "########..######",
+    "########........",
+    "########........"
+   ],
+   "thesis": "Focus as chrome, not as fill: one 8x2 accent bar capping the top pane, the width of that pane exactly and nothing else, so it reads as that pane's title bar. Two panes in the left column, one tall pane on the right, and the right column's splits sit inside the left column's — the misalignment is now containment rather than offset. The accent runs off the top edge of the canvas, which is what stops the mark being a tidy centred diagram.",
+   "at16": "A 2px full-width band of vermilion across the top-left is the most instantly readable accent of the six — at tab size you see 'the top-left window has a coloured header' before you see anything else. The 2px gutters hold. The bottom-right notch survives; the top-right notch is 2 rows and is the first casualty of any downscaling that is not pixel-exact.",
+   "risk": "A coloured bar across the top of a rectangle is a window title bar for macOS and Windows both, which is the opposite of the tiling story — tiling WMs are the ones that DELETE title bars. So the strongest legibility here buys the weakest product truth. It is also the variant most exposed to reading as a highlighter swipe or an underline rule rather than as part of the pane.",
+   "geometry": "184 marked (168 ink + 16 accent, 8.7%); COM (7.02, 7.59), offset (-0.48, +0.09); no symmetry; thinnest stroke 2 cells (accent strip 8x2); gutters 2 (cols 8-9, rows 6-7); notches 8x2 top-right and 8x2 bottom-right.",
+   "axis": "focus",
+   "axisLabel": "The focused pane",
+   "mean": 4,
+   "spread": 2,
+   "ink": 184,
+   "scores": {
+    "brand": {
+     "id": "focus-title-strip",
+     "escapes": 2,
+     "legible16": 7,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 3,
+     "verdict": "The most legible accent in the set attached to the most wrong idea — a coloured band across the top of a rectangle is a macOS/Windows title bar, and tiling WMs are defined by deleting title bars. Strip the colour and the strip merges into the column below it, leaving two plain rectangles inside a near-full square."
+    },
+    "pixel": {
+     "id": "focus-title-strip",
+     "escapes": 2,
+     "legible16": 8,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 4,
+     "claimError": "Two errors. The corner voids are 6x2, not 8x2 (cols 10-15, rows 0-1 and 14-15). And 'the right column's splits sit inside the left column's' describes splits that do not exist — the right column is a single undivided 6x12 pane, so the stated containment system is not in the drawing.",
+     "verdict": "Most legible accent in the set at 16px, and everything is 6 cells or better, so it renders perfectly. It renders perfectly as a window with a coloured title bar, which is the opposite of the product's story, and half the accent falls outside an avatar circle crop."
+    },
+    "user": {
+     "id": "focus-title-strip",
+     "escapes": 5,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 7,
+     "score": 5,
+     "verdict": "The most legible accent in the set spends itself saying the wrong thing: a colored title bar is macOS/Windows chrome, and tiling WMs are the ones that delete title bars — the author knows this and it is disqualifying."
+    }
+   }
+  },
+  {
+   "id": "count-thirds-ragged",
+   "title": "Equal thirds, ragged",
+   "grid": [
+    "......++++......",
+    "......++++......",
+    "####..++++......",
+    "####..++++......",
+    "####..++++..####",
+    "####........####",
+    "####........####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####......",
+    "####..####......"
+   ],
+   "thesis": "The equal-proportion control: three columns of identical 4-cell width, full-bleed left and right, answering the axis question with \"no hierarchy at all\". All the information moves into the vertical rhythm — the left column starts at row 2, the centre runs the whole 16 and is split into two windows, the right column floats free of both the top and the bottom edge. Every horizontal edge of the mark is ragged, so a mark made of perfect thirds still has no rectangular silhouette anywhere.",
+   "at16": "The three columns are unmistakable and the ragged ends survive as clean 2-4px steps, which is exactly the read intended. The centre column's split at rows 5-6 is the one detail that closes up, so the accent stops being \"a window\" and becomes \"a red cap on the middle column\".",
+   "risk": "Three equal vertical bars is one of the oldest toolbar glyphs there is — \"columns\", \"view\", the Cyrillic Ш — and the seven identical middle rows give the eye nothing to hold, so the mark is a static fence with decorated ends. At 59% ink it is also the heaviest of the set and will bloom badly as white-on-near-black.",
+   "geometry": "152 ink cells (20 accent, 13.2%); COM (6.87, 8.24) → off (-0.63, +0.74); translational symmetry in x (3 equal 4-cell columns), fully asymmetric in y; thinnest stroke 4 cells; all gutters 2 (cols 4-5 and 10-11, rows 5-6); full bleed on all four edges via at least one column.",
+   "axis": "count",
+   "axisLabel": "Pane count and rhythm",
+   "mean": 3.8,
+   "spread": 1.5,
+   "ink": 152,
+   "scores": {
+    "brand": {
+     "id": "count-thirds-ragged",
+     "escapes": 2,
+     "legible16": 6,
+     "silhouette": 4,
+     "authored": 4,
+     "score": 3,
+     "verdict": "Three equal vertical bars is the oldest columns/view glyph there is, and ragged ends do not rescue it — the seven identical middle rows give the eye nothing. COM is off 0.63 left and 0.74 low with no visible compositional reason, so the imbalance reads as error rather than intent."
+    },
+    "pixel": {
+     "id": "count-thirds-ragged",
+     "escapes": 2,
+     "legible16": 9,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4,
+     "claimError": "'At 59% ink it is also the heaviest of the set' is false across the 36: this is 59.4%, while focus-master-strip is 72.7%, offset-jogged-gutter/push-t-negative/focus-title-strip are 71.9%, and two more exceed 70%. It is only the heaviest within its own axis.",
+     "verdict": "Mechanically the safest thing here — min run 4, four objects, nothing under 4 cells, immaculate at 12px. But three equal vertical bars is the oldest toolbar glyph in existence, and COM (-0.63,+0.74) is a full cell of diagonal drift with no visible reason for it."
+    },
+    "user": {
+     "id": "count-thirds-ragged",
+     "escapes": 4,
+     "legible16": 7,
+     "silhouette": 6,
+     "authored": 6,
+     "score": 4.5,
+     "verdict": "Three equal vertical bars is a 'columns' toolbar glyph no matter how ragged the ends, and the red cap on the middle column reads as decoration, not as a window."
+    }
+   }
+  },
+  {
+   "id": "push-crop-bleed",
+   "title": "Cropped workspace",
+   "grid": [
+    "##..#######..+++",
+    "##..#######..+++",
+    "##..#######..+++",
+    "##..#######..+++",
+    "##..#######.....",
+    "##..#######.....",
+    "##..#######..###",
+    "##..#######..###",
+    "##..#######..###",
+    "##..#######..###",
+    "##...........###",
+    "##...........###",
+    "##..#######..###",
+    "##..#######..###",
+    "....#######.....",
+    "....#######....."
+   ],
+   "thesis": "Not a diagram of a window but a viewport cut out of a much larger one: three columns whose gutters run clean off the top edge, a 2-cell sliver at cols 0-1 that is obviously the tail of a pane continuing off-screen left, and a centre column that alone survives past row 13 and runs off the bottom while its neighbours stop. Splits are staggered per column — rows 4-5 on the right, rows 10-11 in the centre, none on the sliver — so no divider aligns across any gutter. The accent is the focused pane and it is the one the crop has half eaten, which is the argument: the workspace is bigger than the frame.",
+   "at16": "The sliver at 2px reads as a hard edge stripe rather than as a pane, which is honest — it says 'cut off'. The staggered splits survive as notches in the columns. The bottom stagger at rows 14-15 is the detail that sells the crop and it is the first casualty of rounding.",
+   "risk": "Full-bleed gutters mean the ink still fills nearly the whole square, so a hostile critic sees a three-column layout icon that was simply cropped too tight — 'deliberate crop' and 'badly composed' look identical from across the room. The 2-cell sliver may read as an accidental border rather than as a pane.",
+   "geometry": "ink 162 cells (accent 12, 7.4%); centre of mass (7.43, 6.92) = -0.07 / -0.58; no symmetry axis; thinnest stroke 2 cells (cropped sliver, cols 0-1); gutters all 2 (cols 2-3, cols 11-12, rows 4-5, rows 10-11), bottom voids 4x2 and 5x2.",
+   "axis": "push",
+   "axisLabel": "Concept push",
+   "mean": 3.8,
+   "spread": 1.5,
+   "ink": 162,
+   "scores": {
+    "brand": {
+     "id": "push-crop-bleed",
+     "escapes": 3,
+     "legible16": 6,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 3,
+     "verdict": "Every staggered split is exactly as claimed and none of it matters: at 63% ink with gutters bleeding off the top, this is a three-column layout icon cropped tight, and the 2-cell sliver at cols 0-1 reads as a stray border rule rather than a pane continuing off-screen. The bottom stagger that sells the crop is 2 rows deep."
+    },
+    "pixel": {
+     "id": "push-crop-bleed",
+     "escapes": 2,
+     "legible16": 5,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 4,
+     "verdict": "The 2-cell sliver at cols 0-1 is at the floor and is precisely the feature the concept needs, and 75% of the accent — 9 of 12 cells — falls outside an avatar circle crop, the worst in the set. Underneath the crop story it is three columns at 63% ink, i.e. a three-column layout icon that has been cut too tight."
+    },
+    "user": {
+     "id": "push-crop-bleed",
+     "escapes": 5,
+     "legible16": 6,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4.5,
+     "verdict": "Four columns of irregular stuff where the load-bearing details — the 2-wide sliver, the bottom stagger — are the first casualties of downscaling; cold, it reads as a three-column layout icon cropped by accident."
+    }
+   }
+  },
+  {
+   "id": "count-pair-cursor",
+   "title": "Two panes, one cursor",
+   "grid": [
+    "................",
+    ".########.......",
+    ".########.......",
+    ".########.......",
+    ".########..####.",
+    ".########..####.",
+    ".########..####.",
+    ".##++####..####.",
+    ".##++####..####.",
+    ".##++####..####.",
+    ".########..####.",
+    ".########..####.",
+    "...........####.",
+    "...........####.",
+    "...........####.",
+    "................"
+   ],
+   "thesis": "The floor of the axis: two panes, nothing else. An 8x11 pane and a 4x11 pane sharing one 2-cell gutter, slid three rows past each other so neither top nor bottom edge is continuous — a vertical split where the windows do not agree on where the screen starts. Two panes cannot carry \"terminal\" alone, so a 2x3 block cursor sits inside the large pane at the prompt position; that single element does all the work of saying this is a shell, not a wireframe.",
+   "at16": "Two solid blocks and a 2x3px vermilion notch — the cleanest and most legible mark of the six at favicon size, because there are only three things to resolve. The 3-row vertical stagger reads as a deliberate offset rather than a mistake.",
+   "risk": "Strip the accent and this is two plain rectangles: a generic split-view toggle, which is a worse cliché than the layout icon it was meant to escape. The entire terminal reading rests on the one element that disappears in monochrome, and 4.5% accent is too little ink to hang an identity on.",
+   "geometry": "132 ink cells (6 accent, 4.5%); COM (7.17, 7.00) → off (-0.33, -0.50); no symmetry, 3-row vertical stagger; thinnest stroke 2 cells (cursor width); gutter 2 (cols 9-10); cursor sits 2 cells clear of the pane's left edge and 2 clear of its bottom.",
+   "axis": "count",
+   "axisLabel": "Pane count and rhythm",
+   "mean": 3.7,
+   "spread": 2,
+   "ink": 132,
+   "scores": {
+    "brand": {
+     "id": "count-pair-cursor",
+     "escapes": 2,
+     "legible16": 6,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 3,
+     "verdict": "Two plain rectangles carrying a 6-cell speck: in the dark render the cursor all but disappears against white ink, and in monochrome it vanishes into the pane entirely, leaving a split-view toggle. Betting the entire terminal reading on 4.5% accent was the wrong bet and the author knew it."
+    },
+    "pixel": {
+     "id": "count-pair-cursor",
+     "escapes": 2,
+     "legible16": 5,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 3,
+     "claimError": "'Thinnest stroke 2 cells (cursor width)' understates it: the ink sliver between the cursor and the pane's left wall (cols 1-2, rows 7-9) is also only 2 cells, so at 16px you get a 2px black strip beside a 2px vermilion strip.",
+     "verdict": "The cursor is 6 cells fully enclosed by ink; in light mode that is vermilion against near-black at 6 device pixels, which is a smudge, not a cursor, and in monochrome it disappears completely leaving two plain rectangles. Two big blocks do survive perfectly, but nothing else is happening."
+    },
+    "user": {
+     "id": "count-pair-cursor",
+     "escapes": 5,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5,
+     "verdict": "The block cursor is the right instinct, but six accent cells carry the entire terminal reading and they vanish in monochrome, leaving a generic split-view toggle. A mark that only works in color fails this brief's own silhouette test."
+    }
+   }
+  },
+  {
+   "id": "weight-hollow-frames",
+   "title": "Hollow frames",
+   "grid": [
+    "######...#######",
+    "######...#######",
+    "##..##...##...##",
+    "##..##...##...##",
+    "######...##...##",
+    "######...##...##",
+    ".........#######",
+    ".........#######",
+    "######..........",
+    "######..........",
+    "##..##...#######",
+    "##..##...#######",
+    "##..##...##...##",
+    "##..##...##...##",
+    "######...#######",
+    "######...#######"
+   ],
+   "thesis": "Same four-pane logic, but each pane is a 2-cell-wall rectangle instead of a fill, so the mark is a set of windows rather than a set of blocks. The columns are deliberately unequal (6 and 7 cells either side of a fat 3-cell gutter) because with equal 7-cell columns the only legal all-hollow build in a 16x16 field is forced into exact 180-degree rotational symmetry — I built that version first and it reads as a repeating wallpaper tile, not a mark. Splits stagger two rows: 6-7 on the left, 8-9 on the right.",
+   "at16": "The finding is that hollowing barely lightens anything — 2-cell walls still leave 59% ink, only eleven points below the full-bleed build. The holes hold as 2-4px voids, so it reads as four windows rather than four blocks, but only just, and in dark mode the small holes fill in perceptually first.",
+   "risk": "The top-left hole is only 2x2 and at 16px it reads as a stray dot rather than a window, which makes the four holes look like domino pips; and with no accent the mark cannot say which pane is focused, losing the strongest brand signal in the set.",
+   "geometry": "152 ink cells (59.4%), no accent; CoM (7.50, 7.53), off (0.00, +0.03) — the best-centred variant; no symmetry (the mirrored build was rejected for exact rot180); thinnest stroke 2 cells (all frame walls); vertical gutter 3 cells, horizontal gutters 2 cells; smallest hole 2x2, largest 4x3.",
+   "axis": "weight",
+   "axisLabel": "Ink weight and bleed",
+   "mean": 3.7,
+   "spread": 2,
+   "ink": 152,
+   "scores": {
+    "brand": {
+     "id": "weight-hollow-frames",
+     "escapes": 3,
+     "legible16": 5,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 3,
+     "verdict": "The author's finding is right and damning — hollowing costs only eleven points of coverage, so this is still a 59% full-bleed square, now reading as a 2x2 arrangement of framed boxes, i.e. a table/grid icon in light and dice pips in dark. The 2x2 hole is a speck and it fills first in dark mode, exactly where you need it most."
+    },
+    "pixel": {
+     "id": "weight-hollow-frames",
+     "escapes": 5,
+     "legible16": 3,
+     "silhouette": 3,
+     "authored": 6,
+     "score": 3,
+     "verdict": "Measured failure, not a hypothetical: under mild bloom 16 hole-cells close, the 2x2 hole shuts completely and the 3x4 and 3x2 pinch to 1-cell slots, and at 12px the holes render as single specks. It is also the worst avatar-crop case in the set — 48 cells (32%) outside the circle, every one of them a frame corner, which makes hollow rectangles look broken rather than cropped."
+    },
+    "user": {
+     "id": "weight-hollow-frames",
+     "escapes": 6,
+     "legible16": 5,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 5,
+     "verdict": "The finding — hollowing barely lightens anything — is honest, but the four mismatched holes read as domino pips, the 2x2 one as a stray dot, and with no accent the mark cannot say anything about focus."
+    }
+   }
+  },
+  {
+   "id": "push-cell-baseline",
+   "title": "Screen in a character",
+   "grid": [
+    "....+++..###....",
+    "....+++..###....",
+    "....+++..###....",
+    "....+++..###....",
+    "....+++..###....",
+    ".........###....",
+    ".........###....",
+    "....###..###....",
+    "....###.........",
+    "....###.........",
+    "....###..###....",
+    "....###..###....",
+    "....###..###....",
+    "....###..###....",
+    "############....",
+    "############...."
+   ],
+   "thesis": "The whole mark is one monospace character cell — 8 wide by 14 tall, the aspect of a terminal cell — sitting at the right-hand end of a 2-row baseline that runs off to the left, so the cell occupies the position the cursor would occupy on a line of text. Inside that cell is a complete four-pane workspace: a 2-cell channel down the middle and horizontal splits that deliberately do not line up across it (left at rows 5-6, right at rows 8-9). The joke is scale — an entire tiled screen fits inside one character. Nothing in a toolbar is portrait and nothing in a toolbar sits on a baseline.",
+   "at16": "The silhouette — a tall block on a left-running rule — survives and is unusual enough to identify. The internal tiling does not: 3-cell panes with 2-cell gutters collapse into a vertical hatch, so the cell reads as a textured block rather than as four panes. The vermilion top-left pane is the only thing keeping it from being a grey smudge.",
+   "risk": "The concept is legible at 400px and gone at 16px, which means shipping a favicon whose entire idea is invisible at favicon size. The baseline bar can also read as an underscore or a strikethrough, making the mark look like a text-editing state rather than a logo.",
+   "geometry": "ink 96 cells (accent 15, 15.6%); centre of mass (7.00, 8.44) = -0.50 / +0.94; no symmetry axis; thinnest stroke 2 cells (baseline bar height), panes 3 wide; gutters all 2 (central channel cols 7-8, splits rows 5-6 and 8-9).",
+   "axis": "push",
+   "axisLabel": "Concept push",
+   "mean": 3.7,
+   "spread": 1,
+   "ink": 96,
+   "scores": {
+    "brand": {
+     "id": "push-cell-baseline",
+     "escapes": 6,
+     "legible16": 3,
+     "silhouette": 6,
+     "authored": 4,
+     "score": 3,
+     "verdict": "The silhouette idea is the freshest here and the execution kills it: 3-wide panes with 2-wide gutters collapse into vertical hatch at 16px, so the concept exists only at sticker size. Worse, cols 12-15 are entirely empty — the mark's bounding box is 12 wide in a 16 field, so it renders a quarter smaller than every sibling and sits visibly left."
+    },
+    "pixel": {
+     "id": "push-cell-baseline",
+     "escapes": 8,
+     "legible16": 3,
+     "silhouette": 6,
+     "authored": 4,
+     "score": 4,
+     "verdict": "The author is right that the concept dies at 16px and my downsample proves it: 3-wide panes on 2-wide gutters render as uniform vertical hatch, so the four-pane workspace — the entire joke — is gone at the size it has to work. Worse, the bbox is cols 0-11: a 4-column empty band on the right that nothing in the composition explains, so it will read as a mis-centred icon."
+    },
+    "user": {
+     "id": "push-cell-baseline",
+     "escapes": 8,
+     "legible16": 3,
+     "silhouette": 6,
+     "authored": 6,
+     "score": 4,
+     "verdict": "A lovely 400px sticker whose entire idea — a workspace inside one character cell — collapses into a hatched smudge on an underscore at the one size the brief actually fights over; the author admits the favicon ships without its concept."
+    }
+   }
+  },
+  {
+   "id": "count-dense-six",
+   "title": "Six-pane session",
+   "grid": [
+    "................",
+    ".......####..##.",
+    ".......####..##.",
+    ".####..####..##.",
+    ".####..####..##.",
+    ".####..####..##.",
+    ".####...........",
+    ".####...........",
+    ".####..++..####.",
+    ".####..++..####.",
+    ".####..++..####.",
+    "...........####.",
+    "...........####.",
+    ".########..####.",
+    ".########..####.",
+    "................"
+   ],
+   "thesis": "The high-count answer: six panes at six different sizes (4x8, 4x5, 2x5, 2x3, 4x7, 8x2) with no gutter running clear across the mark in either axis — the tall left pane interrupts the upper horizontal gutter, the tall right pane interrupts the lower one. This is what a working session actually looks like after an hour, and the absence of any through-line is the structural argument against the toolbar icon, which always has a full-length divider. The accent is the smallest pane, 2x3, sitting near dead centre: the one you are typing in.",
+   "at16": "Six blocks with 2px gaps is at the resolving limit — the left column, the top-centre pane and the right column hold, but the 2x5 top-right pane and the 8x2 bottom bar start merging with their neighbours' gaps into texture. What survives is a pinwheel-ish churn and one red dot at the middle, which is a reasonable thing to survive.",
+   "risk": "This is the most likely of the six to become grey noise in a browser tab, and at any size the staggering can read as sloppy rather than deliberate — nothing aligns with anything, so there is no rule for the eye to detect being broken. Six panes also makes it the hardest to reproduce as an embroidered or stencilled sticker.",
+   "geometry": "112 ink cells (6 accent, 5.4%); COM (7.61, 7.82) → off (+0.11, +0.32); no symmetry, no through-gutter on either axis; thinnest stroke 2 cells (accent pane width, top-right pane width); all gutters exactly 2 (cols 5-6 and 9-10, cols 11-12 upper; rows 6-7 and 11-12).",
+   "axis": "count",
+   "axisLabel": "Pane count and rhythm",
+   "mean": 3.5,
+   "spread": 2.5,
+   "ink": 112,
+   "scores": {
+    "brand": {
+     "id": "count-dense-six",
+     "escapes": 3,
+     "legible16": 3,
+     "silhouette": 3,
+     "authored": 3,
+     "score": 2,
+     "verdict": "The no-through-gutter claim is true and verifiable, and it buys nothing: six panes at six sizes with 2-cell gaps is grey churn in a browser tab, and because nothing aligns with anything there is no rule for the eye to catch being broken. Deliberate and sloppy are indistinguishable here."
+    },
+    "pixel": {
+     "id": "count-dense-six",
+     "escapes": 6,
+     "legible16": 4,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4,
+     "verdict": "The no-through-gutter claim is true — I checked every row and column — and that is the one structurally anti-toolbar property in the whole axis. It is bought with three shapes at the 2-cell floor (2x5, 2x3, 8x2) which at 12px are already fragments; with six objects and no alignment anywhere, there is no rule for the eye to catch being broken."
+    },
+    "user": {
+     "id": "count-dense-six",
+     "escapes": 7,
+     "legible16": 4,
+     "silhouette": 6,
+     "authored": 5,
+     "score": 4.5,
+     "verdict": "The no-through-gutter argument is the best anti-toolbar logic in the set, but six panes with 2px gaps are grey noise in a browser tab, and with nothing aligned there is no visible rule — it reads sloppy, not lived-in."
+    }
+   }
+  },
+  {
+   "id": "sym-glide-step",
+   "title": "Glide step",
+   "grid": [
+    "................",
+    ".####...........",
+    ".####....++++++.",
+    ".####....++++++.",
+    ".####...........",
+    ".####...........",
+    ".####...........",
+    "................",
+    "................",
+    "...........####.",
+    ".######....####.",
+    ".######....####.",
+    "...........####.",
+    "...........####.",
+    "...........####.",
+    "................"
+   ],
+   "thesis": "The system is glide reflection: one motif, one operation, applied once. The motif is a 4x6 tall pane with a 6x2 bar floating off its upper-right shoulder; the operation is translate down eight rows and mirror across the vertical axis. Crucially the bar sits high in the motif rather than at its middle, which is what stops the figure collapsing into a point rotation — I checked, and 180-degree rotation does not map this onto itself. The glide is the only symmetry it has, so the mark reads as motion rather than balance.",
+   "at16": "The 4x6 panes and 6x2 bars all clear the 2px floor, and the 4-cell gutters are the most generous of the six so nothing merges. The flip is carried by the left/right swap of the whole motif, which survives; what does not survive is the precise 1-row height at which the bar sits, and that does not matter because it only had to break the rotation, not be seen.",
+   "risk": "With only two copies, a glide is nearly indistinguishable from 'drew it twice and flipped one', which is fatal on my axis — the question is which system reads as designed fastest to someone not looking, and this one reads slowest. It also carries the least ink of the six (72 cells, 28% coverage), so at 16px it is four small blocks floating in a lot of air, and floating blocks in a browser tab read as debris rather than a mark.",
+   "geometry": "72 ink cells (60 ink + 12 accent = 16.7%); COM (7.17, 7.50), off centre by 0.33 vertically, exact horizontally; symmetry: glide reflection only (verified that C2, C4, both mirrors and transpose all fail); thinnest stroke 2 cells (the 6x2 bars); gutters 2 cells (rows 7-8) and 4 cells (cols 5-8 upper, cols 7-10 lower).",
+   "axis": "sym",
+   "axisLabel": "Symmetry system",
+   "mean": 3.5,
+   "spread": 1,
+   "ink": 72,
+   "scores": {
+    "brand": {
+     "id": "sym-glide-step",
+     "escapes": 5,
+     "legible16": 4,
+     "silhouette": 4,
+     "authored": 3,
+     "score": 3,
+     "verdict": "At 28% ink this is four rectangles floating in air, and the render confirms the author's own fear: it reads as debris, not a mark. The glide is invisible to anyone not told about it, and a 6x2 accent bar floating off a pane's shoulder means nothing at all.",
+     "claimError": "The reported COM pair is transposed: the actual centre of mass is (7.50, 7.17), not (7.17, 7.50). The prose ('off 0.33 vertically, exact horizontally') is correct, so the error is in the ordered pair only."
+    },
+    "pixel": {
+     "id": "sym-glide-step",
+     "escapes": 7,
+     "legible16": 5,
+     "silhouette": 4,
+     "authored": 6,
+     "score": 4,
+     "claimError": "The COM tuple is transposed. Measured (7.50,7.17): exact in x, 0.33 high in y. The stated tuple (7.17,7.50) says the opposite, though the prose after it is right.",
+     "verdict": "The glide is real — translate 8 down, mirror in x, and motif one lands exactly on motif two, verified. At 28% ink and four small blocks with 3-4 cell voids between them there is no silhouette at all: in a browser tab this is debris, not a mark, and the 6x2 bars are at the 2-cell floor."
+    },
+    "user": {
+     "id": "sym-glide-step",
+     "escapes": 6,
+     "legible16": 4,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 3.5,
+     "verdict": "Four small blocks floating in 72 cells of air read as debris in a browser tab, and a glide reflection with only two copies is indistinguishable from 'drew it twice and flipped one' — the author says so and is right.",
+     "claimError": "COM tuple has its axes swapped: stated (7.17, 7.50); the grid's actual COM is (7.50, 7.17) — x exact, y off 0.33 — so the tuple contradicts the author's own prose in the (x,y) convention the rest of the set uses."
+    }
+   }
+  },
+  {
+   "id": "push-t-negative",
+   "title": "Negative-space t",
+   "grid": [
+    "#############...",
+    "#############...",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "###..........###",
+    "###..........###",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "#######..#######",
+    "....+++.....####",
+    "....+++.....####",
+    "....+++..#######",
+    "....+++..#######"
+   ],
+   "thesis": "The ink is two full-height columns and the 2-cell channel between them is not a divider, it is the stem of a lowercase t. A 2-row crossbar slot at rows 5-6 cuts cols 3-12, and at rows 12-13 the channel kicks 3 cells right to form the foot. The top bar at rows 0-1 caps the stem so the channel reads as a letter with a top rather than a full-bleed split, and the 3x2 void at top-right plus the 4x4 void at bottom-left keep the outline off square. It attacks the toolbar problem by taking the one feature every layout icon has — an aligned divider cross — and making it spell the product's initial.",
+   "at16": "The channel and the crossbar survive as a clean light-on-dark cut, and the 3-cell hinges at cols 0-2 and 13-15 hold at 3px. The foot's 3-cell kick is the first thing to blur, and once it goes the mark reads as a dagger or a plus rather than a t. The two corner notches stay obvious.",
+   "risk": "The t is only legible once you have been told it is there; most viewers will see a two-column window with a header bar and two slots, which is a layout icon with extra steps. Header bar plus two columns is also one of the most heavily used icon compositions in existence, so this is the variant closest to the failure mode it was drawn to escape.",
+   "geometry": "ink 184 cells (accent 12, 6.5%); centre of mass (7.73, 7.07) = +0.23 / -0.43 from (7.5,7.5); no symmetry axis; thinnest stroke 2 cells (top bar height, stem channel walls); gutters: stem channel 2 wide, crossbar 2 tall, foot 2 tall, corner voids 3x2 and 4x4.",
+   "axis": "push",
+   "axisLabel": "Concept push",
+   "mean": 3.5,
+   "spread": 1.5,
+   "ink": 184,
+   "scores": {
+    "brand": {
+     "id": "push-t-negative",
+     "escapes": 6,
+     "legible16": 8,
+     "silhouette": 5,
+     "authored": 4,
+     "score": 3,
+     "verdict": "The render is decisive: what you see is a white cross cut out of a dark square — a first-aid or add glyph, and in dark mode a black cross on white, which is worse. It escapes the layout icon by landing on the one form the seed's own thesis names as the stock-icon tell, an aligned divider cross.",
+     "claimError": "The 'foot' does not function as described. The channel widens to cols 7-11 at rows 12-13 but narrows back to cols 7-8 at rows 14-15, so the stem runs past the kick all the way to the bottom edge — the negative shape is a cross with a lump on one side, not a t with a terminating foot."
+    },
+    "pixel": {
+     "id": "push-t-negative",
+     "escapes": 2,
+     "legible16": 6,
+     "silhouette": 2,
+     "authored": 4,
+     "score": 3,
+     "claimError": "The channel does not 'kick 3 cells right to form the foot'. It bulges right for two rows (cols 7-11, rows 12-13) and then returns to cols 7-8 for rows 14-15, so the negative stem runs straight off the bottom edge with a rectangular blister on its side. There is no foot, and without one the negative shape is a dagger or a plus, not a t.",
+     "verdict": "At 71.9% ink with one connected region, the silhouette is the full 16x16 square minus a 3x2 and a 4x4 corner — the closest of all 36 to the plain filled square the brief bans. My 12px render reads as a header bar over two columns with two slots, which is the failure mode it was drawn to escape."
+    },
+    "user": {
+     "id": "push-t-negative",
+     "escapes": 6,
+     "legible16": 7,
+     "silhouette": 5,
+     "authored": 5,
+     "score": 4.5,
+     "verdict": "Nobody will find the t without the caption — the white channel reads as a divider cross in a dark slab, i.e. the toolbar icon with extra steps — and the red stub at bottom-left is never assigned a meaning by its own author: pure decoration, which the brief forbids."
+    }
+   }
+  },
+  {
+   "id": "count-centred-master",
+   "title": "Centred master",
+   "grid": [
+    "................",
+    ".##..######..##.",
+    ".##..######..##.",
+    ".##..######..##.",
+    ".##..######.....",
+    ".##..######.....",
+    ".....######..++.",
+    ".....######..++.",
+    ".##..######..++.",
+    ".##..######..++.",
+    ".##..######.....",
+    ".##..######.....",
+    ".....######..##.",
+    ".....######..##.",
+    ".....######..##.",
+    "................"
+   ],
+   "thesis": "Six panes in the centredmaster arrangement: a 6x14 master running the full height down the middle, flanked by two 2-wide columns — two windows on the left, three on the right. The asymmetric window counts mean the left and right splits never line up, so the seed's misalignment idea survives while the composition becomes symmetric in mass and asymmetric in rhythm. The left column stops three rows short at the bottom, cutting a notch that keeps the outline off square; the accent is the second right-hand window, the one that is focused.",
+   "at16": "The master reads immediately as one dominant window; the flanking 2px columns read as \"there is stuff either side\" rather than as five distinct panes — the individual side windows merge into dashed rails. That is an acceptable loss: the master-plus-rails silhouette is what carries at this size.",
+   "risk": "Two-cell columns are the absolute legal minimum and at 16px they read as a border, which flips the whole mark from \"three columns of windows\" to \"a framed document\" — the exact opposite of a terminal. It is also the most nearly symmetric variant, which edges toward the centred-everything look the client rejects.",
+   "geometry": "122 ink cells (8 accent, 6.6%); COM (7.60, 7.26) → off (+0.10, -0.24); near mirror-symmetric in mass, asymmetric in split positions; thinnest stroke 2 cells (side columns); all gutters 2 (cols 3-4 and 11-12; rows 6-7 left, rows 4-5 and 10-11 right).",
+   "axis": "count",
+   "axisLabel": "Pane count and rhythm",
+   "mean": 3.2,
+   "spread": 2.5,
+   "ink": 122,
+   "scores": {
+    "brand": {
+     "id": "count-centred-master",
+     "escapes": 2,
+     "legible16": 4,
+     "silhouette": 3,
+     "authored": 4,
+     "score": 2,
+     "verdict": "The 2-cell flanking columns do exactly what was feared — at 16px they read as a hatched border, flipping the mark from three columns of windows to a framed document with margin rules. Near-symmetric mass plus a 6-cell centre slab is the centred-everything look the client rejects."
+    },
+    "pixel": {
+     "id": "count-centred-master",
+     "escapes": 2,
+     "legible16": 4,
+     "silhouette": 3,
+     "authored": 5,
+     "score": 3,
+     "verdict": "Five of the six panes are 2 cells wide — the absolute floor — and my 12px downsample confirms they render as a row of dim ':@:' ticks, i.e. a picket fence, not windows. Symmetric mass with a master down the middle is the framed-document read the brief is trying to kill, and the 2x4 accent is a 2px-wide sliver."
+    },
+    "user": {
+     "id": "count-centred-master",
+     "escapes": 5,
+     "legible16": 4,
+     "silhouette": 5,
+     "authored": 6,
+     "score": 4.5,
+     "verdict": "At 16px the 2-wide side columns compress into a border and the whole mark flips to 'framed document' — the author names this failure in their own risk statement and ships it anyway."
+    }
+   }
+  },
+  {
+   "id": "sym-module-lock",
+   "title": "Module-locked asymmetry",
+   "grid": [
+    "................",
+    "......########..",
+    "......########..",
+    "......########..",
+    "................",
+    "................",
+    ".###..+++..###..",
+    ".###..+++..###..",
+    ".###..+++..###..",
+    ".###.......###..",
+    ".###.......###..",
+    ".###..###..###..",
+    ".###..###..###..",
+    ".###..###..###..",
+    "................",
+    "................"
+   ],
+   "thesis": "No symmetry at all. The discipline is a strict 3x3 module grid — 3-cell modules at cols 1-3 / 6-8 / 11-13 and rows 1-3 / 6-8 / 11-13, with 2-cell gutters — plus one rule: every pane is an integer number of modules and every pane edge lands on a module line. Five panes span one or two modules each and no two are the same shape; the top-left module is left empty so the composition cannot close into a rectangle. Deliberateness is proved by alignment rather than reflection: nothing is centred, and yet nothing sits anywhere but on the grid.",
+   "at16": "3-cell panes and 2-cell gutters both survive, but with no margin for error — the mark reduces to three 3px columns with a 3px bar over the right two. The empty top-left module is a 3x3 bite and stays visible, and it is the only thing keeping the silhouette off a rectangle. This is the most fragile of the six at favicon size.",
+   "risk": "Three columns under a header bar is very close to what a stock 'layout' toolbar icon actually looks like, so this is the cut most likely to lose the argument to the harsh critic outright — vacating one corner module is a thin defence. It also carries the least ink weight at the smallest stroke, so in a dark tab it will look grey and spindly next to the other five.",
+   "geometry": "90 ink cells (81 ink + 9 accent = 10.0%); COM (7.50, 7.67), off centre by 0.00 and 0.17; symmetry: none (C1); underlying system is a 3x3 modular grid, 3-cell module + 2-cell gutter, all edges module-locked; thinnest stroke 3 cells; gutters exactly 2 cells (cols 4-5, cols 9-10, rows 4-5, rows 9-10).",
+   "axis": "sym",
+   "axisLabel": "Symmetry system",
+   "mean": 3,
+   "spread": 2,
+   "ink": 90,
+   "scores": {
+    "brand": {
+     "id": "sym-module-lock",
+     "escapes": 2,
+     "legible16": 5,
+     "silhouette": 4,
+     "authored": 5,
+     "score": 2,
+     "verdict": "Three columns under a header bar is not near a stock layout icon, it is one, and at 35% ink with 3-cell strokes it is also the most spindly thing here — in dark mode it goes grey and thin next to everything else. Vacating one corner module is not a silhouette.",
+     "claimError": "'no two are the same shape' is false: the left and right panes are both 3x8, and the accent and lower-centre panes are both 3x3 — two congruent pairs out of five panes. The reported COM pair is also transposed (actual (7.67, 7.50), so the 0.17 offset is in x, not y)."
+    },
+    "pixel": {
+     "id": "sym-module-lock",
+     "escapes": 2,
+     "legible16": 6,
+     "silhouette": 3,
+     "authored": 4,
+     "score": 3,
+     "claimError": "Two errors. 'No two [panes] are the same shape' is false — the left and right panes are both 3x8 and the accent and bottom-centre pane are both 3x3. And the COM tuple is transposed: measured (7.67,7.50), off (+0.17, 0.00). Unstated: the mark's bbox is cols 1-13 / rows 1-13, so it carries a 1-cell margin top and left against a 2-cell margin right and bottom.",
+     "verdict": "Min stroke 3 and 35% ink means it holds at 16px but renders spindly and, because of the uneven margin, visibly parked up and left inside its own tile. Three columns under a header bar with one corner vacated is the stock layout icon with a corner vacated."
+    },
+    "user": {
+     "id": "sym-module-lock",
+     "escapes": 4,
+     "legible16": 5,
+     "silhouette": 4,
+     "authored": 6,
+     "score": 4,
+     "verdict": "Three thin columns under a header bar is the stock layout icon drawn lighter, and at 90 cells it will sit grey and spindly next to every other mark on the page.",
+     "claimError": "'No two panes are the same shape' is false: the left and right columns are both exactly 3x8, and the accent and bottom-centre blocks are both exactly 3x3. COM is also swapped: actual (7.67, 7.50) — off 0.17 horizontally, not vertically as the stated (7.50, 7.67) implies."
+    }
+   }
+  }
+ ],
+ "critiques": [
+  {
+   "lens": "brand",
+   "overall": "Every grid is technically clean — 36/36 are valid 16x16 with no 1-cell stroke and no 1-cell interior gutter anywhere — and that is the problem: rendered at literal 16px in a row, roughly thirty of them are the same tile, a dark square with white slots, and the six axes explored (offset amount, pane count, symmetry group, ink weight, focus device, concept push) almost all vary things that are invisible at favicon size. The strongest cluster is the three marks that stop drawing filled rectangles inside a bounding square at all: weight-gutter-inverted, which inverts figure and ground so there is no outer rectangle left to mistake for a toolbar button; sym-transpose-bracket, which abandons the box for two interlocking L's; and push-cascade, which goes light and stepped. Each of those wins by leaving the brief — one drops the panes, one drops the panes and the accent, one depicts cascading rather than tiling — which is itself the finding: within this territory, faithfulness to the seed and escape from the generic read are in direct opposition. The second recurring failure is the accent: it is repeatedly a 4-6 cell speck (count-pair-cursor, sym-pinwheel-void, focus-block-cursor) that dies in dark mode, or a corner block (offset-master-stack, offset-pinwheel-slabs, sym-point-rotation) that decorates instead of meaning, and in six marks stripping it collapses the whole idea. What the set is still missing is the obvious middle: a mark that keeps solid panes and gutters but removes 25-40% of the bounding square as one large void — weight-subtract-void and push-cursor-pane are the only two that even gesture at it, both at half strength — and a version of the gutter-inversion move that has somewhere honest for the vermilion to live."
+  },
+  {
+   "lens": "pixel",
+   "overall": "Credit first: not one of the 36 breaks the hard rules. I measured every horizontal and vertical run in all 36 grids and there is no 1-cell stroke and no 1-cell gap anywhere; the minimum interior gap is 2 in every mark except sym-glide-step (3) and sym-transpose-bracket (8). The failures are all one level up. The dominant recurring fault is that the differentiating feature is at the 2-cell floor while the bulk of the mark sits at 6-9 cells: hollow interiors that my bloom test closes (weight-hollow-frames loses 16 hole-cells at mild bloom, focus-solid-among-outlines' 3x3 hole collapses to one cell), a 1-cell overhang carrying focus-floating-pane's whole concept, and 2-cell rails and cursors carrying count-pair-cursor, focus-edge-rail and sym-nautilus. The second recurring fault nobody in the set tested for: accents parked in corners, where an avatar circle crop removes 39-75% of them (push-crop-bleed 75%, push-t-panes 62%, weight-crop-bleed and push-cursor-pane 56%, weight-focus-solid 55%, focus-title-strip 50%, offset-master-stack 48%) — and, related, nobody checked light-mode luminance contrast for accents that abut or are enclosed by near-black ink, which is why count-pair-cursor, push-cascade and focus-block-cursor all have accents that will read in dark mode and smudge in light. The strongest cluster is the four marks that stop trying to be a tiled rectangle and commit to a shape with a hole or a step in it — sym-transpose-bracket and push-cascade at the top, then weight-gutter-inverted and weight-subtract-void, which are also the only marks whose silhouette event is 5 cells or larger and therefore the only ones that still exist at 12px. What the set is still missing is a mark that keeps the legible four-pane tiling read and has a silhouette event big enough to survive: over half of these are a full-bleed rectangle whose only outline incident is a 2-4 cell corner bite, which is rule 5 in spirit even where it passes on the letter."
+  },
+  {
+   "lens": "user",
+   "overall": "The strongest cluster is the marks that add a second, terminal-specific object to the tiling instead of just rearranging tiles — offset-master-stack and offset-half-brick-bond (product-true layouts that stay legible), push-t-panes and push-cursor-pane (a block cursor doing the 'this is a shell' work) — plus two escape hatches, sym-transpose-bracket and weight-gutter-inverted, which are the best pure logos in the set but only by leaving the solid-pane territory. The recurring failure is that stagger alone does not survive 16px: a dozen variants are rectangles-with-offset-gutters whose differences evaporate in a browser tab, at which point they regress to exactly the toolbar icon the client is paying to escape; the second recurring failure is accents sliding to corners and edges where they decorate instead of meaning focus. Notably, several authors' own risk statements are the correct final verdict on their marks (centred-master, title-strip, cell-baseline, cascade), and the symmetry-axis author got their own COM geometry backwards three times. What the set still lacks is the obvious synthesis: a master-and-stack composition of solid panes with an ink-drawn, monochrome-safe block cursor anchoring scale — offset-master-stack's body with push-cursor-pane's idea drawn in ink would beat everything scored here."
+  }
+ ],
+ "synth": {
+  "intro": "Twenty-five candidate territories went out and one came back. frame-tiling-misaligned is four solid panes on a single vertical gutter whose horizontal splits deliberately do not line up. The client picked it because a tiling window manager is what this product's audience looks at all day, and because the framework's own layout engine tiles panes. The mark is a picture of the thing. It also carries one problem, and every variant here is an attempt on it: a tiled rectangle is the layout button in every design tool's toolbar. Six agents attacked from six directions: how far the dividers can miss, how many panes there are, which symmetry group generates them, how much ink they carry, how focus gets stated, and what happens when the territory is abandoned. That produced 36 grids. Three critics scored all of them, a brand director, a pixel technician measuring bloom and crop behaviour, and a developer who runs a tiling WM. Where they disagreed, it is noted.",
+  "axisNotes": [
+   {
+    "slug": "offset",
+    "note": "The question was how badly the dividers can miss. Answers ran from a 2-cell stagger to an 8-cell teleport, and both ends failed. interlock-pair (4.0) is a quartered square with a wobble in the seam, and jogged-gutter reaches 72% ink, a filled square with a crack in it. The middle held: master-stack (6.2) pushes the offset until no two edges share a line."
+   },
+   {
+    "slug": "count",
+    "note": "Two panes up to six. The finding is that pane count does not fix genre. Six panes are grey churn in a browser tab (dense-six, 3.5), three equal columns are the oldest toolbar glyph there is (thirds-ragged, 3.8), and two panes plus a cursor collapse into a split-view toggle in monochrome. The best idea, a status bar with a workspace tag, arrived inside a browser-window frame. Weakest axis in the set."
+   },
+   {
+    "slug": "sym",
+    "note": "Which symmetry group reads as designed fastest. This axis produced both the highest-scoring mark (transpose-bracket, 7.5) and the lowest (module-lock, 3.0). The lesson is that the more famous the group, the more anticipated the result: verified C4 renders as a loading spinner, and a glide with only two copies reads as drew-it-twice-and-flipped-one. Transpose won because no logo genre owns it yet."
+   },
+   {
+    "slug": "weight",
+    "note": "Coverage from 28% to 70%. One finding here is genuinely useful and was measured rather than asserted: subtraction beats hollowing. A 5x5 missing quadrant survives everything, while a 2x2 hole shuts completely under mild bloom and 3-cell walls pinch to slots. The heavy end confirmed the accusation exactly, full-bleed-bite being the layout tile with one corner chipped off. The light end produced gutter-inverted."
+   },
+   {
+    "slug": "focus",
+    "note": "How a flat 16px drawing says which pane is focused. All six devices failed, each in its own way. A title bar is the chrome tiling WMs exist to delete, the edge rail measures identical to the gutter beside it, the block cursor butts the frame wall, and the floating pane's overhang is 1 cell, under the brief's own floor. Top score 5.3. Accent placement is unsolved."
+   },
+   {
+    "slug": "push",
+    "note": "Permission to leave the territory, which bought the highest ceiling and the widest disagreement. cascade is the second most robust drawing in the set and depicts the opposite of tiling. t-panes says two true things at once and duplicates the mark the client already has. cell-baseline is a good 400px sticker whose entire concept is gone at 16px, which its own author states."
+   }
+  ],
+  "finalists": [
+   {
+    "id": "sym-transpose-bracket",
+    "case": "Highest mean in the set at 7.5, and the only mark all three lenses placed near the top. Two unequal 3-thick L-brackets around a verified clean 8x8 void, the largest interior gap here by a factor of nearly three. Two cells close under bloom, six are lost to a circle crop, and with no accent the favicon, the sticker and the monochrome stamp are one drawing.",
+    "against": "It has left the territory. There are no panes in it, and interlocking L-brackets are a crowded genre of their own: crop marks, focus reticles, the macOS fullscreen control. The transpose invariance is a real product metaphor that no viewer will ever see."
+   },
+   {
+    "id": "weight-gutter-inverted",
+    "case": "The only structural answer to the stated problem. Delete the panes and draw the divider system instead: a 3-cell spine with one arm running left and one running right, four rows apart. 34% ink, one connected region, no interior detail to lose, three cells clipped by a circle crop. It reads as a box-drawing glyph, which is the most terminal-native form anyone produced.",
+    "against": "Cold, it can read as a pipe fitting or a mis-drawn H. Having removed the panes there is nowhere honest for the accent, so the mark cannot say which window is focused, and that is the signal the rest of the set spends itself on."
+   },
+   {
+    "id": "offset-master-stack",
+    "case": "The one variant the developer lens called a picture of an actual dwm screen rather than an icon of one, scoring 7.5 there. A 9x11 master beside a slotted 5-wide stack, with a verified 2-cell minimum clearance between every master edge and every stack edge, so no line can be read as a near miss. Three objects, min run 5, nothing in it can fail at 16px.",
+    "against": "The brand lens gave it 5: wide block left, slotted bar right, coloured rectangle in the top-right corner is the page-with-right-rail wireframe. The accent parks in a corner, and 12 of its 25 cells fall outside an avatar circle crop."
+   },
+   {
+    "id": "push-cascade",
+    "case": "By measurement the strongest drawing after the brackets. COM lands exactly on (7.50, 7.50), the monochrome silhouette has exact C2 broken only by the accent, the step is a uniform +3, the bands a uniform 4 rows, every gutter is 2, nothing closes under bloom, and it still reads at 12px. Three masses running off opposite edges give it a staircase outline no filled tile can imitate.",
+    "against": "It draws cascading windows, which is the Windows 3.1 toolbar button and the opposite of what the layout engine does, so the better it renders the more wrong it is about the product. The 2-cell accent butts the bar it belongs to and vanishes in mono."
+   }
+  ],
+  "recommendation": "Take weight-gutter-inverted. It is the only variant that removes the bounding rectangle rather than nibbling at it, so the toolbar-button reading has nothing left to attach to. At 34% ink, 3-cell strokes and one connected region it is tied with the brackets for the safest thing here at 16px, and with no accent the tab icon, the sticker and the mono stamp are the same drawing. It does not beat the current mark, and the page should say so. baseline-a-refined names the product and says shell in one move, with the block cursor sitting on the foot of the t. This one says tiling and does not say terminaltui. Run it as the app and tab mark beside the wordmark rather than as a replacement. If a standalone object is wanted instead, take sym-transpose-bracket and accept the genre risk. Do not take push-t-panes: it is the incumbent's own idea drawn worse, and 1.17 cells off centre.",
+  "disagreements": "The widest split is push-t-panes: brand 3, pixel 5, user 7. The developer saw a shell prompt, a pixel t with a block cursor parked at the baseline. The brand director saw a plus sign with a loose red square and measured COM 1.17 cells low-right. offset-master-stack splits the same way, brand 5 against user 7.5, and offset-half-brick-bond and sym-pinwheel-void repeat the pattern. It is consistent: the developer rewards product truth that the brand director reads as genre collision, while the pixel technician sits between them and scores only what survives a downscale. Marks that need domain knowledge score high on one lens and low on another."
+ },
+ "rejected": [],
+ "runNotes": [
+  "[stall] agent \"axis:focus\" stalled (no progress) after 592s — retrying (1/5)"
+ ]
+}

@@ -26,7 +26,12 @@ import {
 import { getCollection } from "astro:content";
 import { baseFor, url, formatDate, readingTime } from "@/lib/site";
 
-const base = baseFor("paper");
+interface Props {
+  /** Override when Paper is rendered at the production root. */
+  base?: string;
+}
+
+const { base = baseFor("paper") } = Astro.props;
 const posts = (await getCollection("blog", ({ data }) => !data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
   .slice(0, 3);
@@ -55,7 +60,7 @@ const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "No" :
   base={base}
   defaultTheme="light"
   title="terminaltui — a standardized engine for terminal apps"
-  description="A TypeScript framework for terminal apps: file-based routing for screens, 42 components, real images, and shipping over npx or SSH."
+  description="A TypeScript framework for terminal apps: file-based routing for screens, 42 components, real images and video, and shipping over npx or SSH."
   path={base}
 >
   {/* ── HERO ──────────────────────────────────────────────────────────── */}
@@ -84,7 +89,7 @@ const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "No" :
       <Screen
         demo="welcome"
         label="home"
-        caption="The welcome tour, cyberpunk theme, 100 columns. Not a mockup: this is the real cell grid, dumped out of a headless PTY."
+        caption="The welcome tour, flintNight theme, 100 columns. Not a mockup: this is the real cell grid, dumped out of a headless PTY."
       />
     </div>
   </section>
@@ -159,8 +164,8 @@ const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "No" :
     <p class="code-line"><code>image("./cover.png", &#123; width: 60 &#125;)</code></p>
     <p class="body">
       {stats.runtimeDeps} runtime dependencies hold the whole thing up: esbuild, jpeg-js,
-      pngjs. No sharp, no node-gyp, no postinstall build. Video is the same pipeline over
-      a sequence of frames; it is in progress and not shipped.
+      pngjs. No sharp, no node-gyp, no postinstall build. Video uses the same pipeline
+      over prepacked frames: real pixels on Kitty and Ghostty, coloured cells elsewhere.
     </p>
   </Section>
 
@@ -230,7 +235,7 @@ const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "No" :
     <Screen
       demo="restaurant"
       label="menu"
-      caption="restaurant demo, gruvbox theme — one of the eleven, captured at 100×32."
+      caption="restaurant demo, gruvbox theme — one of twelve, captured at 100×32."
     />
   </div>
 

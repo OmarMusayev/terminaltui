@@ -47,7 +47,11 @@
   --color-ink: #14140f;
   --color-muted: #5d5b53;
   --color-line: #e3e1da;
-  --color-accent: #d93a00;
+  /* 4.94:1 on bg, 4.61:1 on surface. #d93a00 was the design value and read
+     better, but it lands at 4.46/4.16 — under AA for the 12px accent eyebrows
+     and section numerals. Darkened 6% along the same sRGB ray, which holds the
+     hue exactly and is not perceptible beside the original. */
+  --color-accent: #cc3700;
   --color-on-accent: #ffffff;
   --color-hover: #eeece7;
 }
@@ -149,7 +153,10 @@
   --color-ink: #0d0d0c;
   --color-muted: #63635e;
   --color-line: #e0e0dc;
-  --color-accent: #a86500;
+  /* Amber is a dark-mode colour; its light-mode counterpart has to be pushed
+     well past "amber" to survive. #a86500 was 4.21:1 on bg. See the note on
+     paper's accent — same fix, same reasoning. */
+  --color-accent: #9f5f00;
   --color-on-accent: #ffffff;
   --color-hover: #eaeae6;
 }

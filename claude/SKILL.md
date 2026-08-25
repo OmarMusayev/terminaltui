@@ -368,6 +368,7 @@ TUI navigation is fundamentally **up/down arrow keys** moving a focus cursor bet
 | `divider()` | No | Visual separator. Not focusable. |
 | `spacer()` | No | Vertical spacing. Not focusable. |
 | `image()` | No — unless `resizable` | Passive display by default. `image(path, { resizable: true })` takes one focus slot; `+`/`-` resize the frame, `0` resets. |
+| `video()` | No — unless `controls` | Passive poster by default. `video(path, { controls: true })` takes one focus slot; Space plays/pauses and Left/Right seek. |
 | `section()` | No — wrapper | Children inherit their own focusability. |
 | `form()` | No — wrapper | Children (inputs, buttons) are individually focusable. |
 | `dynamic()` | No — wrapper | Children inherit their own focusability. |
@@ -831,7 +832,7 @@ interface ImageOptions {
 Rules that matter when generating code:
 
 - **Paths are relative to the project root** (the directory containing `pages/`), not the working directory. Absolute paths, `~/`, `file:` URLs and `data:` URIs also work.
-- **PNG and JPEG only.** GIF, WebP, BMP and `http(s)` URLs render a bordered alt box at exactly the size the image would have taken. Nothing throws and nothing shifts.
+- **PNG, JPEG and GIF.** A still `image()` uses the first GIF frame; use `video()` to animate it. WebP, BMP and `http(s)` URLs render a bordered alt box at exactly the size the image would have taken. Nothing throws and nothing shifts.
 - `mode: "auto"` negotiates from the viewer's terminal: real pixels on kitty/Ghostty, otherwise 2x2 quadrant cells at 256/truecolor, half blocks under tmux, a shading ramp at 16 colors, ASCII when color is off. **Pinning any `mode` also disables the pixel path** — do it only for snapshot tests or when you specifically want `"braille"` (line art, plots — never photographs). There is no `mode: "kitty"`; pixels are negotiated, never authored.
 - `fit: "contain"` (the default) **never letterboxes** — it shrinks the block instead. Use `fit: "fill"` or `"cover"` if an exact `width` x `height` box matters.
 - `dither: "floyd-steinberg"` looks better but re-emits every row on any scroll; use it only for static art. It is a cell-path option and is ignored on kitty/Ghostty.
@@ -841,6 +842,29 @@ Rules that matter when generating code:
 - Environment knobs, both read at render time: `TERMINALTUI_IMAGE` is the **cell** knob — `off` forces every image to its alt box (row counts unchanged), a tier name forces that tier, `cells` forces the cell path. Any non-neutral value there also disables pixels. `TERMINALTUI_GRAPHICS` is the **pixel** knob — `off` disables the pixel path absolutely (and is the right setting for test harnesses and screenshot scripts), `kitty` forces it on for a mis-detected terminal.
 
 Full reference: `docs/images.md`.
+
+#### video(path: string, options?): VideoBlock
+
+Plays a `.tvf` frame pack, animated GIF, or an ffmpeg-readable source. Raw
+video is packed once into `.terminaltui/video/` and reused; ffmpeg is only a
+build-time requirement. Animated GIF decoding is pure TypeScript. Kitty and
+Ghostty receive real pixels in automatic mode, while every other terminal uses
+the same portable coloured-cell ladder as `image()`.
+
+```ts
+video("./trailer.mp4", { fitPage: true, controls: true })
+video("./loop.gif", { autoplay: true, width: 40 })
+video("./clip.tvf", { mode: "quadrant", fps: 12, loop: true })
+```
+
+Video accepts the image geometry and rendering options (`width`, `height`,
+`maxHeight`, `fit`, `align`, `mode`, `dither`, `alt`, `background`, `invert`,
+`charset`, `border`, `fitPage`) plus `fps`, `loop`, `autoplay`, `poster`, and
+`controls`. `autoplay` defaults to `false`. `controls: true` adds a transport
+row and a focus slot. `TERMINALTUI_VIDEO=off` freezes every player on its
+poster, including controls, which is useful for screenshots and test harnesses.
+
+Full reference: `docs/video.md`.
 
 #### section(title: string, content: ContentBlock[]): SectionBlock
 
@@ -1911,7 +1935,7 @@ Asks 10 questions:
 2. **Description** — what the site/app is about (detailed)
 3. **Pages** — list of pages (one per line)
 4. **Content** — real content to include, or "skip" to let AI generate it
-5. **Theme** — pick from 10 themes or "auto"
+5. **Theme** — pick from 12 themes or "auto"
 6. **Visual style** — bold, minimal, retro, playful, professional
 7. **ASCII art** — scenes to include, or "auto"/"none"
 8. **Interactive features** — contact form, search, reservation, signup, newsletter, custom
@@ -1936,7 +1960,7 @@ Then open Claude Code in that directory and paste the instructions.
 
 ### Themes
 
-10 built-in themes. Use as string name or reference `themes.themeName`.
+12 built-in themes. Use as string name or reference `themes.themeName`.
 
 ```ts
 import { themes } from "terminaltui";

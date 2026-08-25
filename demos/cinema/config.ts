@@ -18,7 +18,7 @@ import { defineConfig } from "../../src/index.js";
  */
 export default defineConfig({
   name: "Cinema",
-  tagline: "Video, decoded to coloured quadrants, 12 times a second.",
+  tagline: "Video in real pixels where supported, colour cells everywhere else.",
   theme: "dracula",
   banner: {
     text: "CINEMA",
@@ -26,7 +26,7 @@ export default defineConfig({
   },
   menu: {
     items: [
-      { label: "> Now playing", page: "home" },
+      { label: "> Now playing · pixels or colour cells", page: "home" },
       { label: "# How it works", page: "how" },
     ],
   },

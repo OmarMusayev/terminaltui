@@ -31,8 +31,9 @@ import { fileURLToPath } from "node:url";
 import { TUIRuntime } from "../src/core/runtime.js";
 import type { Site, ContentBlock, ImageFit, ImageMode } from "../src/config/types.js";
 import type { TerminalIO } from "../src/core/terminal-io.js";
-import { image, link, panel } from "../src/config/parser.js";
+import { image, link, panel, video } from "../src/config/parser.js";
 import { imageCellSize, renderImage } from "../src/components/Image.js";
+import { videoBlockRows } from "../src/components/Video.js";
 import { isPageFitImage, pageFitImageBlock, focusSlotsOf } from "../src/image/frame.js";
 import { viewportHeight, blockRenderWidth } from "../src/core/layout-constants.js";
 import { computeFocusPositions } from "../src/layout/flex-engine.js";
@@ -72,6 +73,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PNG = join(HERE, "fixtures", "gradient-200x100.png");
 /** 64x48 JPEG, a different aspect, so the sweep is not one ratio's coincidence. */
 const JPG = join(HERE, "fixtures", "quarters-64x48.jpg");
+/** A real 848x352 pack, so video geometry comes from its actual header. */
+const TVF = join(HERE, "../demos/cinema/assets/sintel.tvf");
 
 /** The width a full-width block is handed on a 100-column page. */
 const W = blockRenderWidth(100);
@@ -136,6 +139,32 @@ test("an author's own maxHeight still wins when it is tighter than the grant", (
   const block = image(PNG, { border: true, fitPage: true, maxHeight: 6 });
   assertEqual(pageFitImageBlock(block, 40).maxHeight, 6, "declared cap survives a roomy grant");
   assertEqual(pageFitImageBlock(block, 5).maxHeight, 3, "a tighter grant wins over the declared cap");
+});
+
+test("a controlled fitPage video spends its transport row INSIDE the page grant", () => {
+  let checked = 0;
+  for (const border of [true, false]) {
+    for (let budget = border ? 4 : 2; budget <= 30; budget++) {
+      const block = video(TVF, { border, controls: true, fitPage: true });
+      const fitted = pageFitImageBlock(block, budget);
+
+      // Passing one fewer row as availHeight is the direct-geometry form of
+      // reserving the transport. The page-fit rewrite must be identical.
+      const viaAvailHeight = videoBlockRows(block, W, budget - 1);
+      const viaRewrite = videoBlockRows(fitted, W);
+      assertEqual(viaRewrite, viaAvailHeight, `${border ? "bordered" : "plain"} budget ${budget}`);
+      assert(viaRewrite <= budget, `budget ${budget} honoured, got ${viaRewrite}`);
+      checked++;
+    }
+  }
+  assertEqual(checked, 56, "controlled-video matrix size");
+});
+
+test("an uncontrolled fitPage video does not pay for a transport it does not draw", () => {
+  const plain = video(TVF, { fitPage: true });
+  const controlled = video(TVF, { fitPage: true, controls: true });
+  assertEqual(pageFitImageBlock(plain, 17).maxHeight, 17, "plain video gets the whole grant");
+  assertEqual(pageFitImageBlock(controlled, 17).maxHeight, 16, "controlled video reserves one row");
 });
 
 // ─── 2. Opt-in, by object identity ────────────────────────

@@ -53,6 +53,7 @@ export function url(base: string, path = ""): string {
 }
 
 export function baseFor(dir: string): string {
+  if (dir === "paper") return "/";
   return `/d/${dir}/`;
 }
 

@@ -1,0 +1,108 @@
+---
+/**
+ * Every variant in one band, at one size, so they can be compared as shapes
+ * before anybody reads a word about them.
+ *
+ * Two modes matter. At a large size you are comparing silhouettes. At a literal
+ * 16 you are running the only test that decides anything: could you pick this
+ * out of a row of favicons in a browser you actually use?
+ */
+import PixelMark from "@/components/shared/PixelMark.astro";
+
+interface Item { id: string; title?: string; grid: readonly string[]; mean?: number }
+
+interface Props {
+  items: Item[];
+  size?: number;
+  /** Show the id and score under each mark. Off for the favicon row. */
+  labelled?: boolean;
+  /** Cell width in px; the grid auto-fits to it. */
+  cell?: number;
+}
+const { items, size = 56, labelled = true, cell = 116 } = Astro.props;
+---
+
+<div
+  class:list={["ms", labelled ? "ms-labelled" : "ms-bare"]}
+  style={`--ms-cell:${cell}px`}
+>
+  {items.map((it) => (
+    <a class="ms-item" href={`#${it.id}`} title={`${it.id}${it.mean !== undefined ? ` · ${it.mean.toFixed(1)}` : ""}`}>
+      <span class="ms-art"><PixelMark grid={it.grid} size={size} /></span>
+      {labelled && (
+        <span class="ms-meta">
+          <code>{it.id}</code>
+          {it.mean !== undefined && <b class="tnum">{it.mean.toFixed(1)}</b>}
+        </span>
+      )}
+    </a>
+  ))}
+</div>
+
+<style>
+  .ms {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--ms-cell), 1fr));
+    border-top: 1px solid var(--color-line);
+    border-left: 1px solid var(--color-line);
+  }
+  .ms-item {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    justify-items: center;
+    align-content: start;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+    border-right: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+    color: var(--color-ink);
+    text-decoration: none;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .ms-item:hover { background: var(--color-surface); }
+  .ms-art { display: grid; place-items: center; }
+
+  .ms-meta {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .ms-meta code {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--color-muted);
+    max-width: 100%;
+    /* Let kebab-case ids wrap at their hyphens rather than truncating. A
+       comparison sheet where you cannot read the names is not one. */
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .ms-meta b {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--color-ink);
+  }
+
+  /* The favicon row: real size, tight, no chrome to flatter it. */
+  .ms-bare {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-left: 0;
+  }
+  .ms-bare .ms-item {
+    /* The marks stay at a literal 16px; only the hit area grows to 44. */
+    padding: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-right: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+  }
+</style>

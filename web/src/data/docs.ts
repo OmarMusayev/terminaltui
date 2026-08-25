@@ -27,8 +27,9 @@ export const docSections = [
   {
     title: "Making it look right",
     items: [
-      { slug: "themes", label: "Themes", blurb: "Ten built-in themes, custom palettes, and how colour depth is negotiated." },
-      { slug: "images", label: "Images", blurb: "Real PNG and JPEG in a terminal — coloured cells everywhere, true pixels on kitty." },
+      { slug: "themes", label: "Themes", blurb: "Twelve built-in themes, custom palettes, and how colour depth is negotiated." },
+      { slug: "images", label: "Images", blurb: "Real PNG, JPEG and GIF in a terminal — coloured cells everywhere, true pixels on kitty." },
+      { slug: "video", label: "Video", blurb: "Frame packs, playback controls, GIF support, real pixels and the portable cell fallback." },
       { slug: "ascii-art", label: "ASCII art", blurb: "Fourteen banner fonts, fifteen scenes, and the icon set." },
     ],
   },

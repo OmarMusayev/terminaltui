@@ -1,0 +1,1318 @@
+{
+ "seed": [
+  "#####.##########",
+  "#####.##########",
+  "......##########",
+  "......##########",
+  "####..####......",
+  "####..####......",
+  "####..####..++++",
+  "####..####..++++",
+  "####..####..++++",
+  "####..####..++++",
+  "####..####......",
+  "####..####......",
+  "......####..####",
+  "++++..####..####",
+  "++++..####..####",
+  "++++..####..####"
+ ],
+ "diagnoses": [
+  {
+   "lens": "brand",
+   "label": "Brand director",
+   "reads_as": "A dark square with slots milled out of it: a solid bar across the top, three vertical bands under it, two coloured blocks in opposite corners. The instant associations are a QR-code fragment, a Trello board with its frame deleted, or a UI skeleton-loader; \"window layout\" arrives a beat later and \"tiling\" only arrives if someone says the word.",
+   "works": [
+    "The column module is real and it is a rule, not a feeling: 4-2-4-2-4 across, and the right band's vertical rhythm is the exact transpose, 4-2-4-2-4 down. That is why the asymmetry reads as authored — the same interval set is running in both axes, so the eye finds a system before it finds a shape.",
+    "The top bar is the only join between bands, and it is load-bearing. Merging the spine (cols 6-9) with the right band (cols 12-15) across rows 0-3 is what stops the mark collapsing into three parallel stripes, and it creates the largest single rectangle (10x4 = 40 cells), which gives the eye a defined place to land instead of scanning left-to-right forever.",
+    "The two gutters behave differently and that difference is the clearest tiling cue at any size: col 5 is empty in all 16 rows (a full-height channel), while cols 10-11 are interrupted by the bar at rows 0-3. One split runs through, one is stopped by a pane above it. That single inequality is the only thing separating this from a table.",
+    "There is no container. No border, no rounded rect, no drawn monitor bezel. Nearly every dev-tool logo in this category draws a screen and puts something inside it; committing to full bleed means the mark IS the layout rather than a picture of a layout, and it is the one decision here that no generated variant would have made."
+   ],
+   "fails": [
+    "There is no silhouette. The outer boundary is the 16x16 field itself, so the shape you remember after looking away is \"square.\" All the identity lives in the negative space — and the negative space is 2-cell gutters, the thinnest, most fragile feature in the drawing. That is backwards: the memorable part of a mark should be its heaviest element, not its lightest. In dark mode this is worse, because 68% white on near-black blooms and the gutters are the first thing to close.",
+    "The single empty cell at col 5, rows 0-1 ruins the top edge. Downsample the mark 2x and the top row of the result is 4,4,2,4,4,4,4,4 — one mid-grey cell in an otherwise solid bar. So the top edge reads as a continuous full-width rule, which is the universal signifier of a title bar, which is a floating window: the exact metaphor this product must not have. And if the pixel does resolve, it does not read as a gutter, it reads as a dropped pixel. There is no size at which that cell does what it was meant to do.",
+    "Two accent regions in diagonally opposite corners is the loudest thing in the mark and it says the wrong thing twice. In a tiling WM exactly one pane is focused; two focused panes is false. And 180-degree opposition is the signature of compositional balancing — the designer evening out the weight — so it reads as decoration, not signal. Worst: colour is read before form, so the eye's actual path is top bar, top-right accent, then a long jump down-left to the second accent. The only diagonal in this composition is the colour path, and it fights the grid.",
+    "The left band is freehand where the right band is systematic. Right band vertical rhythm: 4-2-4-2-4. Left band: 2-2-8-1-3. Both of the mark's 1-cell violations are on the left, and the 8-cell block is twice any module in the mark. The right half proves the rule the left half is breaking, which means the fix is already sitting in the drawing.",
+    "Two of the four internal split rows align straight across the mark: the left band and the right band both change state at row 4 and at row 12. That draws two implied full-width rules and imposes a latent 4-8-4 horizontal banding on top of the 4-2-4-2-4 vertical one. The result is closer to a 3x3 table than the offset-splits idea claims — and offset splits are the whole argument for why this is tiling and not a spreadsheet."
+   ],
+   "sharpest_criticism": "It is not a mark, it is a texture swatch — you cannot redraw it from memory, because there is no outline to redraw, only a fill percentage. And the shape it does have is one he already rejected: 60% of the ink (88 of 146 cells) is a single connected Γ — the spine plus the top bar — so the dominant form in this drawing is an L-bracket, the exact abstract device he threw out thirty-six variants to escape. It is only hidden because three loose blocks are parked against it at 2-cell distance. Strip the caption and what the eye reports is three stripes under a bar, which is also what a bar chart, a Kanban board, and a loading placeholder look like; \"master pane and stack\" is something you are told, not something you see.",
+   "priority": "Collapse the accent to one region: keep the top-right 4x4 (rows 6-9, cols 12-15 — it is on-module and adjacent to the master, so it reads as the focused pane in the stack) and turn the bottom-left accent to ink, letting the row-12 slit close into one solid left block. One deletion kills the false \"two focused panes\" claim, removes the diagonal colour path that is the only diagonal in the mark, and clears one of the two 1-cell violations — and colour is what the eye reads first, so it is the change with the largest effect per pixel touched."
+  },
+  {
+   "lens": "pixel",
+   "label": "Pixel technician",
+   "reads_as": "A screen split into panes: three vertical columns of unequal weight, with horizontal divisions that deliberately fail to line up across the gutters. It reads as a window layout before it reads as a logo, and the eye lands first on the tall undivided column at cols 6-9, which correctly presents itself as the master pane.",
+   "works": [
+    "There is a real module and it is exact. Below the top bar the columns partition 4/2/4/2/4 = 16 with no remainder, and the right band's rows partition 4/2/4/2/4 as well — the column rhythm transposed. Two of the three bands are generated by one rule, which is why the asymmetry reads as authored rather than drawn by feel.",
+    "It survives inversion without a figure/ground flip. Ink is the majority (146 cells pure ink, 57%; 174 with accent, 68%) which would normally make the ink read as ground — it doesn't, because the ink is in 4-cell-wide rectangles and the empty is in 2-cell lines. Large blocks read as panes and thin channels read as gutters regardless of which one is lit, so the dark-ground version is the same drawing, not a negative of it.",
+    "It is centred without correction. Centre of mass is (7.46, 7.27) against a field centre of (7.5, 7.5) — off by 0.04 cells horizontally and 0.23 vertically, under 1.5% of the field — while still bleeding to all four edges. Nothing needs a bounding-box nudge to sit square.",
+    "One component carries the mark. The spine plus top bar is a single connected region of 88 cells, 51% of all ink, undivided across all 16 rows while both bands have four divisions each. That tonal anchor is what keeps a 6-region composition from reading as scattered, and it is a literally correct picture of a master pane."
+   ],
+   "fails": [
+    "Every measurable defect is in the left band, and they are all one defect: odd numbers in an otherwise all-even composition. The left band's rows partition 2/2/8/1/3 — the only odd parts anywhere in the mark — and at rows 0-1 the columns partition 5/1/10 instead of 4/2/10. In my coordinates the six offending transitions are: the vertical edge between col 4|5 in rows 0 and 1, and the horizontal edge between rows 12|13 in cols 0, 1, 2 and 3. The right band and the spine contain zero odd boundaries. The cause is a genuine constraint, not carelessness — with all-even parts the left band's boundaries must be even, the right band already occupies 4, 6, 10 and 12, and the only collision-free even boundaries left are {2, 8, 14}, which force a 6-row gap. Odd numbers were the cheap way to buy the offset.",
+    "At 8px the mark has no single appearance. Box-filtered, 3 of 64 pixels land at exactly 50% coverage: one at output (0,2) from the col 4|5 edge, and two at output (6,0) and (6,1) from the row 12|13 edge. Nearest-neighbour resolves them differently — it samples cols 0,2,4,…,14 and therefore never samples col 5 at all, so the entire top row collapses to a solid 8-wide bar. Box and nearest disagree on 3 cells; the same file is two different logos depending on the downsampler.",
+    "Those half-tone pixels resolve in opposite directions on the two grounds, so light and dark are not the same mark at 8px. A 50% pixel is value 136 either way, L* 56.7; on white ground its L* distance is 51.6 to ink and 43.3 to ground, so it leans open, but on near-black ground the distances swap to 43.3 and 51.6 and it leans closed. Rendered monochrome at 8px, the light version keeps all four of the left band's divisions while the dark version keeps two: the top row welds into an unbroken `########` bar and the left band becomes one solid 6-row block with its internal split gone. Three pixels of difference destroys half the structure of the left third.",
+    "The accent is two blocks of unequal size in positions no rule relates. Top-right is 4x4 = 16 cells; bottom-left is 4x3 = 12 cells, the only rectangle in the mark whose height is not a multiple of 4. The mark has no symmetry at all — 180-degree rotation, both mirrors and both transposes all fail — so nothing pairs the two blocks, and 180-degree rotation maps the top-right accent onto plain ink at rows 6-9, cols 0-3. A tiling WM has exactly one focused pane. Two accents of different area read as neither focus nor pattern, and the 4x3 block is also the direct cause of the row-12 one-cell gutter.",
+    "Column 5 is empty in all 16 rows, so a full-bleed channel severs the mark into 54 on-cells (31%) on the left and 120 (69%) on the right, with no shared edge between them. That left 31% is three rectangles that touch nothing at all. Meanwhile the right gutter at cols 10-11 stops against the top bar at row 4 and behaves as an internal split. The two channels are doing different structural jobs — outer boundary versus internal division — while being drawn identically, and the one that severs the composition is also the one that narrows to a single cell at the top."
+   ],
+   "sharpest_criticism": "The mark shows you a system and then breaks it, and it breaks it in the third of the composition the eye reaches first. Two-thirds of it is a strict 4/2/4/2/4 module — the columns and the right band, one the transpose of the other — and the left band is 2/2/8/1/3, which is not a permutation of anything and contains every odd number in the drawing. All six sub-pixel transitions, both sub-2-cell violations, and all three half-tone pixels at 8px originate in that one band; the spine and right band produce none. The client's own exploration established that asymmetry reads as authored only when a system generates it, and here a system generates the right half while a hand generates the left, so the left half reads exactly as freehand — which is to say, as a mistake.",
+   "priority": "Redraw the left band on the same all-even module as the rest of the mark: trim the rows 0-1 block back to column 3, and repartition its rows to 2/2/6/2/4 (ink 0-1, gap 2-3, ink 4-9, gap 10-11, accent 12-15). I verified this: it removes both sub-2-cell violations, all six odd transitions and all three half-tone pixels at once — 64/64 pure at 8px, box and nearest in exact agreement, light and dark identical — and it makes the two accent blocks 16 cells each, so it also buys the first half of the unsolved accent problem. It costs 2.4% coverage and shares two row boundaries with the right band, which is a cheaper price than an odd gutter."
+  },
+  {
+   "lens": "product",
+   "label": "Product truth",
+   "reads_as": "A screen chopped into panels — full bleed, even gutters, no object in the middle. In the first two seconds it reads as generic layout (bento tiles, a page-layout glyph); the tiling-WM reading only arrives after someone tells you, and the accent reads as colour balance before it reads as a state.",
+   "works": [
+    "Full bleed with 2-cell inner gutters and zero outer gutter is literally `gaps inner 2, outer 0` — the frame edge is the screen edge. That is what a tiling user's monitor actually looks like, and it is the one thing every \"windows floating on a background\" logo gets wrong.",
+    "The horizontal splits do not line up across the columns: the left column divides after rows 1 and 11, the right after rows 3 and 9, the middle not at all. That misalignment is what nested containers produce — one aligned grid would read as a spreadsheet. It is also exactly what a flexbox layout engine does, so the mark is structurally honest about the software.",
+    "The vertical skeleton is strictly modular: 4+2+4+2+4 = 16 exactly, panes at cols 0-3, 6-9, 12-15. Every vertical edge in the mark lands on that module without exception, which is why the composition does not read as freehand at a glance even though half of it is.",
+    "One element crosses the whole field — cols 6-9, ink in all 16 rows. At 16px a mark needs a single dominant stroke to be recognisable at all, and a 4x16 bar is the only feature here with the mass to be that."
+   ],
+   "fails": [
+    "Two accent regions means two focused windows. No tiling WM has ever had two focus. Worse, they are not even a system: 16 cells (rows 6-9, cols 12-15) against 12 (rows 13-15, cols 0-3), and no symmetry relates them — a 180-degree rotation sends the top-right block to rows 6-9/cols 0-3, which is not where the other one is. So it is neither a signal nor a pattern; it is two coloured tiles placed to balance the corners.",
+    "The largest ink region is 88 cells, 51% of all ink, and it is an L: the rows 0-3 bar (cols 6-15) is fused with no gap to the full-height cols 6-9 spine. No window manager on any layout produces a non-rectangular window. It also spans the cols 10-11 gutter for rows 0-3 while honouring that same gutter for rows 4-15 — a gap that exists 12 rows out of 16.",
+    "The empty space is not a gap lattice, it is two holes. It resolves to exactly two connected voids (42 and 40 cells) that open onto the left edge at rows 2-3 and row 12 and onto the right edge at rows 4-5 and rows 10-11, and onto no edge anywhere else. Since the mark has no outer gap, those openings are not gaps — they are regions with no window in them, and a tiler never leaves one: close a window and the neighbours expand into it.",
+    "The left column is drawn where the right column is generated. Right column: 4 / gap 2 / 4 / gap 2 / 4, perfect. Left column: 2 / gap 2 / 8 / gap 1 / 3, and its top pane is 5 cells wide (cols 0-4) while the rest of the column is 4 (cols 0-3). A pane wider than the pane directly above it in the same column cannot be produced by any tiler. Both sub-2-cell violations in the whole mark live in this one column.",
+    "The stated read — master pane and a stack — is not in the geometry. All three columns are 4 cells wide. Equal thirds is real (i3's default for three siblings) but it is a layout with no master, so nothing in the mark says which pane matters. The only element that is bigger than everything else is the L, which is the one shape a window manager cannot draw."
+   ],
+   "sharpest_criticism": "The mark's entire defence is that it is a true picture of the product: a real tiling layout. It is not one. It is five rectangles plus an L-shaped blob, floating in two voids that run off the edge of the frame — no window manager, on any layout, at any moment, has ever put that on a screen, so the claim collapses in front of the first developer who actually runs i3 and looks for thirty seconds. Take that claim away and what remains is a full-bleed arrangement of equal-gutter rectangles with two accent tiles on a diagonal: a bento grid, the most over-used layout motif of the last three years and precisely the generic tell the client says he rejects. It would serve a spreadsheet, a CDN dashboard, a CSS grid library or a note-taking app equally well, which means it is not doing identity work at all.",
+   "priority": "Collapse the accent to one block: keep rows 6-9 / cols 12-15, the only accent bounded on all four sides by gaps and therefore the only one that reads as a window rather than a corner wedge, and turn the bottom-left accent to ink pulled up into row 12. Focus is singular — that is the one thing every tiling user knows without being told — and this change costs nothing in silhouette or mass, closes one of the two sub-2-cell defects for free, and is the difference between the accent being colour balance and the accent being a claim."
+  },
+  {
+   "lens": "naive",
+   "label": "First-time viewer",
+   "reads_as": "Split terminal panes — tmux or a tiled desktop. Three chunky columns of black blocks with two orange ones highlighted; my honest guess at the product, before being told anything, was \"something that arranges windows in a terminal,\" which is exactly right — that first-two-seconds accuracy is rare and is the mark's whole value.",
+   "works": [
+    "It parses as a layout, not a pattern: the two 2-cell vertical gutters (cols 4-5, 10-11) run the full 16-row height as clean white lines — they survive a 13px bilinear downscale intact — and the horizontal splits deliberately failing to align across them is what says \"panes\" instead of \"table\" or \"QR fragment.\"",
+    "It is built to be tiny: 68% ink, full bleed to all four edges, nothing structural under 2 cells except the two known nicks, so at favicon scale it stays a solid legible glyph where outline-based marks dissolve to grey.",
+    "The full-height spine (cols 6-9, all 16 rows) fused to the top bar (rows 0-3, cols 6-15) welds the composition into one 88-cell object holding half the ink; mask that region and the mark collapses into three unrelated strips.",
+    "The weight is genuinely balanced — centre of mass (7.46, 7.27) against a field centre of (7.5, 7.5) — so a freehand-asymmetric composition sits dead still instead of leaning, which is why it feels deliberate at a glance."
+   ],
+   "fails": [
+    "The col-5 notch: rows 0-1 of the top-left pane extend to col 4, creating the mark's only 1-wide gutter and its only 5-wide block in an otherwise strict 4-column module. In the 13px test it smears to a grey nick and the pane fuses with the top bar; at poster size it reads as an off-by-one, not a decision.",
+    "Row 12 is the mark's only 1-tall gutter, between the left band's ink (rows 4-11) and its accent (rows 13-15). Downscaled it closes, and the orange block becomes a coloured end-cap on a tall bar instead of a separate pane — confirmed in the blur render, where the gap is a dirty grey line.",
+    "The accent appears twice, in two different sizes (16 cells top-right, 12 cells bottom-left), at positions no symmetry generates — the 180-degree twin of the top-right accent is rows 6-9 cols 0-3, which is ink. Two highlights kill the one thing the colour could mean: exactly one pane has focus, and \"two focused panes\" reads as decoration that aimed at symmetry and missed.",
+    "Minor but real to a fresh eye: the dominant top-bar-plus-spine region is shaped like a giant \"Γ\", so for a half-second the eye tries to read a letter and fails before settling on panes — a comprehension beat the mark pays at every first viewing."
+   ],
+   "sharpest_criticism": "This is a developer's first draft in a pixel editor, and it shows. In a mark made of nothing but rectangles on a grid, the grid is the only craft on display, and this one contains three counting errors: a gutter 1 wide where the system is 2, a gap 1 row tall where the system is 2, and two accent blocks of different sizes at positions no symmetry system produces. The product's entire pitch is a layout engine that computes your gutters for you — and the logo couldn't keep its own gutters consistent. The one element that could carry meaning, the colour, is spent twice, so it means nothing.",
+   "priority": "Make the accent appear exactly once: keep the top-right 4x4 block as the single focused pane and return the bottom-left accent to ink, merging it up through row 12 — which retires the 1-tall gutter defect in the same stroke. One coloured pane among solid black panes is instantly \"the focused window\" to anyone who uses tmux or i3; the drawing already contains the solution to the unsolved focus problem, it just states it twice, and stated twice it says nothing."
+  }
+ ],
+ "mandates": [
+  {
+   "slug": "fix",
+   "label": "Corrections only"
+  },
+  {
+   "slug": "accent",
+   "label": "The accent"
+  },
+  {
+   "slug": "rhythm",
+   "label": "Proportion and rhythm"
+  },
+  {
+   "slug": "open",
+   "label": "Open it up"
+  },
+  {
+   "slug": "layout",
+   "label": "Make it a real layout"
+  }
+ ],
+ "judges": [
+  {
+   "lens": "brand",
+   "overall": "The accent mandate produced the only work worth acting on: `accent-single-focused-pane` is the whole brief solved for eighteen cells, and `accent-master-pane` is the one genuinely interesting alternative, because it is the only variant where colour lands in the middle of the mark rather than in a corner. Open it up produced nothing usable — all four entries confirm the same finding from different directions, that the silhouette can only be bought with mass, and that the trade loses; `open-margin` gives up the full bleed, which was the best decision in the original drawing. Proportion and rhythm and Make it a real layout share one blind spot: six of their seven entries delete the top bar, and the bar is the only thing welding the three bands into a composition, so they nearly all collapse into three parallel stripes, which is the reading the bar exists to prevent. The client should understand three things about his own mark: the bar is the mark, not the columns; the two-cell counting errors are the least of its problems and cost only two cells to fix; and the two-accent error was the only thing genuinely worth changing, because colour is read before form and his mark currently spends it stating something false. He should also notice that the set contains a controlled A/B — `fix-trim-and-square` and `accent-single-focused-pane` are the same 176 filled cells in the same five regions, differing only in whether the bottom-left block is orange — and that the ink version wins decisively. What no entry solved is the silhouette: nineteen of twenty-one are full bleed, so the shape you remember is still a square, and the two that are not paid for the outline with half the mass.",
+   "beats_original": "Three genuinely beat it, in this order. `accent-single-focused-pane` (8) is the one to ship: it is the original with one accent instead of two, both 1-cell violations closed, and 0 half-tone pixels at 8px so light and dark render the same drawing — all of that at no cost to silhouette, mass, module or the load-bearing top bar. It is the only entry in the set that improves the mark without spending anything, and it retires the loudest error, the one the eye reaches first. `accent-master-pane` (7) beats it on one axis only and is worth keeping alive as the alternative: it is the sole variant whose first fixation lands in the centre rather than a corner, and the sole variant whose colour has a memorable form — a 4x10 orange column. Its price is high (the 88-cell anchor is gone, and 40 accent cells is 24% of the ink, a two-tone mark rather than near-monochrome with one accent), so I would test it against the other, not instead of it. `fix-trim-and-lift` (7) is better than the original but superseded — it performs the same col-4 trim that `accent-single-focused-pane` already contains, while leaving the accent problem untouched and buying a 7-row pane and two extra half-tone pixels. Nothing else in the set beats the original. The eighteen remaining entries are either the same trade re-costed (the corrections), the right idea welded to the wrong execution (`accent-status-bar`, `layout-bar-workspace`), or a different logo wearing the client's module."
+  },
+  {
+   "lens": "pixel",
+   "overall": "The warning that several authors would reintroduce the sub-2 defect is not borne out: I checked all 21 grids with 1D run analysis, 2x2 morphological opening and a diagonal-pinch test, and every variant is legal — zero ink features under 2 cells, zero gutters under 2, zero pinches; only the ORIGINAL violates the floor. Legality therefore discriminates nothing, and the real separator is 8px behaviour, where 16 of the 20 variants are perfectly pure (0 halftone pixels, box and nearest identical, light and dark identical) and exactly two are worse than the original: open-channels-3 at 14 halftones and, marginally, fix-trim-and-lift at 4 against the original's 3. \"The accent\" was by far the most useful mandate, and the reason is arithmetic — fix-trim-and-square and accent-single-focused-pane are the same ink drawing cell for cell, differing only in 16 recoloured cells, and that recolour buys more than every geometric repair in the Corrections set combined. \"Corrections only\" produced almost nothing: all four leave the accent untouched, two of them weld the accent to the ink with no gutter, and the minimum repair makes the favicon worse in the same band it was fixing. \"Open it up\" produced nothing shippable — it is the only mandate whose grids contain empty squares larger than 2x2 (up to 6x6, against a strict 2-cell lattice everywhere else in the set), and its two lightest entries fall below the coverage floor the earlier exploration already settled. The client should take from this that his drawing's measurable defects were never the six illegal cells — those cost six cells to fix and buy nothing — but the second accent and the 88-cell non-rectangular mass, and only the accent is cheap.",
+   "beats_original": "Two variants clearly beat the mark as drawn, and they are the two ends of a single decision. accent-single-focused-pane is the safe one: it is his exact ink, both illegal gutters closed, one accent instead of two, shared row boundaries down from 2 to 1, and 0 halftone pixels with box, nearest, light and dark all rendering the identical drawing — 18 cells for everything the corrections mandate was meant to buy plus the thing it failed to buy. accent-master-pane is the better mark and the riskier one: it is the only grid in the set with all ink regions plain rectangles and a single connected 88-cell void whose every cross-section is exactly 2, which makes it the only version a tiler could actually produce, and it sits just 14 ink cells from the client's drawing — but 40 accent cells is 23.8% of the ink, which is a two-colour logo rather than near-monochrome, and it gives up the 88-cell anchor mass. Below those, layout-centred-master (thinnest feature 4 cells in both axes) and rhythm-no-repeated-height (zero shared row boundaries, a verifiable 2/4/6/10/16 height rule) are real structural improvements that each pay for it by deleting the top bar or unseating the spine. rhythm-mirrored-stacks, open-bar-lifted, layout-bsp-alternating and layout-bar-workspace each contribute exactly one idea worth stealing — the accent as sole symmetry-breaker, a stepped silhouette, visible recursion, and a bar with a real gutter — without being better marks overall. Nothing in \"Open it up\" or in the three Corrections-only repairs is worth shipping on its own; the corrections are lateral moves that spend their entire budget on six cells that were never the problem."
+  },
+  {
+   "lens": "product",
+   "overall": "The accent mandate did the most valuable work: the unsolved focus problem turns out to fall to the cheapest possible edit — delete the second accent — because a single filled colored pane among ink panes is already how every WM's layout glyph marks the active window; accent-single-focused-pane proves the client's drawing contained the answer stated twice, and stated twice it said nothing. \"Make it a real layout\" produced the strong runner-up (centred-master) and \"Proportion and rhythm\" produced one genuine idea (mirrored-stacks' accent-as-symmetry-breaker); \"Open it up\" produced nothing — all four are worse, because the mandate contradicts what the exploration already proved about weight, and its most radical entry miscounted its own grid. What the client should take away: his instincts on module, weight, and full bleed survived every attack the set could mount — no variant that abandoned the 4-2-4-2-4 columns or the full bleed scored above a 5. His mark's real faults are small and countable: two one-cell gutters and one accent too many. The one open decision these variants surface is the top-bar weld — accent-single keeps it (memorable mass, but an L no WM draws), centred-master deletes it (honest rectangles, but three-stripes risk) — and that is now a choice between identity and literalism, not a defect either way.",
+   "beats_original": "Five genuinely improve on it. accent-single-focused-pane (8) is the winner: it solves the six-times-failed focus problem by subtraction, clears both 1-cell defects as side effects, is verified byte-clean at 8px, and changes 18 cells of a drawing the client keeps. layout-centred-master (7.5) is the better mark if he can give up the top bar — every window a rectangle, single accent in his own position, still recognisably his module. rhythm-mirrored-stacks (7) contributes the one idea worth stealing even if the grid isn't used: make the accent the only asymmetry so color reads as state. fix-even-left-band and fix-trim-and-lift (6.5 each) are modest but real corrections — even-left-band is the one to keep of the two, since it is the only repair that makes the whole mark modular and pixel-pure at 8px, though neither touches the double-focus problem that matters most."
+  }
+ ],
+ "synth": {
+  "intro": "This is a 16x16 pixel grid: 174 filled cells, 68% coverage, one accent colour spent in two places. You drew it yourself, in a pixel editor, after thirty-six generated variants failed and you rejected all of them. It reads as a tiling layout — a full-height pane down the middle, a bar across the top, side panes whose horizontal splits deliberately fail to line up. This page does not replace it. Four readings diagnosed the drawing, five mandates produced twenty refinements from it, and three judges scored all twenty-one grids, the original included. Below is what they found: the geometry doing real work, the six cells that are counting errors, and the one change that scored above the original on every scorecard. Where nothing beat the drawing, that is said too.",
+  "why_it_works": [
+   {
+    "claim": "The module is a rule, not a feeling",
+    "detail": "The columns partition 4-2-4-2-4 = 16 with no remainder, and the right band's rows partition 4-2-4-2-4 as well — the column rhythm transposed. Two of the three bands come from one interval set running in both axes, which is why the asymmetry reads as authored instead of drawn by feel."
+   },
+   {
+    "claim": "The two gutters do different structural jobs",
+    "detail": "Column 5 is empty in all sixteen rows; cols 10-11 stop against the top bar at row 4. One split runs through the whole field, one is stopped by a pane above it. That single inequality is the only thing separating this from a table or a bar chart."
+   },
+   {
+    "claim": "No container, full bleed to all four edges",
+    "detail": "No border, no bezel, no rounded rect: inner gutters 2, outer 0, which is what a tiling user's monitor actually shows. Nearly every dev-tool logo in this category draws a screen and puts something inside it. Committing to bleed makes the mark the layout rather than a picture of one."
+   },
+   {
+    "claim": "Heavy ink, so it survives at 16px",
+    "detail": "68% coverage, with ink in 4-cell blocks and empty in 2-cell lines, so blocks read as panes and lines as gutters whichever one is lit — the dark version is the same drawing, not a negative. Centre of mass (7.46, 7.27) against a field centre of (7.5, 7.5), with no correction applied."
+   },
+   {
+    "claim": "One 88-cell region anchors six loose parts",
+    "detail": "The spine fused to the top bar is one connected region of 88 cells, 51% of all ink, undivided across all sixteen rows while both side bands are cut four times each. Mask it and the composition falls into three unrelated strips. Nothing else here has the mass to read at favicon size."
+   }
+  ],
+  "why_it_doesnt": [
+   {
+    "claim": "Two one-cell gutters, both counting errors",
+    "detail": "The cols 4-5 gutter narrows to one cell at rows 0-1, where the top-left block runs out to column 4; and the left band's lower gap is a single row, row 12 at cols 0-3. Every other interval in the drawing is even. Both close up when the mark is scaled down."
+   },
+   {
+    "claim": "The colour says focused pane twice",
+    "detail": "Sixteen cells at rows 6-9 cols 12-15, twelve at rows 13-15 cols 0-3. No tiling WM has two focused panes, and no symmetry relates the blocks — 180-degree rotation sends the top-right one onto plain ink. Colour is read before form, so the eye's only diagonal is the colour path."
+   },
+   {
+    "claim": "Left band drawn where right band is generated",
+    "detail": "The right band's rows partition 4-2-4-2-4. The left band's partition 2-2-8-1-3, which is not a permutation of anything and contains every odd number in the mark, plus a top pane 5 cells wide in an otherwise 4-wide column. The half that proves the rule sits beside the half that breaks it."
+   },
+   {
+    "claim": "Light and dark are different logos at 8px",
+    "detail": "Three of 64 output pixels land at exactly 50% coverage: one from the col 4|5 edge, two from the row 12|13 edge. Nearest-neighbour never samples column 5, so the top row welds into a solid 8-wide bar — a title bar, which means a floating window."
+   },
+   {
+    "claim": "Dominant mass is an L, not a window",
+    "detail": "Spine plus top bar is 88 cells, 51% of the ink, and not a rectangle; no window manager on any layout produces an L-shaped window. The empty space is not a gap lattice either but two voids of 42 and 40 cells, which a tiler never leaves on screen."
+   }
+  ],
+  "mandateNotes": [
+   {
+    "slug": "corrections-only",
+    "note": "Asked for the smallest legal edit: close the two 1-cell gutters, change nothing else. Four grids, means 6.2 down to 3.3. It proved the repair is cheap and not enough alone. Trim-and-lift moves the defect onto the 8px block boundary, even-left-band opens a near-full-width channel at rows 10-11, and fill-both welds rows 0-1 into a title bar. Grammar fixed, sentence unchanged."
+   },
+   {
+    "slug": "the-accent",
+    "note": "Asked to crack the problem six earlier devices failed: where colour goes so it reads as focus. Four grids, 8 down to 4.7, and the highest score in the whole exploration. It won by deleting rather than inventing. The other three failed as expected — 40 accent cells goes two-tone, the status bar has no bar in it, and no accent has nothing to say."
+   },
+   {
+    "slug": "proportion-and-rhythm",
+    "note": "Asked whether equal thirds is the real fault, since three 4-wide columns is a layout with no master. Four grids, 6.3 down to 3.8. Both variants that touched the columns lost: 2-cell rails are single pixels at 8px. Mirrored-stacks found the second honest focus argument — accent as the sole symmetry-breaker — but paid the top bar for it."
+   },
+   {
+    "slug": "open-it-up",
+    "note": "Asked what happens below 68% coverage. Four grids, 5.0 down to 2.7, every one marked worse than the original by at least two judges. The mandate confirmed the floor instead of moving it: at 50% the mark is pieces of a layout in one 128-cell void, at 33% it stops bleeding, and a 3-cell module puts 14 of 64 pixels at half tone."
+   },
+   {
+    "slug": "make-it-a-real-layout",
+    "note": "Asked for grids a window manager could actually produce, every region a rectangle. Four grids, 6.8 down to 3.8. Centred-master is the strongest non-accent result: six rectangular regions, both defects gone, one shared row boundary instead of two. Its bill is the top bar, the only weld holding the three bands together. Master-stack showed the cost of literalism at 81% coverage."
+   }
+  ],
+  "recommendation": "Ship accent-single-focused-pane. Something did beat the drawing, and it beat it by subtraction: eighteen cells move and every one of them is already yours. Column 4 clears at rows 0-1, and the bottom-left accent turns to ink and merges up through row 12. Both counting errors go as side effects. What is left is the accent you chose, in the position you put it, stated once — and one coloured pane among black panes is how every window manager's own layout glyph marks the active window. All three judges scored it above the original, the only grid in the set with that record, and the pixel judge measured 0 half-tone pixels at 8px, so light and dark render the same file for the first time. It does not fix everything. The silhouette is still the square field, the 88-cell L still holds half the ink, and the accent still sits in a corner touching two edges. Those are the next problem. Keep the drawing; delete the second claim.",
+  "disagreements": "The three judges agreed on the winner and on little else. Product scored accent-master-pane 5 where pixel scored 8: pixel measured the only grid whose regions are all rectangles and whose voids are all exactly 2 cells, while product read 40 accent cells as \"the coloured column\" rather than focus. They split the same way on fix-trim-and-lift — product 6.5 for the honest minimum, pixel 5 for relocating a defect onto the 8px boundary. Brand and pixel inverted on fix-even-left-band, 4 against 5: geometric purity bought with a near-full-width channel. Brand priced meaning above measurement throughout."
+ },
+ "rejected": [],
+ "variants": [
+  {
+   "id": "accent-single-focused-pane",
+   "title": "One pane focused",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####"
+   ],
+   "change": "Eighteen cells move, nothing else. Rows 0-1 col 4: ink to empty, so the top-left pane is 4 wide like every other pane and the cols 4-5 gutter runs all 16 rows. Rows 13-15 cols 0-3: accent to ink, and row 12 cols 0-3: empty to ink, so the bottom-left accent becomes ink and merges upward into one 4x12 left pane. The surviving accent stays exactly where the client put it, rows 6-9 cols 12-15.",
+   "why": "Two accents claim two focused panes, which no tiling WM can produce, and colour is read before form so the eye's path was bar, top-right accent, then a long jump down-left. Deleting the lower accent leaves one focused pane in the stack and removes the only diagonal in a composition that is otherwise strictly orthogonal. The same deletion closes the row-12 one-cell slit, and the col-4 trim closes the one-cell gutter, so both sub-2 defects go with it.",
+   "cost": "The left column loses its second split and becomes a single undivided 4x12 pane, so the mark has three internal splits where it had four and the left band no longer answers the right band's 4-2-4-2-4 rhythm with anything. The accent still sits in a corner, touching two field edges, so it reads as the last pane in the stack rather than as the pane that matters, and the eye still travels out to the corner after landing on the bar.",
+   "geometry": "176 on-cells (68.8%); COM (7.36,7.45) vs (7.50,7.50); thinnest feature 2; narrowest gutter 2; accent 16 cells in 1 region; 5 connected ink regions (88/48/16/16/8); 0 half-tone pixels and 0 mixed 2x2 blocks at 8px, so box and nearest downsamples agree and light and dark are the same drawing.",
+   "mandate": "accent",
+   "mandateLabel": "The accent",
+   "faults": [],
+   "mean": 8,
+   "better": 3,
+   "worse": 0,
+   "scores": {
+    "brand": {
+     "id": "accent-single-focused-pane",
+     "score": 8,
+     "verdict": "This is the change I asked for, executed exactly: one accent, one fixation, no diagonal colour path, both 1-cell counting errors gone, 0 half-tone at 8px so light and dark are the same drawing. It does not touch the silhouette or the Γ and the accent still sits in a corner touching two edges, but it is the only variant that improves the mark without spending anything.",
+     "vs_original": "better"
+    },
+    "pixel": {
+     "id": "accent-single-focused-pane",
+     "score": 8,
+     "verdict": "Every claim verified exactly: 176 on-cells, COM (7.36,7.45), 0 halftone pixels, 0 mixed 2x2 blocks, box and nearest identical, light and dark identical. It is ink-identical to fix-trim-and-square — 16 recoloured cells are the entire difference — and shared row boundaries drop from 2 to 1, which the author did not claim.",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "accent-single-focused-pane",
+     "score": 8,
+     "vs_original": "better",
+     "verdict": "This cracks the unsolved problem: one filled colored pane among ink panes is exactly how every WM's layout-switcher glyph marks the active window, and I read it as focus instantly. Eighteen cells changed, both 1-cell defects cleared as side effects, verified byte-clean at 8px, and the surviving accent is the client's own, untouched — the drawing contained the answer all along, it was just stated twice."
+    }
+   }
+  },
+  {
+   "id": "layout-centred-master",
+   "title": "Centred master, two stacks",
+   "grid": [
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####......",
+    "####..####......",
+    "......####..++++",
+    "......####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####"
+   ],
+   "change": "Rows 0-1: the left block loses its column-4 overhang, so the cols 4-5 gutter is 2 wide in all 16 rows. Rows 0-3: cols 10-11 go empty, cutting the top bar in two, so the cols 10-11 gutter also runs all 16 rows. The left column is repartitioned to ink rows 0-5 / gap rows 6-7 / ink rows 8-15 (was ink 0-1, gap 2-3, ink 4-11, gap 12, accent 13-15) and its accent becomes ink; the spine at cols 6-9 and the entire right band at cols 12-15, accent at rows 6-9 included, are untouched.",
+   "why": "This is dwm's centeredmaster (or i3 with three sibling containers holding 2, 1 and 3 windows): every region is now a rectangle, so the 88-cell L that no window manager can draw is gone, and with it both 1-cell defects and the second accent. Splits are offset — left at rows 6-7, right at rows 4-5 and 10-11 — sharing only one boundary row (6) instead of the original's two, so the latent 4-8-4 horizontal banding that made it read as a 3x3 table is broken.",
+   "cost": "It gives up the top bar, which was the only thing welding the three bands together, so the mark now genuinely is three parallel stripes held only by the offset splits. It is also the least-changed variant, so it inherits the original's underlying problem: the silhouette is still the square field and the identity still lives in 2-cell negative space.",
+   "geometry": "168 ink cells (65.6%); COM (7.21,7.55) vs (7.5,7.5), delta (-0.29,+0.05); thinnest feature 4 cells; narrowest gutter 2 cells; accent 24... 16 cells in 1 region; 6 connected ink regions, all rectangular; 0 half-tone pixels when box-downsampled to 8px.",
+   "mandate": "layout",
+   "mandateLabel": "Make it a real layout",
+   "faults": [],
+   "mean": 6.8,
+   "better": 2,
+   "worse": 0,
+   "scores": {
+    "brand": {
+     "id": "layout-centred-master",
+     "score": 6,
+     "verdict": "Clean, six rectangles, one accent, both counting errors gone, splits sharing only row 6 — and it deletes the top bar, so the three bands are held together by nothing and both gutters become identical full-height channels. It trades the mark's most specific feature for its most generic reading.",
+     "vs_original": "same",
+     "claimError": "The geometry line reads \"accent 24... 16 cells in 1 region\" — an uncorrected self-edit; 16 is the right number. More substantively, \"dwm's centeredmaster\" overclaims: all three columns measure 4 cells wide, so there is no wider master here, only an undivided middle column. The author's own second framing — three sibling containers holding 2, 1 and 3 windows — is the accurate one."
+    },
+    "pixel": {
+     "id": "layout-centred-master",
+     "score": 7,
+     "verdict": "Thinnest feature is 4 cells in both axes — the most damage-tolerant grid in the set — with 0 halftones, all 6 regions rectangular, one shared row boundary, and only 30 ink cells' distance from the client's mark. Deleting the bar leaves 4 full-empty columns, so nothing joins the three bands and it is three stripes held by offset splits alone.",
+     "vs_original": "better",
+     "claimError": "The geometry line reads \"accent 24... 16 cells in 1 region\" — a leftover number. Measured accent is 16 cells; every other figure in that line checks out."
+    },
+    "product": {
+     "id": "layout-centred-master",
+     "score": 7.5,
+     "vs_original": "better",
+     "verdict": "This is dwm's centeredmaster drawn honestly: every region a rectangle a WM could produce, one focused stack window in the client's own accent position, both defects gone, verified clean at 8px, and the least-changed of its group so it still reads as his mark. The bill is the top bar — the weld that stopped three stripes reading as three stripes — and the offset splits only just cover it."
+    }
+   }
+  },
+  {
+   "id": "accent-master-pane",
+   "title": "Accent on the master",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "......##########",
+    "......##########",
+    "####............",
+    "####............",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++......",
+    "####..++++......",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####"
+   ],
+   "change": "Rows 4-5 cols 6-9 are cleared, which cuts the top bar free of the spine: the bar becomes a clean 10x4 rectangle and the middle column below it becomes a 4x10 pane at rows 6-15. That pane takes the accent. The old top-right accent at rows 6-9 cols 12-15 becomes ink, the bottom-left accent becomes ink with row 12 filled in, and rows 0-1 col 4 is cleared.",
+   "why": "Colour is read before form, so the question is not only how many accents but where the first fixation lands. On a corner tile it lands off-centre and drags the eye diagonally; on the centre column it lands in the middle of the mark and the surrounding ink resolves around it. Cutting rows 4-5 also turns every ink region into a plain rectangle and turns all 88 empty cells into one connected lattice of exactly-2-cell gaps — literally gaps inner 2, outer 0, with no orphan void anywhere, which is the first version of this mark that a tiler could actually produce.",
+   "cost": "The most colour of the four: 40 cells, 24% of the on-pixels, so it is a two-tone mark rather than near-monochrome with an accent. The accent is not the largest pane either — the left column is 48 cells — so master is a claim the colour makes, not one the geometry supports. And the 88-cell welded L is gone: the largest region drops to 48, the full-height spine survives only as a column of two panes, and the mark now depends on colour to hold together where it used to depend on mass.",
+   "geometry": "168 on-cells (65.6%); COM (7.36,7.60) vs (7.50,7.50); thinnest feature 2; narrowest gutter 2; accent 40 cells in 1 region; 6 connected ink regions (48/40/40/16/16/8), all six plain rectangles; one single connected empty region of 88 cells, every cross-section exactly 2; 0 half-tone pixels and 0 mixed 2x2 blocks at 8px.",
+   "mandate": "accent",
+   "mandateLabel": "The accent",
+   "faults": [],
+   "mean": 6.7,
+   "better": 2,
+   "worse": 1,
+   "scores": {
+    "brand": {
+     "id": "accent-master-pane",
+     "score": 7,
+     "verdict": "The only variant where the first fixation lands in the middle of the mark instead of a corner, and the only one whose colour has a form you could redraw — a 4x10 orange column with black either side. It costs the 88-cell anchor (largest region drops to 48) and spends 40 cells on accent, 24% of the ink, which is a two-tone mark rather than near-monochrome with one accent.",
+     "vs_original": "better"
+    },
+    "pixel": {
+     "id": "accent-master-pane",
+     "score": 8,
+     "verdict": "The only grid here where all 6 ink regions are plain rectangles AND the void is one connected 88-cell region with no empty square over 2x2 — literally gaps inner 2, outer 0 with no orphan hole. 0 halftones, stable in both grounds; only 14 ink cells differ from the client's drawing. The cost is chromatic: 40 accent cells is 23.8% of the ink, a two-tone mark rather than near-monochrome.",
+     "vs_original": "better",
+     "claimError": "\"on the centre column it lands in the middle of the mark\" — the accent's bounding box is rows 6-15, cols 6-9, so its centroid is (row 10.5, col 7.5): centred horizontally but three rows below the field centre, and it bleeds off the bottom edge rather than being framed."
+    },
+    "product": {
+     "id": "accent-master-pane",
+     "score": 5,
+     "vs_original": "worse",
+     "verdict": "Forty accent cells is 24% of the ink — the mark goes two-tone, and the color claims a master the geometry contradicts (the left column is 48 cells, bigger). The uniform 2-cell gap lattice is genuinely the first producible layout in the set, but a fully colored center column reads as 'the colored column,' not as focus, and the 88-cell anchor is gone."
+    }
+   }
+  },
+  {
+   "id": "rhythm-no-repeated-height",
+   "title": "No repeated height",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####............",
+    "####............",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####"
+   ],
+   "change": "Columns are untouched — 4-2-4-2-4, gutters at cols 4-5 and 10-11 — and all the work is in the rows. The left band becomes one undivided pane over all 16 rows, replacing its 2/2/8/1/3 partition and its accent. The bar keeps rows 0-3 and cols 6-15 but is cut free from the spine by a new 2-row gap at rows 4-5, so the spine runs rows 6-15. Below the bar the right band is accent rows 6-11 and ink rows 14-15, with its gutter at rows 12-13.",
+   "why": "Five panes, five heights — 2, 4, 6, 10, 16 — where each is the sum of the two before it, so the variety is generated by a rule and not by feel. Equal thirds repeats one 4-cell interval until the eye stops comparing panes and starts scanning a grid; a set of heights that never repeats forces the comparison, and it is what a stack looks like after you have resized two windows. Cutting the bar free at rows 4-5 also removes the L, the one shape no tiler can produce, without moving a single column.",
+   "cost": "The spine no longer reaches the top edge, so the full-height element moves from the centre to the left band and the composition's anchor goes off centre. The bar becomes a free-standing object rather than being welded to the spine, dropping the largest connected region from 88 cells to 64, and the 4x2 pane at rows 14-15 sits on the 2-cell floor.",
+   "geometry": "176 ink (68.8%); centre of mass (7.09, 7.27) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 24 cells in 1 region; 5 connected ink regions; 0 half-tone pixels at 8px.",
+   "mandate": "rhythm",
+   "mandateLabel": "Proportion and rhythm",
+   "faults": [],
+   "mean": 6.3,
+   "better": 1,
+   "worse": 0,
+   "scores": {
+    "brand": {
+     "id": "rhythm-no-repeated-height",
+     "score": 6,
+     "verdict": "The 2/4/6/10/16 height set is a genuine generated rule and the accent correctly collapses to one region, but the result is sidebar plus header plus content, which is the most-drawn wireframe in software. The spine leaving the top edge moves the anchor from the interior to the frame edge.",
+     "vs_original": "same"
+    },
+    "pixel": {
+     "id": "rhythm-no-repeated-height",
+     "score": 7,
+     "verdict": "The 2/4/6/10/16 height series is real — I confirmed each height is the sum of the previous two — and it is the only variant with zero shared row boundaries between the bands, so the latent full-width rules are gone entirely. 0 halftones, all regions rectangular, cols 4-5 still running full height against a stopped cols 10-11. Cost: the spine starts at row 6, so the full-height anchor moves to the left edge and the largest region drops 88 to 64.",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "rhythm-no-repeated-height",
+     "score": 6,
+     "vs_original": "same",
+     "verdict": "The Fibonacci heights (2,4,6,10,16) are a genuine generating rule, every region is a rectangle, and the nested read — a wide window over a master-and-stack — is something i3 can actually produce. But the full-height anchor drifts to the left edge (COM 7.09), the bar floats free, and the gain does not cover the drift; an interesting sketch, not an upgrade."
+    }
+   }
+  },
+  {
+   "id": "fix-trim-and-lift",
+   "title": "Trim and lift",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "......####......",
+    "......####..####",
+    "++++..####..####",
+    "++++..####..####",
+    "++++..####..####"
+   ],
+   "change": "Six cells changed, which is the provable floor. Two ink cells cut at (r0,c4) and (r1,c4) so the top-left pane ends at col 3 like every other left-band pane, making the col 4-5 gutter 2 wide in all 16 rows. Four ink cells cut at (r11,c0-3) so the left band's lower gutter is rows 11-12 instead of row 12 alone. Nothing else moves: both accent blocks, the spine, the top bar and the right band are byte-identical to the original.",
+   "why": "It clears both 1-cell violations and touches nothing else — 2 cells is the minimum for the top defect (both rows are wrong) and 4 is the minimum for the row-12 defect (the gap is 4 cells wide, so no partial fill or partial cut exists that does not leave a 1-cell run somewhere). It also has a free side effect: the left band's lower split moves off row 12, so left and right bands now share only one row boundary (row 4) instead of two (4 and 12), which weakens the implied full-width rule that pushed the mark toward a table.",
+   "cost": "The tall left pane drops from 32 cells to 28 (8 rows to 7), total coverage 68.0% to 65.6%, and the centre of mass moves right from (7.46,7.27) to (7.64,7.26). The real price is at 8px: the new gutter sits at rows 11-12, straddling the 2x2 downsample boundary, so it renders as two rows of half-tone grey rather than a clean gap — the geometry is legal at 16px but the left band's lower split is muddier at favicon size than before (4 half-tone pixels against the original's 3). It also introduces a 7-row pane, the only odd part in the drawing.",
+   "geometry": "168 filled cells, 65.6%; centre of mass (7.64, 7.26) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 28 cells in 2 regions (16 + 12); 6 connected filled regions (88, 28, 16, 16, 12, 8).",
+   "mandate": "fix",
+   "mandateLabel": "Corrections only",
+   "faults": [],
+   "mean": 6.2,
+   "better": 2,
+   "worse": 0,
+   "scores": {
+    "brand": {
+     "id": "fix-trim-and-lift",
+     "score": 7,
+     "verdict": "The col-4 trim kills the false title-bar edge — at 8px the top row goes from ##?##### to ##.#####, so the gutter finally resolves — and moving the lower split to rows 11-12 breaks one of the two aligned full-width rules. It leaves the loudest error untouched and pays a 7-row pane and two extra half-tone pixels for the privilege.",
+     "vs_original": "better"
+    },
+    "pixel": {
+     "id": "fix-trim-and-lift",
+     "score": 5,
+     "verdict": "Legal at 16px, and the top-edge weld — the defect all four readings named first — is gone in both grounds. But the new gutter at rows 11-12 straddles the downsample boundary: 4 halftone pixels against the original's 3, and light/dark divergence goes from 3px to 4px. It moves a defect within the same band rather than removing one.",
+     "vs_original": "same"
+    },
+    "product": {
+     "id": "fix-trim-and-lift",
+     "score": 6.5,
+     "vs_original": "better",
+     "verdict": "The honest minimum: both 1-cell defects gone, everything else byte-identical, and the author is straight about the cost (the new rows 11-12 gap straddles the 8px block boundary — verified, 4 half-tone pixels against the original's 3, plus a lone 7-row pane). Grammar fixed, sentence unchanged: it still says two panes have focus."
+    }
+   }
+  },
+  {
+   "id": "rhythm-mirrored-stacks",
+   "title": "Stacks mirror each other",
+   "grid": [
+    "####..####..####",
+    "####..####..####",
+    "####..####......",
+    "####..####......",
+    "####..####..++++",
+    "####..####..++++",
+    "......####..++++",
+    "......####..++++",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "......####..####",
+    "......####..####",
+    "####..####..####",
+    "####..####..####"
+   ],
+   "change": "Columns and gutters are exactly the client's — 4-2-4-2-4. The top bar is deleted, so cols 12-15 rows 0-3 is no longer welded to the spine and the spine at cols 6-9 is undivided over all 16 rows. The left band's rows become 6/gap/4/gap/2 (ink rows 0-5, 8-11, 14-15) and the right band's rows become the same series reversed, 2/gap/4/gap/6 (ink rows 0-1, accent rows 4-7, ink rows 10-15).",
+   "why": "The two stacks carry the same three heights in opposite order, so the ink pattern is exactly its own 180-degree rotation and the centre of mass lands on (7.50, 7.50) with no correction — the asymmetry of the splits is visibly generated rather than drawn. That buys the accent a job no other variant can give it: it is the single element that breaks the symmetry, so it is read as a state and not as balance. Equal thirds gives every pane the same 4-cell height and no pane a reason to be where it is.",
+   "cost": "Dominance here is only vertical — the spine is the same 4 cells wide as everything else, so at a glance the mark still reads as three columns of one width, and nothing is a master by area. Coverage drops to 62.5%, the lightest of the four, and the two 4x2 panes are one pixel tall at 8px.",
+   "geometry": "160 ink (62.5%); centre of mass (7.50, 7.50) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 16 cells in 1 region; 7 connected ink regions; 0 half-tone pixels at 8px.",
+   "mandate": "rhythm",
+   "mandateLabel": "Proportion and rhythm",
+   "faults": [],
+   "mean": 6,
+   "better": 2,
+   "worse": 1,
+   "scores": {
+    "brand": {
+     "id": "rhythm-mirrored-stacks",
+     "score": 5,
+     "verdict": "Conceptually the sharpest accent argument here — I verified the ink is exactly its own 180-degree rotation, so colour is the sole thing breaking the symmetry — but with the bar deleted it is three equal columns of blocks held together by nothing. At 62.5% it lands exactly on the barcode reading the bar was preventing.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "rhythm-mirrored-stacks",
+     "score": 6,
+     "verdict": "180-degree rotation on the ink is exact and the accent is the sole symmetry-breaker — both verified — which is the one argument in the set where colour is forced to mean state, since nothing else distinguishes a pane from its twin. COM lands on (7.50,7.50) with no correction. But with the bar deleted, cols 4-5 and 10-11 both run edge to edge and the largest region is 64 cells, so nothing is a master by area.",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "rhythm-mirrored-stacks",
+     "score": 7,
+     "vs_original": "better",
+     "verdict": "The second real crack at focus: verified, the ink mask is exactly 180-degree symmetric and the accent is the only thing that breaks it, so the color reads as state — which is what focus is. It pays real money for that (the bar and the mark's largest region are gone, no pane is master by area, the 4x2 panes are one pixel tall at 8px), but the accent finally has a job only it can do."
+    }
+   }
+  },
+  {
+   "id": "ORIGINAL",
+   "title": "The mark as drawn",
+   "grid": [
+    "#####.##########",
+    "#####.##########",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "####..####......",
+    "......####..####",
+    "++++..####..####",
+    "++++..####..####",
+    "++++..####..####"
+   ],
+   "change": null,
+   "why": null,
+   "cost": null,
+   "geometry": null,
+   "mandate": "original",
+   "mandateLabel": "Original",
+   "faults": [
+    "two 1-cell gutters",
+    "accent in 2 regions"
+   ],
+   "mean": 6,
+   "better": 0,
+   "worse": 0,
+   "scores": {
+    "brand": {
+     "id": "ORIGINAL",
+     "score": 6,
+     "verdict": "It reads as a layout in two seconds, which is rare and is the whole asset. But the memorable part of it is 2-cell negative space, the dominant mass is a Γ, and the colour says \"focused pane\" twice, which means it says nothing.",
+     "vs_original": "same"
+    },
+    "pixel": {
+     "id": "ORIGINAL",
+     "score": 6,
+     "verdict": "Six illegal cells, 3 halftone pixels at 8px, and the only entry in the set whose light and dark favicons are different drawings — in dark the top row welds into a solid 16-wide bar. Against that, the 4-2-4-2-4 module is exact, the void has no empty square larger than 2x2 anywhere, and nothing else here reads the product as fast.",
+     "vs_original": "same"
+    },
+    "product": {
+     "id": "ORIGINAL",
+     "score": 6,
+     "vs_original": "same",
+     "verdict": "It reads as a tiled session to someone who lives in one, and the weight is right — but it claims two focused panes, which no WM has ever shown, its dominant shape is an 88-cell L that no tiler can draw, and a mark about computed gutters contains two counting errors in its own gutters. Good instincts, first draft."
+    }
+   }
+  },
+  {
+   "id": "layout-bar-workspace",
+   "title": "Bar and workspace",
+   "grid": [
+    "++++++##########",
+    "++++++##########",
+    "................",
+    "................",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "......####..####",
+    "......####..####",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####"
+   ],
+   "change": "Rows 0-1 become a full-width bar, accent at cols 0-5 and ink at cols 6-15; rows 2-3 go empty across all 16 columns. The three-column body moves down into rows 4-15 on the original cols 0-3 / 6-9 / 12-15 module: left ink rows 4-7, gap 8-9, ink 10-15; spine ink rows 4-15; right ink rows 4-9, gap 10-11, ink 12-15. Both original accent blocks (rows 6-9 cols 12-15 and rows 13-15 cols 0-3) become ink.",
+   "why": "This attacks the accent problem from the other side. Colour on a pane has failed six times because a filled rectangle among filled rectangles has no fixed meaning; colour on the left end of a status bar is the active workspace, which every i3, dwm and polybar user reads without being told, and no bento grid or CSS-grid library has one. The body's two stacks are also exact 180-degree rotations of each other (4-then-6 against 6-then-4), so a rule generates the asymmetry rather than a hand.",
+   "cost": "The accent drops to 12 cells — the smallest in the set, 3x1 pixels at 8px — so colour stops being the first thing read, and the spine no longer runs the full 16 rows. A detached full-width strip at the top is also one step from the title bar device that already failed once, and it is the risk this variant exists to test.",
+   "geometry": "160 ink cells (62.5%); COM (7.50,7.70) vs (7.5,7.5), delta (0.00,+0.20); thinnest feature 2 cells (the bar's height); narrowest gutter 2 cells; accent 12 cells in 1 region; 6 connected ink regions, all rectangular; 0 half-tone pixels when box-downsampled to 8px.",
+   "mandate": "layout",
+   "mandateLabel": "Make it a real layout",
+   "faults": [],
+   "mean": 5.7,
+   "better": 1,
+   "worse": 1,
+   "scores": {
+    "brand": {
+     "id": "layout-bar-workspace",
+     "score": 5,
+     "verdict": "The workspace chip is the correct concept and this is the only variant that actually separates its bar from the panes with a 2-row gap, so the bar is legible as a bar — but a full-width strip at the top edge over a gap is the header device, and the body beneath it has lost its join and is three stripes. 12 accent cells is a 3x1 dash at favicon size.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "layout-bar-workspace",
+     "score": 6,
+     "verdict": "The only variant where the bar is actually a bar: a separate 32-cell region with a real 2-row gap beneath it, and the two stacks are exact 180-degree rotations (4-then-6 against 6-then-4) — both verified. But the accent is 12 cells and 2 rows tall, so at 8px it is three pixels in a one-pixel strip, and shared row boundaries rise to three: [2,4,10].",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "layout-bar-workspace",
+     "score": 6,
+     "vs_original": "same",
+     "verdict": "The workspace chip is the other honest answer to focus — singular by construction, instantly read by anyone with a bar, and TUIs really do have status lines — and the body's mirrored stacks are rule-generated (verified against 180-degree rotation). But a detached full-width top strip is one step from title-bar chrome, the 12-cell accent reads second instead of first, and the full-height spine is gone; the idea deserves a smaller role than a rebuild of the whole mark."
+    }
+   }
+  },
+  {
+   "id": "fix-trim-and-square",
+   "title": "Trim and square accent",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "####..####......",
+    "++++..####..####",
+    "++++..####..####",
+    "++++..####..####",
+    "++++..####..####"
+   ],
+   "change": "Six cells changed. The same 2-cell trim at (r0,c4) and (r1,c4). Then the row-12 gap is closed the other way: (r12,c0-3) becomes accent, so the bottom-left accent grows up to rows 12-15 and is a 4x4 block, the same size and shape as the top-right accent. The left ink pane keeps all 8 of its rows (4-11).",
+   "why": "The second defect is removed by deleting the gutter rather than widening it — there is no 1-row gap because there is no gap. It costs the same 6 cells as the minimum repair but buys something the diagnoses all asked for: the two accent blocks become 16 cells each instead of 16 and 12, so the colour stops reading as two mismatched tiles placed for balance. At 8px every output pixel is pure and box and nearest-neighbour agree, so light and dark render the same mark.",
+   "cost": "It is now the only place in the mark where two panes meet with no gutter, which contradicts the `gaps inner 2` rule the rest of the drawing follows. The left band becomes one connected 12-row region of 48 cells divided only by colour, so at any size below about 24px the accent reads as a coloured foot on a tall bar rather than a separate pane — the failure the blur test already showed for the original. Filled regions drop 6 to 5, coverage rises to 68.8%, accent 28 to 32 cells, and the left band keeps its shared row-12 boundary with the right band.",
+   "geometry": "176 filled cells, 68.8%; centre of mass (7.36, 7.45) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 32 cells in 2 regions (16 + 16); 5 connected filled regions (88, 48, 16, 16, 8).",
+   "mandate": "fix",
+   "mandateLabel": "Corrections only",
+   "faults": [],
+   "mean": 5.3,
+   "better": 1,
+   "worse": 1,
+   "scores": {
+    "brand": {
+     "id": "fix-trim-and-square",
+     "score": 5,
+     "verdict": "Technically the cleanest correction — 0 half-tone, box and nearest identical — but it perfects the mark's worst idea by making the two accents equal 4x4 blocks, so \"two focused panes\" stops reading as sloppiness and starts reading as a decision. It also welds the left band into one 48-cell column divided only by colour, which is the coloured-foot failure the blur test already showed.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "fix-trim-and-square",
+     "score": 5,
+     "verdict": "8px behaviour is perfect — 0 halftones, box equals nearest, light equals dark — and all claims check out. But the accent abuts ink on 4 edges with no gutter, so the left band is one 12-row bar with a coloured foot, and two accents still claim two focused panes. Six cells spent on the problem nobody named as the worst one.",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "fix-trim-and-square",
+     "score": 6,
+     "vs_original": "same",
+     "verdict": "Verified perfectly clean at 8px, but it closes the row-12 gap by fusing accent to ink — the only place in the mark where two panes touch with no gutter, which in an inner-gaps session never happens — and equalizing the accents at 16+16 makes them read more as pattern and less as focus. Trades one grammar break for another."
+    }
+   }
+  },
+  {
+   "id": "accent-none-pinwheel",
+   "title": "No accent, symmetric",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "####..####..####",
+    "......####..####",
+    "......####..####",
+    "##########......",
+    "##########......",
+    "##########..####",
+    "##########..####"
+   ],
+   "change": "All 28 accent cells become ink and rows 0-1 col 4 is cleared. Rows 10-15 are then rebuilt as the exact 180-degree rotation of rows 0-5: the left band's lower gap moves from the single row 12 up to rows 10-11, the right band gains ink at rows 10-11 and takes its lower gap at rows 12-13 instead, and cols 4-5 rows 12-15 turn ink, welding the left band to the spine as a 10x4 bottom-left bar that is the mirror of the 10x4 top-right bar. Rows 0-9 are otherwise the client's drawing untouched.",
+   "why": "This is the mandate's control: the mark with no colour at all, so the client can see what the geometry alone carries. With the accent gone the system has to do all the authorship work, so the composition is made exactly 180-degree rotationally symmetric — the one device the earlier exploration proved reads as authored rather than freehand — and the result is a spiral, which is a layout dwm and awesome actually ship, not an invented arrangement.",
+   "cost": "It says nothing about state. Focus, the one thing every tiling user reads instantly, is simply absent, and there is no place left to put it later without breaking the symmetry. Two 10x4 bars instead of one also makes the mark heavier and more even: rotational symmetry means nothing is emphasised, so the master reading weakens and the mark sits still rather than pointing anywhere.",
+   "geometry": "176 on-cells (68.8%); COM (7.50,7.50), exactly the field centre; thinnest feature 2; narrowest gutter 2; accent 0 cells in 0 regions; 5 connected ink regions (112/24/24/8/8), the 112 being one continuous spiral through both bars; 0 half-tone pixels and 0 mixed 2x2 blocks at 8px.",
+   "mandate": "accent",
+   "mandateLabel": "The accent",
+   "faults": [],
+   "mean": 5.3,
+   "better": 0,
+   "worse": 1,
+   "scores": {
+    "brand": {
+     "id": "accent-none-pinwheel",
+     "score": 6,
+     "verdict": "The strictest grid in the set — exact 180-degree symmetry verified cell by cell, COM dead on (7.50, 7.50) — and genuinely useful as proof of what the geometry carries alone. But an identity built on near-monochrome plus one accent has nothing to spend when the accent is deleted, and the dominant mass gets more letter-like, not less.",
+     "vs_original": "same",
+     "claimError": "The 112-cell region is called \"one continuous spiral.\" It is not a spiral, it is an S/Z: the top bar runs right from the spine, the bottom bar runs left from it, joined by the full-height spine. That matters, because the sharpest criticism of the original was that its dominant mass is a Γ — a bracket. Turning it into a Z raises the letterform risk rather than retiring it."
+    },
+    "pixel": {
+     "id": "accent-none-pinwheel",
+     "score": 4,
+     "verdict": "Geometrically the most rigorous grid in the set — exact 180-degree rotation including colour, COM exactly (7.50,7.50), 0 halftones, every figure verified. It also has no accent at all, which the house style requires, and it grows the non-rectangular dominant mass from 88 cells (50.6% of ink) to 112 (63.6%), the second-largest here.",
+     "vs_original": "worse",
+     "claimError": "\"the result is a spiral, which is a layout dwm and awesome actually ship\" — dwm's and awesome's spiral layouts arrange rectangular windows in a spiral. The 112-cell region here is a single non-rectangular polyomino spanning the whole field. No window manager produces a spiral-shaped window."
+    },
+    "product": {
+     "id": "accent-none-pinwheel",
+     "score": 6,
+     "vs_original": "same",
+     "verdict": "Verified exactly 180-degree symmetric with one 112-cell spiral — a layout dwm and awesome genuinely ship, and I recognise it. But it is the control, not a candidate: it deletes the brand's only color and admits there is nowhere to put it back, so its value is the information that the geometry can stand alone, not the mark itself."
+    }
+   }
+  },
+  {
+   "id": "layout-bsp-alternating",
+   "title": "Alternating splits",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####..##########",
+    "####............",
+    "####............",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####",
+    "####..++++..####"
+   ],
+   "change": "The column module becomes 4-2-10 above row 10 and 4-2-4-2-4 from row 10 down. Cols 0-3 become one full-height window (its gaps at rows 2-3 and 12 close, its accent becomes ink); the spine at cols 6-9 is deleted and its columns are absorbed into a 10-wide window at cols 6-15, rows 0-7. A new gap at rows 8-9 spanning cols 4-15 separates that from a bottom pair at rows 10-15 — cols 6-9 (accent) and cols 12-15 — divided by the cols 10-11 gutter, which now exists only in rows 10-15.",
+   "why": "This is a bspwm/yabai binary partition with the split axis alternating: vertical at cols 4-5, horizontal at rows 8-9 inside the right region only, vertical again at cols 10-11 inside the bottom region only. Exactly one line crosses the whole mark, so the two implied full-width rules that made the original read as a 3x3 table cannot form, and the nesting the layout engine actually does is the thing you see.",
+   "cost": "The full-height spine at cols 6-9 goes, and that is the point of this variant — a recursive partition has no columns, only regions — so the surviving 4-wide full-height pane moves to cols 0-3 and the mark's interior anchor becomes an edge. At 75% coverage the 10x8 window makes the top half read as one mass, and the 24-cell accent is the largest in the set.",
+   "geometry": "192 ink cells (75.0%); COM (7.50,7.08) vs (7.5,7.5), delta (0.00,-0.42); thinnest feature 4 cells; narrowest gutter 2 cells; accent 24 cells in 1 region; 4 connected ink regions, all rectangular; 0 half-tone pixels when box-downsampled to 8px.",
+   "mandate": "layout",
+   "mandateLabel": "Make it a real layout",
+   "faults": [],
+   "mean": 5.3,
+   "better": 1,
+   "worse": 2,
+   "scores": {
+    "brand": {
+     "id": "layout-bsp-alternating",
+     "score": 5,
+     "verdict": "Honest about what the layout engine actually does, and the heaviest thing here at 75%, which makes the top half read as one 10x8 mass. Deleting the spine moves the full-height element to the frame edge, and sidebar-plus-content is a more generic picture than the one it replaces.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "layout-bsp-alternating",
+     "score": 6,
+     "verdict": "Verified: exactly one channel crosses the whole mark (cols 4-5 are the only full-empty columns), zero shared row boundaries, all four regions rectangular, 0 halftones, COM (7.50,7.08). The recursion is genuinely visible, which no other variant manages — but at 75% coverage the 80-cell top-right block makes the upper half one mass and the spine is gone.",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "layout-bsp-alternating",
+     "score": 5,
+     "vs_original": "worse",
+     "verdict": "A bspwm user will recognise the alternating partition, and the single through-line is a nice touch — but it deletes the full-height centre spine that anchors the client's mark, fuses the top half into one 10x8 slab, and ends up corner-heavy. Recognisable layout, wrong mark."
+    }
+   }
+  },
+  {
+   "id": "fix-even-left-band",
+   "title": "Even left band",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "......####......",
+    "......####......",
+    "++++..####..####",
+    "++++..####..####",
+    "++++..####..####",
+    "++++..####..####"
+   ],
+   "change": "Fourteen cells changed, the only variant above the 6-cell floor. The same 2-cell trim at (r0,c4) and (r1,c4). Then eight ink cells cut at (r10,c0-3) and (r11,c0-3), and four cells set to accent at (r12,c0-3). The left band now reads 2 ink (rows 0-1) / 2 gap / 6 ink (rows 4-9) / 2 gap (rows 10-11) / 4 accent (rows 12-15).",
+   "why": "Every part of the left band is now even, so there is no odd boundary anywhere in the mark and the left band is generated by the same interval logic as the right band and the columns. Both 1-cell violations go, all three of the original's half-tone pixels go, and at 8px all 64 output pixels are pure with box and nearest-neighbour in exact agreement — the light and dark versions become the same drawing. Both accent blocks land at 16 cells.",
+   "cost": "Twice the minimum edit, and it buys a new problem. The left band's lower gutter now sits at rows 10-11, exactly where the right band's gutter already is, so a horizontal channel opens across the whole mark, broken only by the spine. Three of the four left/right row boundaries now align (rows 4, 10, 12) where two aligned before, which strengthens the latent horizontal banding and moves the composition toward the 3x3 table reading the offset splits exist to prevent. The tall left pane drops from 32 cells to 24 (8 rows to 6) and coverage falls to 65.6%.",
+   "geometry": "168 filled cells, 65.6%; centre of mass (7.64, 7.31) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 32 cells in 2 regions (16 + 16); 6 connected filled regions (88, 24, 16, 16, 16, 8).",
+   "mandate": "fix",
+   "mandateLabel": "Corrections only",
+   "faults": [],
+   "mean": 5.2,
+   "better": 2,
+   "worse": 1,
+   "scores": {
+    "brand": {
+     "id": "fix-even-left-band",
+     "score": 4,
+     "verdict": "Buys an all-even module at the price of a 2-row channel at rows 10-11 that crosses the whole field broken only by the spine, and pushes the shared left/right boundaries from two to three. That is the 3x3 table reading the offset splits exist to prevent, traded for a craft defect nobody sees at 16px.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "fix-even-left-band",
+     "score": 5,
+     "verdict": "The cleanest correction on paper: 0 halftones, all-even module, 6 regions, and the accent is gutter-bounded on every side (0 accent-to-ink contacts, unlike trim-and-square). It also raises shared row boundaries from 2 to 3 — [4,10,12] — opening a full-width horizontal channel at rows 10-11 that is visible at 8px as a rule broken only by the spine.",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "fix-even-left-band",
+     "score": 6.5,
+     "vs_original": "better",
+     "verdict": "The cleanest pure correction: every interval even, 0 half-tone pixels, box and nearest agree, light and dark identical — all verified. But the left band's new gap lands on rows 10-11 exactly where the right band's gap already is, opening a near-full-width channel broken only by the spine, and the false double-focus is still there."
+    }
+   }
+  },
+  {
+   "id": "open-bar-lifted",
+   "title": "Bar cut free",
+   "grid": [
+    "......##########",
+    "......##########",
+    "......##########",
+    "......##########",
+    "................",
+    "................",
+    "......####..++++",
+    "......####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "####..####......",
+    "####..####......",
+    "####..####......",
+    "####..####......",
+    "####..####......"
+   ],
+   "change": "The top bar keeps its exact rectangle (rows 0-3, cols 6-15) but rows 4-5 are emptied across the whole width, cutting it free of the spine, which now runs cols 6-9, rows 6-15. The left band becomes one pane at cols 0-3, rows 8-15 (its rows 0-7 are deleted), and the right band keeps only the accent at cols 12-15, rows 6-9 — its rows 12-15 ink block is deleted. Columns stay on the original 4-2-4-2-4 module.",
+   "why": "It kills the Γ: every one of the four ink regions is now a plain rectangle, which is the only thing a window manager can actually draw, and the full-width channel at rows 4-5 crossing the full-height channel at cols 4-5 makes the gap lattice explicit rather than implied. Emptying the top-left and bottom-right corners also gives the mark the stepped outer profile it has never had — the silhouette is now something you can redraw from memory.",
+   "cost": "The empty space is one connected 128-cell void, and a tiler never leaves a hole that big; read literally this is a layout with two windows closed. The composition also leans right (COM col 7.69), and at 16px the missing top-left corner can read as a cropping accident rather than a decision.",
+   "geometry": "128 ink (50.0%); COM (7.69, 7.56) vs (7.5, 7.5); thinnest feature 4; narrowest gutter 2; accent 16 cells in 1 region; 4 connected ink regions.",
+   "mandate": "open",
+   "mandateLabel": "Open it up",
+   "faults": [],
+   "mean": 5,
+   "better": 1,
+   "worse": 2,
+   "scores": {
+    "brand": {
+     "id": "open-bar-lifted",
+     "score": 5,
+     "verdict": "The only entry that answers the silhouette complaint — stepped corners, an outline you could actually redraw — and it proves what that costs: 50% coverage, four separate objects and one 128-cell void, so it reads as pieces of a layout rather than a layout. The bar floating over a full-width gap is the header device again.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "open-bar-lifted",
+     "score": 6,
+     "verdict": "Thinnest feature 4 cells in both axes, 0 halftones, all four regions rectangular, and the only variant that answers the no-silhouette charge — the emptied top-left corner gives it an outer profile you could redraw from memory. The price is a single 128-cell void containing a 6x6 empty square: half the field, and something no tiler leaves.",
+     "vs_original": "better"
+    },
+    "product": {
+     "id": "open-bar-lifted",
+     "score": 4,
+     "vs_original": "worse",
+     "verdict": "It finally has a silhouette, but read literally it is a session with two windows closed and nothing retiled — the one state a tiler never leaves on screen — and 50% coverage guts the weight the exploration proved the mark needs. The missing corner will read as a crop accident at small sizes, just as the author fears."
+    }
+   }
+  },
+  {
+   "id": "accent-status-bar",
+   "title": "Accent in the bar",
+   "grid": [
+    "####..##########",
+    "####..##########",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "......####..####",
+    "......####..####",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "####..####..####",
+    "++++++##########",
+    "++++++##########"
+   ],
+   "change": "Rows 14-15 become a solid full-width bar and the two vertical gutters now stop at row 13. Both original accents become ink, and the whole accent is re-spent as one 6x2 chip at rows 14-15 cols 0-5, inside the bar. The three columns are re-cut into the remaining 14 rows: left band ink 0-1, gap 2-3, ink 4-7, gap 8-9, ink 10-13; right band unchanged except its bottom pane shortens to rows 12-13; spine unchanged and now running into the bar. Rows 0-1 col 4 cleared.",
+   "why": "Every failed device so far put the accent on a pane, where it has to argue about which pane. A tiling desktop has one element whose whole job is to show exactly one thing highlighted — the bar, with the active workspace lit at the far left. That is a signal an i3, sway or dwm user reads without being told, it is singular by construction, and it sits outside the pane field so it stops competing with the ink. The chip runs 6 wide, crossing the cols 4-5 gutter, which is what proves it belongs to the bar and not to the column above it.",
+   "cost": "It adds an element the client did not draw, and it makes the bottom edge a solid unbroken 16-cell rule — with the 10x4 mass at the top right, the mark now flirts with reading as window chrome, a title bar and a status bar, which is the floating-window metaphor this product must avoid. The accent is also the smallest here at 12 cells: at 16px it is a 6x2 dash, so colour becomes a detail you notice second rather than the thing you see first.",
+   "geometry": "176 on-cells (68.8%); COM (7.64,7.73) vs (7.50,7.50), the bar pulling it low and right; thinnest feature 2; narrowest gutter 2; accent 12 cells in 1 region; 4 connected ink regions (136/16/16/8), the fewest of any variant; 0 half-tone pixels and 0 mixed 2x2 blocks at 8px.",
+   "mandate": "accent",
+   "mandateLabel": "The accent",
+   "faults": [],
+   "mean": 4.7,
+   "better": 0,
+   "worse": 2,
+   "scores": {
+    "brand": {
+     "id": "accent-status-bar",
+     "score": 4,
+     "verdict": "The best idea in the set and the worst execution of it. Bottom edge as a solid 16-cell rule plus the 10x4 top mass reads as window chrome, and the accent is welded straight onto the ink pane above it with no gutter.",
+     "vs_original": "worse",
+     "claimError": "\"It sits outside the pane field so it stops competing with the ink\" is false. There is no gutter anywhere between the bar and the panes: rows 12-13 and 14-15 are both ink at cols 6-9 and 12-15, so the bar fuses into a single 136-cell region — 77% of all filled cells — and on cols 6-15 it is completely indistinguishable from the panes above it. The bar is visible only where it happens to be orange, which makes the argument circular: the accent is supposed to sit inside a bar that only exists because of the accent."
+    },
+    "pixel": {
+     "id": "accent-status-bar",
+     "score": 4,
+     "verdict": "Clean at 8px and the active-workspace chip is the correct device — every failed accent so far argued about which pane, and a workspace indicator does not. The drawing does not build it, and the accent is the quietest in the set at 6.8% of ink.",
+     "vs_original": "worse",
+     "claimError": "\"it sits outside the pane field so it stops competing with the ink\" is false. The left band (rows 10-13), the spine, and the right band's rows 12-13 all run into rows 14-15 with no gutter — 6 accent-to-ink contacts — producing one connected region of 136 cells, 77.3% of all ink and the largest non-rectangular mass in the set. There is no bar; there are panes running off the bottom edge with six orange cells among them."
+    },
+    "product": {
+     "id": "accent-status-bar",
+     "score": 6,
+     "vs_original": "same",
+     "verdict": "The active-workspace chip is the one focus device that is singular by construction, and an i3/polybar or tmux user reads it without being told — but it buys that with chrome: a solid full-width bottom rule under a top bar is window dressing, and a 12-cell accent is a 6x2 dash at favicon size, so color stops being the first thing you see. A real idea that costs more than it pays here."
+    }
+   }
+  },
+  {
+   "id": "rhythm-thin-spine",
+   "title": "Spine goes thin",
+   "grid": [
+    "######..##..####",
+    "######..##..####",
+    "######..##..####",
+    "######..##..####",
+    "######..##......",
+    "######..##......",
+    "######..##..++++",
+    "######..##..++++",
+    "........##..++++",
+    "........##..++++",
+    "######..##......",
+    "######..##......",
+    "######..##..####",
+    "######..##..####",
+    "######..##..####",
+    "######..##..####"
+   ],
+   "change": "The column module goes from 4-2-4-2-4 to 6-2-2-2-4: the left band widens from cols 0-3 to cols 0-5, the spine narrows from cols 6-9 to cols 8-9, and the right gutter (cols 10-11) and right band (cols 12-15) stay exactly where the client drew them. The top bar is deleted, so the spine is unbroken over all 16 rows and cols 12-15 rows 0-3 becomes its own pane. The left band is now two panes split at rows 8-9 (ink 0-7, 10-15); the right band keeps its 4-2-4-2-4 row rhythm with the accent unchanged at rows 6-9, and the bottom-left accent becomes nothing.",
+   "why": "This is the reverse experiment: the master keeps its job — the only element crossing all 16 rows — but at 2 cells wide it holds 32 cells against the left band's 84, so the hierarchy flips and the mark reads as one narrow always-on column beside real work, which is what a file tree or a status terminal actually looks like in a tiled session. Equal thirds asserts three peers and therefore no hierarchy at all; this asserts one, and puts it where you would not expect it.",
+   "cost": "Deleting the bar makes both gutters run the full height, so the mark loses the inequality — one channel running through, one stopped by a pane — that was the clearest thing separating it from a table, and it loses its largest connected object. At 2 cells the spine can read as a rule rather than a pane, at 8px it is a 1px line between two 1px gaps, and the weight leans left (centre of mass x = 6.89).",
+   "geometry": "164 ink (64.1%); centre of mass (6.89, 7.43) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 16 cells in 1 region; 6 connected ink regions; 0 half-tone pixels at 8px.",
+   "mandate": "rhythm",
+   "mandateLabel": "Proportion and rhythm",
+   "faults": [],
+   "mean": 4.3,
+   "better": 0,
+   "worse": 3,
+   "scores": {
+    "brand": {
+     "id": "rhythm-thin-spine",
+     "score": 5,
+     "verdict": "The hierarchy flip is real and the drawing is clean — six rectangles, no defects, 0 half-tone — but at 2 cells the spine reads as a rule, not a pane, and deleting the bar leaves two identical full-height channels, so the gutter inequality that separated this from a table is gone. Weight leans left at COM x 6.89.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "rhythm-thin-spine",
+     "score": 4,
+     "verdict": "All figures verified — spine 32 cells against the left band's 84, COM (6.89,7.43), 0 halftones. But deleting the bar leaves 4 full-empty columns, so the mark is three parallel stripes with nothing joining them; the COM leans 0.61 cells left, second-worst here; and at 8px the 2-cell spine is a 1px line between two 1px gaps.",
+     "vs_original": "worse"
+    },
+    "product": {
+     "id": "rhythm-thin-spine",
+     "score": 4,
+     "vs_original": "worse",
+     "verdict": "A 2-cell column reads as a rule, not a file tree — the author concedes this himself — and with the bar deleted both channels become identical through-cuts, which is the table reading, while the whole thing lists left (COM x 6.89, verified). The experiment ran and the answer is no."
+    }
+   }
+  },
+  {
+   "id": "rhythm-half-width-master",
+   "title": "Master takes half",
+   "grid": [
+    "##..############",
+    "##..############",
+    "##..............",
+    "##..............",
+    "##..########..++",
+    "##..########..++",
+    "##..########..++",
+    "##..########..++",
+    "....########..++",
+    "....########..++",
+    "##..########....",
+    "##..########....",
+    "##..########..##",
+    "##..########..##",
+    "##..########..##",
+    "##..########..##"
+   ],
+   "change": "The column module goes from 4-2-4-2-4 to 2-2-8-2-2: the spine widens from cols 6-9 to cols 4-11, both bands shrink to 2-wide rails at cols 0-1 and 14-15, and the gutters move from cols 4-5 and 10-11 to cols 2-3 and 12-13. The top bar shortens from 4 rows to 2 (rows 0-1, cols 4-15) and is cut free by a new 2-row gap at rows 2-3, so the master is a plain 8x12 rectangle at rows 4-15 rather than an L. The left rail splits at rows 8-9 (ink 0-7, 10-15); the right rail is accent rows 4-9 and ink rows 12-15, and the bottom-left accent is gone.",
+   "why": "Equal thirds is a layout with no master — three 4-wide siblings, which is exactly what i3 gives you when you have not chosen. At 2-8-2 the middle pane is four times the width of either neighbour and holds 96 of 168 ink cells, so the eye lands on it first and the rails read as a stack serving it instead of as two more peers. Separating the bar by 2 rows also makes every ink region a rectangle, so nothing here is a shape a window manager cannot draw.",
+   "cost": "The rails sit exactly on the 2-cell floor, so at favicon size they are single device pixels and the three-column reading weakens toward \"block with margins\"; the accent is forced down to a 2-wide 12-cell sliver, quieter than the original 4x4 and uncomfortably close to the edge-rail device that already failed. Nothing crosses the full height any more, and the horizontal channel at rows 2-3 pulls the centre of mass 0.33 cells low.",
+   "geometry": "168 ink (65.6%); centre of mass (7.45, 7.83) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 12 cells in 1 region; 6 connected ink regions; 0 half-tone pixels at 8px.",
+   "mandate": "rhythm",
+   "mandateLabel": "Proportion and rhythm",
+   "faults": [],
+   "mean": 3.8,
+   "better": 0,
+   "worse": 3,
+   "scores": {
+    "brand": {
+     "id": "rhythm-half-width-master",
+     "score": 4,
+     "verdict": "2-wide rails are single device pixels at favicon size, so the three-column reading collapses to \"block with margins,\" and the accent is a 2x6 edge sliver — the edge-rail device that already failed once. It answers \"there is no master\" by removing the composition.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "rhythm-half-width-master",
+     "score": 3,
+     "verdict": "Fully verified and clean at 8px, but 126 of 256 ink cells differ from the client's drawing and the 4-2-4-2-4 module is gone. The rails sit exactly on the 2-cell floor, so at 8px they are 1px lines and the accent is a 1px-wide, 3-pixel-tall sliver at the right edge — the edge-rail device that already failed once.",
+     "vs_original": "worse"
+    },
+    "product": {
+     "id": "rhythm-half-width-master",
+     "score": 4.5,
+     "vs_original": "worse",
+     "verdict": "A wide-master layout is real, but the 2-cell rails are single pixels at 8px, the accent is a 2-wide edge sliver — the edge-rail device the exploration already buried — and 2-2-8-2-2 no longer resembles the client's drawing. Designers rebuilding the mark, not developing it."
+    }
+   }
+  },
+  {
+   "id": "layout-master-stack",
+   "title": "Master and stack",
+   "grid": [
+    "##########..####",
+    "##########..####",
+    "##########..####",
+    "##########..####",
+    "##########......",
+    "##########......",
+    "##########..++++",
+    "##########..++++",
+    "##########..++++",
+    "##########..++++",
+    "##########......",
+    "##########......",
+    "##########..####",
+    "##########..####",
+    "##########..####",
+    "##########..####"
+   ],
+   "change": "Everything left of the cols 10-11 gutter — cols 0-9, all 16 rows — is filled solid, so the cols 4-5 gutter, the left band's gaps at rows 2-3 and row 12, and the bottom-left accent all close into one 10x16 master window. Rows 0-3, cols 10-11 go empty so that gutter runs all 16 rows. The right band at cols 12-15 is unchanged in every single row, accent at rows 6-9 included.",
+   "why": "This answers the charge that the stated read — master pane and stack — is nowhere in the geometry, because equal thirds is a layout with no master. A 10-wide full-height master against a 4-wide stack of three 4x4 windows is dwm's tile layout drawn literally, and it finally gives the mark a heaviest element to remember it by rather than a fill percentage.",
+   "cost": "At 81% coverage with a single 160-cell block, the three-column texture and the cols 4-5 gutter — half the original's rhythm — are gone, and the mark is now one notch away from a plain square. It is also the only variant that cannot sit centred: a master-stack is inherently left-weighted, and the centre of mass lands 0.92 cells left.",
+   "geometry": "208 ink cells (81.2%); COM (6.58,7.50) vs (7.5,7.5), delta (-0.92,0.00); thinnest feature 4 cells; narrowest gutter 2 cells; accent 16 cells in 1 region; 4 connected ink regions, all rectangular; 0 half-tone pixels when box-downsampled to 8px.",
+   "mandate": "layout",
+   "mandateLabel": "Make it a real layout",
+   "faults": [],
+   "mean": 3.8,
+   "better": 0,
+   "worse": 3,
+   "scores": {
+    "brand": {
+     "id": "layout-master-stack",
+     "score": 4,
+     "verdict": "The most literal answer to \"there is no master in the geometry\" and the least distinctive result: 81% coverage, one 160-cell block with three notches cut in the right edge, and the client's three-column rhythm gone entirely. It would be a fine glyph in a settings menu and it is not his mark.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "layout-master-stack",
+     "score": 3,
+     "verdict": "81.2% coverage with a single 160-cell rectangle holding 77% of the ink, and COM 0.92 cells left — the worst imbalance measured. It answers \"there is no master\" literally and deletes the three-column texture and the cols 4-5 gutter doing it. At 8px it is a filled block with one 1px notch column; the ink is also mirror-symmetric top-to-bottom, which nobody claimed and which makes it inert.",
+     "vs_original": "worse"
+    },
+    "product": {
+     "id": "layout-master-stack",
+     "score": 4.5,
+     "vs_original": "worse",
+     "verdict": "The canonical tile layout drawn literally — and as a mark it is an 81%-filled square with one gutter and three nubs, permanently off-centre (COM 6.58, verified). The three-column texture, half the rhythm, and most of what the client actually drew are gone; correct as a diagram, dead as a logo."
+    }
+   }
+  },
+  {
+   "id": "open-rotor",
+   "title": "Three panes only",
+   "grid": [
+    "......####..++++",
+    "......####..++++",
+    "......####..++++",
+    "......####..++++",
+    "......####..++++",
+    "......####..++++",
+    "......####......",
+    "......####......",
+    "......####......",
+    "......####......",
+    "####..####......",
+    "####..####......",
+    "####..####......",
+    "####..####......",
+    "####..####......",
+    "####..####......"
+   ],
+   "change": "Everything is deleted except three panes sitting on the original 4-2-4-2-4 column module: the spine (cols 6-9, all 16 rows), one pane at cols 12-15 rows 0-5, and its exact 180-degree twin at cols 0-3 rows 10-15. The top bar, the left band's upper blocks and the right band's lower block are gone, and the accent moves to the top-right pane, filling all 24 of its cells.",
+   "why": "The ink is now exactly 180-degree rotationally symmetric — verified cell by cell — so the asymmetry is generated by a rule instead of by hand, which is the condition the earlier exploration set for asymmetry reading as authored. That makes the accent the only asymmetry left in the whole drawing: two identical stack panes flank one master, and colour is the single thing that separates them, which is what focus is. Centre of mass lands on (7.50, 7.50) with no correction.",
+   "cost": "Three panes is thin evidence for tiling — with the bar gone both channels run edge to edge, so at a glance this can read as three bars, a chart, or a letterform before it reads as a layout. The accent is also the loudest of the set at 24 cells, 21% of all ink, and it bleeds off two edges, so it behaves more like a corner block than a framed pane.",
+   "geometry": "112 ink (43.8%); COM (7.50, 7.50) vs (7.5, 7.5); thinnest feature 4; narrowest gutter 2; accent 24 cells in 1 region; 3 connected ink regions.",
+   "mandate": "open",
+   "mandateLabel": "Open it up",
+   "faults": [],
+   "mean": 3.7,
+   "better": 0,
+   "worse": 3,
+   "scores": {
+    "brand": {
+     "id": "open-rotor",
+     "score": 4,
+     "verdict": "Clean, exactly rotationally symmetric in the ink, and completely off the territory: three bars on a module is a chart or a tally, not a tiling composition. It deletes 62 of the original's 174 cells and lands in the abstract direction thirty-six variants were rejected to escape.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "open-rotor",
+     "score": 3,
+     "verdict": "Rotational symmetry on the ink is exact and COM lands dead centre with no correction. But 43.8% coverage, three panes, 4 full-empty columns and a 6x6 empty square: at 8px it reads as three bars. It is the most rigorous geometry in the set attached to the least evidence of a layout.",
+     "vs_original": "worse"
+    },
+    "product": {
+     "id": "open-rotor",
+     "score": 4,
+     "vs_original": "worse",
+     "verdict": "A clean 180-degree rotor, verified, and the accent-as-symmetry-breaker logic is sound — but three blocks with two corners bleeding off the field read as a chart or letterform before a layout, and nothing of the client's drawing survives except the column module. This is the abstract L-bracket territory he already walked out of."
+    }
+   }
+  },
+  {
+   "id": "fix-fill-both",
+   "title": "Fill both gaps",
+   "grid": [
+    "################",
+    "################",
+    "......##########",
+    "......##########",
+    "####..####......",
+    "####..####......",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####..++++",
+    "####..####......",
+    "####..####......",
+    "####..####..####",
+    "++++..####..####",
+    "++++..####..####",
+    "++++..####..####"
+   ],
+   "change": "Six cells changed, all additions, the opposite sign to the other three. (r0,c5) and (r1,c5) become ink, so rows 0-1 are solid across all 16 columns and the top-left pane merges into the top bar. (r12,c0-3) become ink, so the tall left pane extends down to rows 4-12 and meets the accent. Nothing is removed: the top-left block keeps its 5-cell width, both accents keep their drawn size and position.",
+   "why": "This is the other way to close the top gutter — extend the neighbour into it rather than cut the neighbour back — and the client asked to see it. It is the only repair that preserves every element of the drawing at its drawn size, it raises coverage to 70.3% which helps at 16px, and it is clean at 8px with no half-tone pixels in either downsampler.",
+   "cost": "The highest of the four, and I would not ship it. Rows 0-1 become an unbroken 16-wide rule, which is the universal signifier of a title bar and therefore of a floating window — the one metaphor this product must not have, flagged independently by all four readings. The left channel no longer runs the full height (it now starts at row 2), so both gutters behave identically and the inequality that separated the mark from a table is gone. Filled regions drop from 6 to 4: the top-left pane fuses into the spine-and-bar shape, which grows to 100 cells and 55% of the mark, making the L more dominant, and the left accent fuses to the bar above it as a foot.",
+   "geometry": "180 filled cells, 70.3%; centre of mass (7.30, 7.30) vs (7.5, 7.5); thinnest feature 2 cells; narrowest gutter 2 cells; accent 28 cells in 2 regions (16 + 12); 4 connected filled regions (100, 48, 16, 16).",
+   "mandate": "fix",
+   "mandateLabel": "Corrections only",
+   "faults": [],
+   "mean": 3.3,
+   "better": 0,
+   "worse": 3,
+   "scores": {
+    "brand": {
+     "id": "fix-fill-both",
+     "score": 3,
+     "verdict": "Rows 0-1 become an unbroken 16-cell rule, which is a title bar, which is a floating window. It also closes the full-height left channel so both gutters behave alike and grows the Γ to 100 cells — it damages all four of the things the original does right.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "fix-fill-both",
+     "score": 3,
+     "verdict": "Clean at 8px and every claim verified, and the author is right not to ship it. Rows 0-1 become an unbroken 16-wide rule, no channel runs the full height any more (0 full-empty columns, against the original's 1), and the non-rectangular mass grows from 88 to 100 cells, 55.6% of ink.",
+     "vs_original": "worse"
+    },
+    "product": {
+     "id": "fix-fill-both",
+     "score": 4,
+     "vs_original": "worse",
+     "verdict": "Rows 0-1 become an unbroken 16-wide rule — a title bar, the floating-window metaphor this product must not wear — and the full-height left channel dies with it. The author says he would not ship it and he is right; this is a demonstration of why the other direction was correct, not a candidate."
+    }
+   }
+  },
+  {
+   "id": "open-channels-3",
+   "title": "Three-cell channels",
+   "grid": [
+    "###...##########",
+    "###...##########",
+    "###...##########",
+    "###...####......",
+    "###...####......",
+    "###...####......",
+    "###...####...+++",
+    "###...####...+++",
+    "......####...+++",
+    "......####...+++",
+    "......####......",
+    "###...####......",
+    "###...####......",
+    "###...####...###",
+    "###...####...###",
+    "###...####...###"
+   ],
+   "change": "Both vertical channels go 2 cells to 3: the left channel is now cols 3-5 and the right cols 10-12, so the bands are cols 0-2 / 6-9 / 13-15 with the spine unmoved. The horizontal channels widen to match — top bar rows 0-2, right band gaps at rows 3-5 and 10-12, left band's single gap at rows 8-10 — so the column module and its transpose are both 3/3/4/3/3. The bottom-left accent becomes ink (cols 0-2, rows 11-15) and the only accent left is cols 13-15, rows 6-9.",
+   "why": "This is the smallest change that answers the coverage brief: identical topology — full bleed, full-height spine, top bar joining spine to right band, offset splits — with 32 fewer ink cells. It also retires both 1-cell defects by construction, and the left band's splits (rows 8 and 11) now share no boundary with the right band's (3, 6, 10, 13), so the latent full-width rules at rows 4 and 12 are gone.",
+   "cost": "The 3-cell module is odd, so at 8px 14 of 64 output pixels land at exactly 50% coverage against 3 in the original — box and nearest-neighbour downsamplers will disagree, and light and dark will not resolve identically at favicon size. The side bands also drop from 4 cells to 3, so the mark loses about a sixth of its mass and reads lighter than the client drew it.",
+   "geometry": "142 ink (55.5%); COM (7.31, 6.99) vs (7.5, 7.5); thinnest feature 3; narrowest gutter 3; accent 12 cells in 1 region; 5 connected ink regions.",
+   "mandate": "open",
+   "mandateLabel": "Open it up",
+   "faults": [],
+   "mean": 3.2,
+   "better": 0,
+   "worse": 3,
+   "scores": {
+    "brand": {
+     "id": "open-channels-3",
+     "score": 4,
+     "verdict": "An odd module in a mark that has to survive 8px: 14 of 64 output pixels land at half tone against the original's 3, and box and nearest disagree on 9, so it is two different logos depending on the downsampler. It spends a sixth of the mass and buys no silhouette — the same shape, less of it.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "open-channels-3",
+     "score": 2,
+     "verdict": "The only variant measurably worse than the original at favicon size, and the author states it honestly: 14 of 64 output pixels at exactly 50%, box-light and box-dark differing on 14 pixels, box and nearest on 9. At 8px this file is two different logos. Coverage also drops to 55.5% and the L survives at 57.7% of ink, a higher share than the original's.",
+     "vs_original": "worse",
+     "claimError": "\"the column module and its transpose are both 3/3/4/3/3\" holds for the columns and the right band only. The left band partitions 8/3/5 — the 5 is an odd part off the stated module — so the variant reproduces the exact left-band irregularity the original was faulted for, at a new modulus, and it is the direct source of most of the 14 halftone pixels."
+    },
+    "product": {
+     "id": "open-channels-3",
+     "score": 3.5,
+     "vs_original": "worse",
+     "verdict": "The odd module does exactly what the author admits: 14 of 64 output pixels sit at exactly 50% at 8px (verified), so the favicon is a different logo per downsampler and per theme. Rebuilding the mark on 3s abandons the established heavy-and-even finding and gets nothing back."
+    }
+   }
+  },
+  {
+   "id": "open-margin",
+   "title": "Outer gap",
+   "grid": [
+    "................",
+    "................",
+    "..##..####..##..",
+    "..##..####..##..",
+    "..##..####..##..",
+    "..##..####..##..",
+    "..##..####......",
+    "..##..####......",
+    "......####..++..",
+    "......####..++..",
+    "..##..####..++..",
+    "..##..####..++..",
+    "..##..####......",
+    "..##..####......",
+    "................",
+    "................"
+   ],
+   "change": "A 2-cell outer gap is added on all four edges, so the mark stops bleeding: all ink lives in rows 2-13, cols 2-13. Inside, the bands are cols 2-3 / 6-9 / 12-13 — spine unmoved, side bands halved from 4 cells to 2 — with the channels still 2 cells; the left band splits at rows 8-9, the right at rows 6-7, the top bar is deleted, and the single accent is cols 12-13, rows 8-11.",
+   "why": "This is the far end of the mandate and the honest test of the floor: 84 ink cells is `gaps inner 2, outer 2`, a configuration plenty of i3 and sway users actually run, so the openness is a real setting rather than an aesthetic choice. It keeps the spine, the 4-cell master width, the offset splits and one accent, and it proves how much can leave before the mark stops being a layout.",
+   "cost": "This is past the floor for small sizes: at 16px the side bands are 2px and the accent is a 2x4 chip; at 8px the bands become single pixels and the accent a single orange dot, so the mark behaves like a line drawing rather than the heavy glyph the client drew. Losing the bleed also costs the one decision no generated variant made — the mark is now a picture of a screen with a margin instead of being the screen.",
+   "geometry": "84 ink (32.8%); COM (7.26, 7.26) vs (7.5, 7.5); thinnest feature 2; narrowest gutter 2; accent 8 cells in 1 region; 5 connected ink regions.",
+   "mandate": "open",
+   "mandateLabel": "Open it up",
+   "faults": [],
+   "mean": 2.7,
+   "better": 0,
+   "worse": 3,
+   "scores": {
+    "brand": {
+     "id": "open-margin",
+     "score": 3,
+     "verdict": "It gives up full bleed, which was the one decision in the drawing no generated variant would have made, and at 32.8% with 2-cell bands and an 8-cell accent it is a line drawing that dies at 16px. Useful only as proof that the floor is real.",
+     "vs_original": "worse"
+    },
+    "pixel": {
+     "id": "open-margin",
+     "score": 2,
+     "verdict": "84 ink cells, 32.8%, side bands 2 cells wide — at 8px those are single pixels and the accent is a 1x2 dot. It abandons full bleed, the one decision the diagnoses agreed no generated variant would have made, and contradicts the established finding that heavy ink survives 16px better than light. Useful as a probe of the floor, unusable as a mark.",
+     "vs_original": "worse"
+    },
+    "product": {
+     "id": "open-margin",
+     "score": 3,
+     "vs_original": "worse",
+     "verdict": "Losing full bleed surrenders the one decision that made the mark — it becomes a picture of a screen instead of the screen — and at 34% ink with 2-wide bands it is a line drawing that collapses to dots at 8px. Past the floor, as the author admits, and he could not even count it accurately.",
+     "claimError": "Claims 84 ink cells (32.8%) and COM (7.26, 7.26); the grid actually has 88 on-cells (34.4%), and its on-mask is exactly 180-degree rotationally symmetric, so the centre of mass is exactly (7.50, 7.50), not off-centre as stated."
+    }
+   }
+  }
+ ]
+}

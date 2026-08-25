@@ -35,6 +35,7 @@ import { execFileSync } from "node:child_process";
 import {
   closeSync,
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   openSync,
@@ -103,6 +104,30 @@ function testNeeding(tool: string | null, name: string, fn: (tool: string) => vo
     return;
   }
   test(name, () => fn(tool));
+}
+
+/** A real-world fixture is useful locally, but gitignored media must not break CI. */
+function testWithFixture(path: string, name: string, fn: () => void): void {
+  if (!existsSync(path)) {
+    skipped++;
+    console.log(`  \x1b[33m-\x1b[0m ${name} \x1b[2m(skipped: optional fixture missing)\x1b[0m`);
+    return;
+  }
+  test(name, fn);
+}
+
+function testNeedingFixture(
+  tool: string | null,
+  path: string,
+  name: string,
+  fn: (tool: string) => void,
+): void {
+  if (!existsSync(path)) {
+    skipped++;
+    console.log(`  \x1b[33m-\x1b[0m ${name} \x1b[2m(skipped: optional fixture missing)\x1b[0m`);
+    return;
+  }
+  testNeeding(tool, name, fn);
 }
 
 /** Notes printed with the summary: measured numbers worth reading, not assertions. */
@@ -467,7 +492,7 @@ const REAL_FIXTURES: ReadonlyArray<readonly [string, string]> = [
 ];
 
 for (const [label, path] of REAL_FIXTURES) {
-  testNeeding(FFPROBE, `${label}: dimensions, duration and fps all match ffprobe`, (ffprobe) => {
+  testNeedingFixture(FFPROBE, path, `${label}: dimensions, duration and fps all match ffprobe`, (ffprobe) => {
     const truth = ffprobeTruth(ffprobe, path);
     const info = probeMp4(path);
     assert(info !== null, `${label}: probe returned null`);
@@ -478,12 +503,13 @@ for (const [label, path] of REAL_FIXTURES) {
   });
 }
 
-test("probeMp4Bytes and probeMp4 both return the pinned sintel-5s truth", () => {
+testWithFixture(SINTEL_5S, "probeMp4Bytes and probeMp4 both return the pinned sintel-5s truth", () => {
   // Pinned literals, not one code path against the other: both forms share
   // one walk, so "they agree" is vacuously true of any regression that breaks
-  // them identically — including both returning null. 854x480, 5000 ms, 24
-  // fps is what ffprobe reports for this fixture.
-  const expected = '{"width":854,"height":480,"durationMs":5000,"fps":24}';
+  // them identically — including both returning null. The pinned demo cut is
+  // cropped to remove the trailer's letterbox bars; ffprobe reports 848x352,
+  // 5000 ms, 24 fps for this fixture.
+  const expected = '{"width":848,"height":352,"durationMs":5000,"fps":24}';
   const bytes = new Uint8Array(readFileSync(SINTEL_5S));
   assertEqual(JSON.stringify(probeMp4Bytes(bytes)), expected, "buffer form");
   assertEqual(JSON.stringify(probeMp4(SINTEL_5S)), expected, "path form");
@@ -501,7 +527,7 @@ section("Byte budget");
  */
 const BUDGET_BYTES = 256 * 1024;
 
-test(`sintel-trailer.mp4 (4.4 MB, moov at tail) reads under ${BUDGET_BYTES} bytes`, () => {
+testWithFixture(SINTEL_TRAILER, `sintel-trailer.mp4 (4.4 MB, moov at tail) reads under ${BUDGET_BYTES} bytes`, () => {
   resetMp4ProbeStats();
   const info = probeMp4(SINTEL_TRAILER);
   const cost = mp4ProbeStats();
@@ -518,7 +544,7 @@ test(`sintel-trailer.mp4 (4.4 MB, moov at tail) reads under ${BUDGET_BYTES} byte
   );
 });
 
-test("read cost is bounded by the box tree, not by the file size", () => {
+testWithFixture(SINTEL_TRAILER, "read cost is bounded by the box tree, not by the file size", () => {
   resetMp4ProbeStats();
   probeMp4(TESTSRC_MP4);
   const small = mp4ProbeStats();
@@ -550,7 +576,7 @@ test("probeMp4Bytes honours a view's byteOffset", () => {
   assertEqual(probeMp4Bytes(view)?.width, 320, "width through an offset view");
 });
 
-test("probeMp4Bytes reads zero bytes off disk", () => {
+testWithFixture(SINTEL_TRAILER, "probeMp4Bytes reads zero bytes off disk", () => {
   const bytes = new Uint8Array(readFileSync(SINTEL_TRAILER));
   resetMp4ProbeStats();
   probeMp4Bytes(bytes);
@@ -641,12 +667,12 @@ test("random bytes", () => {
   assertEqual(probeMp4Bytes(junk), null, "random bytes, in memory");
 });
 
-test("a valid file truncated to its first 1 KB (moov gone)", () => {
+testWithFixture(SINTEL_TRAILER, "a valid file truncated to its first 1 KB (moov gone)", () => {
   const head = new Uint8Array(readFileSync(SINTEL_TRAILER).subarray(0, 1024));
   assertEqual(probeMp4(write("truncated.mp4", head)), null, "truncated");
 });
 
-test("a valid file truncated MID-moov", () => {
+testWithFixture(SINTEL_TRAILER, "a valid file truncated MID-moov", () => {
   const full = readFileSync(SINTEL_TRAILER);
   // moov starts at 4,332,917; keep its header and 200 bytes of children.
   const cut = new Uint8Array(full.subarray(0, 4332917 + 200));
@@ -1250,7 +1276,7 @@ testNeeding(FFMPEG, "a GIF transcode's duration is the stts sum, not the padded 
   assertEqual(info!.fps, 8, "fps");
 });
 
-testNeeding(FFMPEG, "ffmpeg-stripped video track (audio only) is null", (ffmpeg) => {
+testNeedingFixture(FFMPEG, SINTEL_TRAILER, "ffmpeg-stripped video track (audio only) is null", (ffmpeg) => {
   const out = join(scratch, "audio-only.m4a");
   execFileSync(
     ffmpeg,
@@ -1264,20 +1290,20 @@ testNeeding(FFMPEG, "ffmpeg-stripped video track (audio only) is null", (ffmpeg)
 
 section("Idempotence");
 
-test("100 probes of the same file give the same answer and leak no fds", () => {
+testWithFixture(SINTEL_TRAILER, "100 probes of the same file give the same answer and leak no fds", () => {
   const first = JSON.stringify(probeMp4(SINTEL_TRAILER));
   for (let i = 0; i < 100; i++) {
     assertEqual(JSON.stringify(probeMp4(SINTEL_TRAILER)), first, `probe ${i}`);
   }
   // If probeMp4 leaked a descriptor per call the default 256-fd limit would
   // already have been hit; opening one more proves it did not.
-  const fd = openSync(SINTEL_TRAILER, "r");
+  const fd = openSync(TESTSRC_MP4, "r");
   closeSync(fd);
 });
 
 test("100 probes of a missing file leak no fds either", () => {
   for (let i = 0; i < 100; i++) probeMp4(join(scratch, "nope.mp4"));
-  const fd = openSync(SINTEL_TRAILER, "r");
+  const fd = openSync(TESTSRC_MP4, "r");
   closeSync(fd);
 });
 
@@ -1288,7 +1314,7 @@ rmSync(scratch, { recursive: true, force: true });
 console.log(`\n\x1b[2m  ${"─".repeat(50)}\x1b[0m`);
 for (const note of notes) console.log(`  \x1b[2m${note}\x1b[0m`);
 if (skipped > 0) {
-  console.log(`  \x1b[33m${skipped} skipped\x1b[0m \x1b[2m(ffmpeg/ffprobe not installed)\x1b[0m`);
+  console.log(`  \x1b[33m${skipped} skipped\x1b[0m \x1b[2m(optional fixture or external tool unavailable)\x1b[0m`);
 }
 console.log(
   `  \x1b[32m${passed} passed\x1b[0m, ${failed > 0 ? `\x1b[31m${failed} failed\x1b[0m` : "0 failed"}`,

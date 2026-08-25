@@ -6,7 +6,17 @@ import tailwind from "@tailwindcss/vite";
 // https://astro.build/config
 export default defineConfig({
   site: "https://terminaltui.dev",
-  integrations: [mdx(), sitemap()],
+  integrations: [
+    mdx(),
+    sitemap({
+      // Design explorations remain shareable, but only the selected Paper
+      // routes belong in the production search index.
+      filter: (page) => {
+        const path = new URL(page).pathname;
+        return !path.startsWith("/d/") && !path.startsWith("/logo/");
+      },
+    }),
+  ],
   vite: { plugins: [tailwind()] },
   image: {
     // Nothing on this site needs raster transforms — every image is either an
@@ -48,7 +58,7 @@ const REPO_BLOB = "https://github.com/OmarMusayev/terminaltui/blob/main/";
 const DOC_SLUGS = new Set([
   "api-routes", "ascii-art", "cli-reference", "components", "create-command",
   "getting-started", "images", "layouts", "routing", "serve", "state-data",
-  "testing", "themes",
+  "testing", "themes", "video",
 ]);
 
 function rehypeDocLinks() {

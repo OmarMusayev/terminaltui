@@ -7,14 +7,13 @@
  */
 
 /**
- * NOTE ON VERSIONS: the repo is at 2.2.0 (images and the kitty pixel tier are
- * committed). npm still serves 2.0.3 — 2.1.0 and 2.2.0 have not been published
- * yet. Everything this site says about images is true of the source today and
- * will be true of npx the moment 2.2.0 is published. Publish before launch.
+ * NOTE ON VERSIONS: this describes the repository source. Publishing status is
+ * a separate launch check; do not silently substitute the npm registry version
+ * here or the site will describe two different codebases on one page.
  */
 export const product = {
   name: "terminaltui",
-  version: "2.2.0",
+  version: "2.1.0",
   tagline: "A standardized engine for terminal apps.",
   /** The one-sentence pitch. Build ease + distribution, in that order. */
   pitch:
@@ -57,20 +56,19 @@ export const componentGroups = [
 export const COMPONENT_COUNT = componentGroups.reduce((n, g) => n + g.items.length, 0);
 
 export const stats = {
-  stars: 37,
-  downloadsMonth: 731,
-  downloadsWeek: 588,
+  /** Live GitHub/npm figures checked 2026-08-25 (npm windows end 2026-08-24). */
+  stars: 39,
+  downloadsMonth: 166,
+  downloadsWeek: 20,
   /**
-   * Measured on 2026-07-26 by running the full sweep (`tsx test/run-all.ts --demos`),
-   * which is what CI runs: 3,728 passing across 62 suites. The default `npm test`
-   * without the demo sweep is 2,839 across 43. The README badge still says 3,323,
-   * which is stale — it predates the image work.
+   * Measured on 2026-08-25 by running the full sweep: 4,223 passing across 68
+   * suites. Keep this paired with the version above when the suite changes.
    */
-  tests: 3728,
-  testSuites: 62,
+  tests: 4223,
+  testSuites: 68,
   components: COMPONENT_COUNT,
-  themes: 10,
-  demos: 11,
+  themes: 12,
+  demos: 12,
   runtimeDeps: 3,
   asciiFonts: 14,
   asciiScenes: 15,
@@ -93,7 +91,7 @@ export const pillars = [
   {
     key: "batteries",
     title: "Designed before you start",
-    body: "42 components, 10 themes, a 12-column grid, ASCII art and real image rendering ship in the box. The first commit already looks considered.",
+    body: "42 components, 12 themes, a 12-column grid, ASCII art and real image rendering ship in the box. The first commit already looks considered.",
     proof: "image('./cover.png')",
   },
 ] as const;
@@ -121,14 +119,23 @@ export const cli = [
   { cmd: "terminaltui init [template]", desc: "Scaffold a project — minimal, portfolio, landing, restaurant, blog, creative." },
   { cmd: "terminaltui dev", desc: "Run locally with on-the-fly compilation." },
   { cmd: "terminaltui serve", desc: "Host over SSH so anyone can connect." },
-  { cmd: "terminaltui demo [name]", desc: "Run one of the 11 built-in demos." },
+  { cmd: "terminaltui demo [name]", desc: "Run one of the 12 built-in demos." },
   { cmd: "terminaltui build", desc: "Bundle for npm publish." },
   { cmd: "terminaltui create", desc: "Interactive prompt builder for AI scaffolding." },
   { cmd: "terminaltui validate", desc: "Lint a routing project for common mistakes." },
 ] as const;
 
-/** Real swatches, read from the theme source. */
+/**
+ * Real swatches, read from the theme source.
+ *
+ * The flint pair leads because it is what every capture on this site is taken
+ * in and, as of this release, the theme a new project starts on. The other ten
+ * are the loud ones, and they are a genuine feature — just not the first thing
+ * a stranger should be shown.
+ */
 export const themes = [
+  { name: "flintNight", swatch: ["#aec9e7", "#b9e1c3", "#d7b68d", "#ca8f88", "#61666a"] },
+  { name: "flintDay", swatch: ["#265173", "#3d694c", "#614112", "#702221", "#8c9195"] },
   { name: "cyberpunk", swatch: ["#ff2cde", "#0fffd4", "#ffe600", "#00b3ff", "#ff7a18"] },
   { name: "dracula", swatch: ["#ff79c6", "#bd93f9", "#50fa7b", "#f1fa8c", "#8be9fd"] },
   { name: "nord", swatch: ["#88c0d0", "#81a1c1", "#a3be8c", "#ebcb8b", "#bf616a"] },
@@ -141,18 +148,19 @@ export const themes = [
   { name: "hacker", swatch: ["#39ff14", "#9eff8a", "#0aff60", "#1f3d1f", "#0a3a0a"] },
 ] as const;
 
-/** demo key -> label + theme + command. Keys match src/data/frames.json. */
+/** demo key -> label + theme + command. Captured demos also match frames.json. */
 export const demos = [
-  { key: "welcome", label: "Welcome Tour", theme: "cyberpunk", cmd: "npx terminaltui try" },
-  { key: "developer-portfolio", label: "Developer Portfolio", theme: "cyberpunk", cmd: "npx terminaltui demo developer-portfolio" },
-  { key: "restaurant", label: "Restaurant", theme: "gruvbox", cmd: "npx terminaltui demo restaurant" },
-  { key: "dashboard", label: "Dashboard", theme: "hacker", cmd: "npx terminaltui demo dashboard" },
-  { key: "server-dashboard", label: "Server Dashboard", theme: "hacker", cmd: "npx terminaltui demo server-dashboard" },
-  { key: "mac-monitor", label: "Mac Monitor", theme: "hacker", cmd: "npx terminaltui demo mac-monitor" },
+  { key: "welcome", label: "Welcome Tour", theme: "flintNight", cmd: "npx terminaltui try" },
+  { key: "developer-portfolio", label: "Developer Portfolio", theme: "flintNight", cmd: "npx terminaltui demo developer-portfolio" },
+  { key: "restaurant", label: "Restaurant", theme: "flintNight", cmd: "npx terminaltui demo restaurant" },
+  { key: "dashboard", label: "Dashboard", theme: "flintNight", cmd: "npx terminaltui demo dashboard" },
+  { key: "cinema", label: "Cinema", theme: "dracula", cmd: "npx terminaltui demo cinema" },
+  { key: "server-dashboard", label: "Server Dashboard", theme: "flintNight", cmd: "npx terminaltui demo server-dashboard" },
+  { key: "mac-monitor", label: "Mac Monitor", theme: "flintNight", cmd: "npx terminaltui demo mac-monitor" },
   { key: "startup", label: "Startup", theme: "tokyoNight", cmd: "npx terminaltui demo startup" },
-  { key: "conference", label: "Conference", theme: "nord", cmd: "npx terminaltui demo conference" },
+  { key: "conference", label: "Conference", theme: "flintNight", cmd: "npx terminaltui demo conference" },
   { key: "band", label: "Band", theme: "rosePine", cmd: "npx terminaltui demo band" },
-  { key: "coffee-shop", label: "Coffee Shop", theme: "catppuccin", cmd: "npx terminaltui demo coffee-shop" },
+  { key: "coffee-shop", label: "Coffee Shop", theme: "flintNight", cmd: "npx terminaltui demo coffee-shop" },
   { key: "freelancer", label: "Freelancer", theme: "custom", cmd: "npx terminaltui demo freelancer" },
 ] as const;
 
@@ -163,7 +171,7 @@ export const demos = [
 export const roadmap = [
   { status: "shipped", title: "Images in the terminal", body: "Real PNG and JPEG, drawn as colored cells everywhere and as true pixels on kitty and Ghostty." },
   { status: "shipped", title: "Headless terminal emulator", body: "Drive a real PTY from tests, assert on screen contents. Every screenshot on this site was produced with it." },
-  { status: "progress", title: "Video rendering", body: "Extending the image pipeline to sequences of frames." },
+  { status: "shipped", title: "Video rendering", body: "Prepacked video with transport controls, Kitty/Ghostty pixels, and a portable coloured-cell fallback." },
   { status: "planned", title: "A library you can ssh into", body: "Read books in your terminal without memorizing a single flag." },
   { status: "planned", title: "Comic reader", body: "The hardest test the image renderer has: dense panels, text that has to stay legible." },
   { status: "planned", title: "Agent manager", body: "Run and switch between multiple coding-agent sessions from one TUI." },
@@ -177,6 +185,6 @@ export const faq = [
   { q: "Can it really show images in a terminal?", a: "Yes. On kitty and Ghostty it draws real pixels via the kitty graphics protocol. Everywhere else it paints colored character cells using block glyphs, so images still work over SSH, in tmux and in Apple Terminal." },
   { q: "Does it need native dependencies?", a: "No. Three runtime dependencies — esbuild, jpeg-js and pngjs. No sharp, no node-gyp. SSH hosting and PTY-based testing pull optional peers only if you use them." },
   { q: "How do I test a terminal app?", a: "Import the headless emulator from terminaltui/emulator. Launch your app in a real PTY, send keypresses, and assert on what is on screen." },
-  { q: "Is it production ready?", a: "It is at version 2.2.0 with 3,728 tests across 62 suites, and it is young — first published in March 2026. Read the changelog and decide for yourself." },
+  { q: "Is it production ready?", a: "Version 2.1.0 passes 4,223 tests across 68 suites, and the project is young — first published in March 2026. Read the changelog and decide for yourself." },
   { q: "What does it cost?", a: "Nothing. MIT licensed, Node 18 or newer." },
 ] as const;
