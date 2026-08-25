@@ -968,10 +968,11 @@ test("With the gate denied, the renderer emits ZERO graphics bytes and draws cel
   });
   assertEqual(placements.length, 0, "the sink is never called");
   assertEqual(placeholderCells(rows), 0, "not one placeholder cell — those would be tofu here");
-  // …but the image still renders. A quadrant-tier cell is one combined SGR
-  // carrying both pens (`38;2;r;g;b;48;2;r;g;b`), which is also why `idsIn`
-  // above cannot mistake a cell row for a placement row.
-  assert(rows.join("").includes(";48;2;"), "the image must still render as coloured cells");
+  // …but the image still renders. Unicode-capable hosts negotiate quadrant
+  // cells with combined foreground/background SGR. A bare Windows CI process
+  // legitimately negotiates solid cells, whose SGR is background-only. Both
+  // contain a truecolor background, and neither can be mistaken for placement.
+  assert(rows.join("").includes("48;2;"), "the image must still render as coloured cells");
   // Nothing that could be mistaken for a graphics escape leaves the renderer.
   for (const row of rows) {
     assert(!row.includes("\x1b_"), "an APC introducer reached a frame row");

@@ -150,6 +150,14 @@ for (const suite of suites) {
     const duration = Date.now() - start;
     const { passed, failed } = parseCounts(output, true);
 
+    // An explicit platform skip is distinct from a suite that silently ran no
+    // tests. Keep the zero-test guard strict while allowing documented skips.
+    if (passed === 0 && failed === 0 && /^\s*skipped\b/im.test(output)) {
+      results.push({ name: suite.name, passed: 0, failed: 0, duration });
+      console.log(` \x1b[33mSKIPPED\x1b[0m (${duration}ms)`);
+      continue;
+    }
+
     // A suite that exits 0 but yields zero parseable results is a runner
     // blind spot (early return, unawaited main, summary drift) — fail loudly.
     if (passed === 0 && failed === 0) {

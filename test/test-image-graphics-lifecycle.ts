@@ -20,7 +20,7 @@
  *     ids, then deletes the departed id. Placing before transmitting exposed a
  *     blank wallpaper frame while the terminal decoded every replacement.
  */
-import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -116,7 +116,6 @@ function setup(): { path: string } {
   });
   const path = join(dir, `pic-${serial++}.png`);
   copyFileSync(FIXTURE, path);
-  chmodSync(path, 0o644);
   return { path };
 }
 
@@ -306,9 +305,13 @@ try {
     rt.render();
     assertEqual(transmitCount(io.since(0)), 1, "the first paint transmits");
 
-    // Same size, same mtime — so `imageIdentity()` yields the identical cache
-    // key and the entry is a HIT whose `pending` buffer was already consumed.
-    chmodSync(path, 0o000);
+    // The stat memo keeps the first paint's identity for this synchronous
+    // navigation cycle. Corrupt the PNG signature without changing its size so
+    // the deferred decode fails on Windows as well as POSIX while exercising
+    // the same cache-HIT entry whose `pending` buffer was already consumed.
+    const corrupt = readFileSync(path);
+    corrupt.fill(0, 0, 8);
+    writeFileSync(path, corrupt);
     rt.navigateToPage("home");
     rt.render();
     rt.navigateToPage("pics");
@@ -324,7 +327,6 @@ try {
     const after = io.since(m);
     assertEqual(placeholderCount(after), 0, "no placeholder cells survive the failure");
     assertEqual(transmitCount(after), 0, "no transmission is retried");
-    chmodSync(path, 0o644);
   });
 
   test("A frame whose write throws re-transmits on the next frame", () => {
