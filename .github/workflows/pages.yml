@@ -1,6 +1,12 @@
 name: Deploy Astro to Pages
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pages.yml"
+      - "docs/**"
+      - "web/**"
   workflow_dispatch:
 
 permissions:
