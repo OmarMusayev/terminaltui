@@ -1,0 +1,187 @@
+---
+import Shell from "@/layouts/Shell.astro";
+import RenderingVideo from "@/components/shared/RenderingVideo.astro";
+import CopyCommand from "@/components/shared/CopyCommand.astro";
+
+const title = "Real image and video rendering in a terminal — terminaltui";
+const description =
+  "Watch terminaltui render images and moving video as real Kitty pixels, with a portable coloured-cell fallback for Apple Terminal, tmux and SSH.";
+
+const videoSchema = {
+  "@type": "VideoObject",
+  "@id": "https://terminaltui.dev/video/#recording",
+  name: "terminaltui Cinema demo — real Kitty pixel rendering",
+  description,
+  thumbnailUrl: "https://terminaltui.dev/media/terminaltui-kitty-video-poster.jpg",
+  contentUrl: "https://terminaltui.dev/media/terminaltui-kitty-video.mp4",
+  uploadDate: "2026-08-25T00:00:00-04:00",
+  duration: "PT3S",
+  inLanguage: "en",
+  isFamilyFriendly: true,
+  creator: { "@id": "https://terminaltui.dev/#person" },
+};
+---
+
+<Shell
+  dir="paper"
+  base="/"
+  active="Video"
+  defaultTheme="light"
+  {title}
+  {description}
+  path="/video/"
+  ogImage="/media/terminaltui-kitty-video-poster.jpg"
+  schema={[videoSchema]}
+>
+  <article class="showcase">
+    <header class="intro wrap">
+      <p class="pixel-eyebrow eyebrow">Rendering proof / 2.1</p>
+      <h1 class="pixel">A moving picture.<br />Inside a terminal.</h1>
+      <p class="lede">
+        This is not a browser mock-up and not a GIF made to resemble a terminal. It is a
+        recording of the bundled Cinema demo running in Kitty, with every frame sent by
+        terminaltui's video pipeline.
+      </p>
+    </header>
+
+    <div class="media wrap">
+      <RenderingVideo />
+    </div>
+
+    <section class="explain wrap" aria-labelledby="what-you-see">
+      <div class="rail">
+        <span class="pixel n">01</span>
+        <span class="pixel-eyebrow">What you see</span>
+      </div>
+      <div>
+        <h2 id="what-you-see" class="pixel">One block, two rendering paths.</h2>
+        <div class="paths">
+          <div>
+            <h3 class="pixel-eyebrow">Kitty + Ghostty</h3>
+            <p>
+              Real pixels. Each prepacked frame is transmitted through the Kitty graphics
+              protocol and anchored to ordinary terminal cells, so it scrolls and clips with
+              the rest of the page.
+            </p>
+          </div>
+          <div>
+            <h3 class="pixel-eyebrow">Everywhere else</h3>
+            <p>
+              Coloured Unicode cells. Apple Terminal, tmux and unknown SSH clients keep the
+              same dimensions and controls; only the image tier changes, so the layout never
+              jumps.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="explain wrap" aria-labelledby="run-it">
+      <div class="rail">
+        <span class="pixel n">02</span>
+        <span class="pixel-eyebrow">Run it</span>
+      </div>
+      <div>
+        <h2 id="run-it" class="pixel">The proof ships in the package.</h2>
+        <p class="lede small">
+          Cinema includes the same 848×352, 60-frame TVF pack shown above. No runtime video
+          decoder is installed: playback reads small JPEG frames from the pack and feeds the
+          existing image renderer.
+        </p>
+        <div class="commands">
+          <CopyCommand cmd="npx terminaltui demo cinema" />
+          <CopyCommand cmd="terminaltui video info demos/cinema/assets/sintel.tvf" />
+        </div>
+        <nav class="next" aria-label="Video rendering links">
+          <a href="/docs/video/">Read the video API docs</a>
+          <a href="/docs/images/">Read the image API docs</a>
+          <a href="/demos/#d-cinema">See every captured demo</a>
+          <a href="https://github.com/OmarMusayev/terminaltui/tree/main/demos/cinema">Inspect Cinema on GitHub</a>
+        </nav>
+      </div>
+    </section>
+  </article>
+</Shell>
+
+<style>
+  .showcase { padding-bottom: clamp(4rem, 10vw, 8rem); }
+  .intro {
+    --wrap: 72rem;
+    display: grid;
+    gap: 1.25rem;
+    padding-top: clamp(3.5rem, 9vw, 7rem);
+  }
+  .eyebrow { margin: 0; color: var(--color-accent); }
+  h1 {
+    max-width: 15ch;
+    margin: 0;
+    font-size: var(--px-lg);
+    line-height: 1.08;
+    letter-spacing: 0;
+  }
+  .lede {
+    max-width: 58ch;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 1.125rem;
+    line-height: 1.65;
+  }
+  .media { --wrap: 88rem; margin-top: clamp(2.5rem, 7vw, 5rem); }
+  .explain {
+    --wrap: 72rem;
+    display: grid;
+    gap: 1.75rem;
+    margin-top: clamp(4rem, 10vw, 8rem);
+    padding-top: clamp(3rem, 7vw, 5rem);
+    border-top: 1px solid var(--color-line);
+  }
+  .rail { display: flex; align-items: baseline; gap: 0.75rem; color: var(--color-muted); }
+  .n { color: var(--color-ink); }
+  h2 {
+    max-width: 19ch;
+    margin: 0 0 2rem;
+    font-size: var(--px-md);
+    line-height: 1.15;
+  }
+  .paths { display: grid; gap: 2rem; }
+  .paths h3 { margin: 0 0 0.75rem; color: var(--color-ink); }
+  .paths p {
+    max-width: 52ch;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  .small { font-size: 1rem; }
+  .commands { display: grid; gap: 0.75rem; margin-top: 2rem; max-width: 46rem; }
+  .commands :global(.cc) { background: transparent; }
+  .next {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+    margin-top: 2rem;
+  }
+  .next a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-muted);
+    text-underline-offset: 4px;
+  }
+  .next a:hover { color: var(--color-ink); }
+
+  @media (min-width: 48rem) {
+    h1 { font-size: var(--px-xl); }
+    h2 { font-size: var(--px-lg); }
+    .paths { grid-template-columns: 1fr 1fr; gap: 3rem; }
+  }
+  @media (min-width: 56rem) {
+    .intro { grid-template-columns: 7.5rem minmax(0, 1fr); column-gap: 3rem; }
+    .intro .eyebrow { padding-top: 0.55rem; }
+    .intro h1, .intro .lede { grid-column: 2; }
+    .explain { grid-template-columns: 7.5rem minmax(0, 1fr); column-gap: 3rem; }
+    .rail { display: block; padding-top: 0.35rem; }
+    .rail span { display: block; }
+    .rail span + span { margin-top: 0.75rem; }
+  }
+</style>

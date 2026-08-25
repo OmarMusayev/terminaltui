@@ -1,99 +1,36 @@
 # terminaltui
 
-> A TypeScript framework for building interactive terminal websites and applications. File-based routing, 12-column grid, spatial navigation, themes, ASCII art, file-based API routes, and SSH hosting. Distributed via npm and runs with `npx`.
+> terminaltui is a TypeScript framework for building interactive terminal websites and applications with file-based screen routing, 42 components, themes, images, video, API routes, headless testing, npm distribution, and SSH hosting.
 
-terminaltui turns declarative TypeScript into fully interactive terminal applications with keyboard navigation, animations, theming, ASCII art, and routing. Users run an app with a single `npx` command. No browser, no Electron, no React.
+Current release: 2.1.0. License: MIT. Runtime: Node.js 18 or newer, ESM only.
 
-## Quick start
+The canonical rendering proof is a three-second, 24-frame recording of the bundled Cinema demo running in Kitty on macOS, not a browser mock-up. terminaltui sends real pixels through the Kitty graphics protocol on Kitty and Ghostty; Apple Terminal, tmux, SSH, and other terminals receive a coloured Unicode-cell fallback with the same geometry. Run it with `npx terminaltui demo cinema`. Raw video is packed once into a `.tvf` frame pack; ffmpeg is needed at pack time for common video formats, not at runtime.
 
-```bash
-npx terminaltui init my-site
-cd my-site
-npx terminaltui dev
-```
+terminaltui routes interactive terminal screens. It is not a React renderer, a CLI subcommand router, or a browser-in-terminal project.
 
-## Project structure
+## Product
 
-A `config.ts` at the project root and a `pages/` directory. File paths become routes. A `[slug].ts` file is a dynamic route. Files in `api/` export `GET`/`POST`/`PUT`/`DELETE` and become endpoints on a local HTTP server that runs alongside the TUI.
-
-```
-my-site/
-├── config.ts
-├── pages/
-│   ├── layout.ts            # wraps every page
-│   ├── home.ts              # → /
-│   ├── about.ts             # → /about
-│   └── projects/
-│       ├── index.ts         # → /projects
-│       └── [slug].ts        # → /projects/:slug
-└── api/
-    └── stats.ts             # → GET /api/stats
-```
-
-## Surface area
-
-- **30+ components** — Card, Table, Timeline, Hero, Gallery, Tabs, Accordion, Quote, Badge, ProgressBar, Sparkline, Section, Divider, and forms (TextInput, TextArea, Select, Checkbox, Toggle, RadioGroup, NumberInput, SearchInput, Button) with built-in validation.
-- **12-column grid** — Bootstrap-style. Breakpoints at 60, 90, 120 columns. Rows wrap, spans nest.
-- **Spatial navigation** — Arrow keys move to the nearest item by screen position. No configuration.
-- **File-based routing** — Pages, layouts, dynamic routes via `[brackets]`. Async pages are first-class.
-- **API routes** — Files in `api/` export HTTP method handlers.
-- **Reactive state** — `createState`, computed values, persistent state, fetcher with auto-refresh, live data over WebSocket and SSE.
-- **Themes** — Cyberpunk, Dracula, Nord, Monokai, Solarized, Gruvbox, Catppuccin, Tokyo Night, Rosé Pine, Hacker. Custom themes too.
-- **ASCII art** — 14 fonts, 15 scenes, 30+ icons, dataviz, image-to-ASCII conversion.
-- **SSH hosting** — `terminaltui serve` makes any TUI reachable over SSH. Each connection is independent.
-- **Headless emulator** — Spawn the app in a PTY. Read screen, send keystrokes, assert content. Like Puppeteer for terminals.
-
-## CLI
-
-- `terminaltui try` — run a 5-page guided tour, zero install
-- `terminaltui init [template]` — scaffold a new project
-- `terminaltui dev [path]` — compile and run
-- `terminaltui serve [path]` — host the TUI over SSH
-- `terminaltui build` — bundle for npm publish
-- `terminaltui demo [name]` — run a built-in demo
-- `terminaltui create` — interactive prompt builder
-- `terminaltui convert` — AI-assisted website conversion
-- `terminaltui validate` — check a file-based routing project for common issues
-- `terminaltui test` — headless emulator tests
-- `terminaltui art` — manage ASCII art assets
-
-## Demos
-
-Run any demo straight from npm:
-
-- `npx terminaltui demo developer-portfolio` (theme: cyberpunk)
-- `npx terminaltui demo restaurant` (theme: gruvbox)
-- `npx terminaltui demo dashboard` (theme: hacker)
-- `npx terminaltui demo server-dashboard` (theme: hacker)
-- `npx terminaltui demo startup` (theme: tokyoNight)
-- `npx terminaltui demo conference` (theme: nord)
-- `npx terminaltui demo band` (theme: rosePine)
-- `npx terminaltui demo coffee-shop` (theme: catppuccin)
-- `npx terminaltui demo freelancer` (theme: custom)
-
-## For AI coding agents
-
-A long-form API reference designed for code generation lives at [`claude/SKILL.md`](https://github.com/OmarMusayev/terminaltui/blob/main/claude/SKILL.md). The `terminaltui create` and `terminaltui convert` CLI commands generate tailored prompts for Claude Code.
+- [Homepage](https://terminaltui.dev/): product overview, quick start, architecture, and benchmarks.
+- [Real image and video rendering proof](https://terminaltui.dev/video/): real Kitty recording, rendering paths, measurements, and reproducible Cinema command.
+- [Demo gallery](https://terminaltui.dev/demos/): real cell-grid captures from apps that ship in the package.
+- [v2.1.0 release](https://github.com/OmarMusayev/terminaltui/releases/tag/v2.1.0): release notes and tagged source.
 
 ## Documentation
 
-- [Getting started](https://github.com/OmarMusayev/terminaltui/blob/main/docs/getting-started.md)
-- [CLI reference](https://github.com/OmarMusayev/terminaltui/blob/main/docs/cli-reference.md)
-- [Components](https://github.com/OmarMusayev/terminaltui/blob/main/docs/components.md)
-- [Layouts](https://github.com/OmarMusayev/terminaltui/blob/main/docs/layouts.md)
-- [Routing](https://github.com/OmarMusayev/terminaltui/blob/main/docs/routing.md)
-- [API routes](https://github.com/OmarMusayev/terminaltui/blob/main/docs/api-routes.md)
-- [State and data](https://github.com/OmarMusayev/terminaltui/blob/main/docs/state-data.md)
-- [Themes](https://github.com/OmarMusayev/terminaltui/blob/main/docs/themes.md)
-- [ASCII art](https://github.com/OmarMusayev/terminaltui/blob/main/docs/ascii-art.md)
-- [SSH hosting](https://github.com/OmarMusayev/terminaltui/blob/main/docs/serve.md)
-- [Testing](https://github.com/OmarMusayev/terminaltui/blob/main/docs/testing.md)
-- [Architecture](https://github.com/OmarMusayev/terminaltui/blob/main/ARCHITECTURE.md)
-- [Changelog](https://github.com/OmarMusayev/terminaltui/blob/main/CHANGELOG.md)
+- [Documentation index](https://terminaltui.dev/docs/): guides for routing, components, layouts, state, testing, images, video, and deployment.
+- [Video documentation](https://terminaltui.dev/docs/video/): TVF packing, playback, controls, bandwidth, and testing.
+- [Image documentation](https://terminaltui.dev/docs/images/): Kitty/Ghostty pixel rendering and the portable coloured-cell tier ladder.
+- [Changelog](https://github.com/OmarMusayev/terminaltui/blob/main/CHANGELOG.md): release history and migration notes.
 
-## Tech and license
+## Code and agent references
 
-- TypeScript, strict mode. One required dependency (esbuild). `ssh2` is optional for `serve`.
-- 3,323 tests across 52 suites — unit, integration, emulator, and demo.
-- Apple Terminal compatible (auto-detects and falls back to 256-color).
-- Author: Omar Musayev. License: MIT. Repo: https://github.com/OmarMusayev/terminaltui. Package: https://www.npmjs.com/package/terminaltui.
+- [GitHub repository](https://github.com/OmarMusayev/terminaltui): source, examples, tests, and repository history.
+- [npm package](https://www.npmjs.com/package/terminaltui): installable `terminaltui` release.
+- [AGENTS.md](https://github.com/OmarMusayev/terminaltui/blob/main/AGENTS.md): project identity, repository map, and source-of-truth rules.
+- [claude/SKILL.md](https://github.com/OmarMusayev/terminaltui/blob/main/claude/SKILL.md): long-form API reference designed for code-generation agents.
+- [Cinema demo source](https://github.com/OmarMusayev/terminaltui/tree/main/demos/cinema): reproducible application shown in the recording.
+
+## Optional
+
+- [Direct MP4 recording](https://terminaltui.dev/media/terminaltui-kitty-video.mp4): 1920×1132, 3 seconds, 8 fps, 24 frames, silent.
+- [Poster image](https://terminaltui.dev/media/terminaltui-kitty-video-poster.jpg): still image used in the site, README, and social metadata.

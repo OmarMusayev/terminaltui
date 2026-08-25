@@ -2,6 +2,8 @@
 
 `image()` renders a real PNG or JPEG in the terminal. On most terminals it is drawn as colored character cells — ordinary styled text, no native dependency, no `sharp` install — and on terminals that speak the kitty graphics protocol (kitty, Ghostty) it is drawn as **real pixels**. Both paths are chosen automatically, produce the same number of rows, and survive layout, scrolling, clipping and the frame diff identically.
 
+> **See the real renderer:** [watch an image move through the Kitty pixel path](https://terminaltui.dev/video/) in the bundled Cinema demo. The page includes the recording, poster, measurements, fallback explanation, and command to reproduce it.
+
 ```ts
 import { image } from "terminaltui";
 

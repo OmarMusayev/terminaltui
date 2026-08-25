@@ -14,6 +14,7 @@ import Section from "@/components/paper/Section.astro";
 import Screen from "@/components/paper/Screen.astro";
 import StarButton from "@/components/shared/StarButton.astro";
 import CopyCommand from "@/components/shared/CopyCommand.astro";
+import RenderingVideo from "@/components/shared/RenderingVideo.astro";
 import {
   product,
   stats,
@@ -153,8 +154,8 @@ const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "No" :
     </div>
   </Section>
 
-  {/* ── 03 IMAGES ─────────────────────────────────────────────────────── */}
-  <Section n="03" kicker="Images" space="vast">
+  {/* ── 03 IMAGES + VIDEO ─────────────────────────────────────────────── */}
+  <Section n="03" kicker="Images + video" id="rendering" space="vast">
     <h2 class="h2 pixel">Photographs, in a grid of characters.</h2>
     <p class="lede">
       On kitty and Ghostty the renderer draws real pixels through the kitty graphics
@@ -167,14 +168,20 @@ const cell = (v: string | boolean) => (v === true ? "Yes" : v === false ? "No" :
       pngjs. No sharp, no node-gyp, no postinstall build. Video uses the same pipeline
       over prepacked frames: real pixels on Kitty and Ghostty, coloured cells elsewhere.
     </p>
+    <div class="motion-lead">
+      <p class="pixel-eyebrow motion-kicker">Rendering proof</p>
+      <h3 class="motion-title pixel">Now watch it move.</h3>
+      <p class="body">
+        A real three-second capture of Cinema running inside Kitty—not a browser mock-up.
+        Play it here, then open the dedicated page for the rendering paths, measurements
+        and reproducible command.
+      </p>
+      <p class="motion-more"><a href="/video/">Open the video rendering showcase</a></p>
+    </div>
   </Section>
 
   <div class="wrap bleed">
-    <Screen
-      demo="welcome"
-      label="showcase"
-      caption="The component showcase, rendered at 100×32. Every colour you see here is a terminal colour."
-    />
+    <RenderingVideo />
   </div>
 
   {/* ── 04 IN THE BOX ─────────────────────────────────────────────────── */}
@@ -517,9 +524,33 @@ app.screen.cells();`}</code></pre>
     white-space: nowrap;
     color: var(--color-ink);
   }
+  .motion-lead {
+    margin-top: clamp(3rem, 8vw, 5rem);
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .motion-kicker { margin: 0 0 0.9rem; color: var(--color-accent); }
+  .motion-title {
+    max-width: 18ch;
+    margin: 0 0 1.25rem;
+    font-size: var(--px-md);
+    line-height: 1.15;
+  }
+  .motion-more { margin: 1.25rem 0 0; }
+  .motion-more a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-muted);
+    text-underline-offset: 4px;
+  }
+  .motion-more a:hover { color: var(--color-ink); }
   .bleed {
     --wrap: 88rem;
     padding-bottom: clamp(4rem, 10vw, 8rem);
+  }
+  @media (min-width: 48rem) {
+    .motion-title { font-size: var(--px-lg); }
   }
 
   /* ── 04 IN THE BOX ────────────────────────────────────────────────── */

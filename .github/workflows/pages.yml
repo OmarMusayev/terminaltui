@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/pages.yml"
       - "docs/**"
+      - "llms.txt"
       - "web/**"
   workflow_dispatch:
 

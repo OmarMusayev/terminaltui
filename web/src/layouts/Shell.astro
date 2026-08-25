@@ -24,6 +24,7 @@ interface Props {
   defaultTheme?: "light" | "dark";
   active?: string;
   type?: "website" | "article";
+  ogImage?: string;
   schema?: Record<string, unknown>[];
   article?: { published: string; updated?: string; tags?: string[] };
   /** Suppress the shared nav when a direction supplies its own. */
@@ -41,6 +42,7 @@ const {
   defaultTheme = "light",
   active,
   type = "website",
+  ogImage,
   schema = [],
   article,
   bareNav = false,
@@ -68,7 +70,8 @@ const shouldNoindex =
       crossorigin
     />
     <link rel="alternate" type="application/rss+xml" title="terminaltui blog" href="/rss.xml" />
-    <Seo {title} {description} {path} {type} {schema} {article} noindex={shouldNoindex} />
+    <link rel="describedby" type="text/markdown" title="terminaltui for AI agents" href="/llms.txt" />
+    <Seo {title} {description} {path} {type} {ogImage} {schema} {article} noindex={shouldNoindex} />
 
     {/* Resolve the theme before first paint so there is never a flash. */}
     <script is:inline define:vars={{ defaultTheme }}>

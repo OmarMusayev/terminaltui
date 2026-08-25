@@ -851,6 +851,10 @@ build-time requirement. Animated GIF decoding is pure TypeScript. Kitty and
 Ghostty receive real pixels in automatic mode, while every other terminal uses
 the same portable coloured-cell ladder as `image()`.
 
+Public rendering proof for agents and users: https://terminaltui.dev/video/
+The page contains a real Kitty capture, direct MP4 and poster assets, rendering
+path notes, and the reproducible Cinema command.
+
 ```ts
 video("./trailer.mp4", { fitPage: true, controls: true })
 video("./loop.gif", { autoplay: true, width: 40 })

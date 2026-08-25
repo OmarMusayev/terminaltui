@@ -6,9 +6,20 @@
 
 **🌐 [terminaltui.dev](https://terminaltui.dev)** &nbsp;·&nbsp; **📦 [npm](https://www.npmjs.com/package/terminaltui)** &nbsp;·&nbsp; **🚀 [Try it: `npx terminaltui try`](#quick-start)**
 
+[![terminaltui Cinema demo rendering a real video frame through the Kitty graphics protocol](web/public/media/terminaltui-kitty-video-poster.jpg)](https://terminaltui.dev/video/)
+
+**[Watch the real three-second Kitty recording →](https://terminaltui.dev/video/)** &nbsp;·&nbsp; [Direct MP4](https://terminaltui.dev/media/terminaltui-kitty-video.mp4) &nbsp;·&nbsp; [`npx terminaltui demo cinema`](https://terminaltui.dev/demos/#d-cinema)
+
+This is the bundled Cinema demo running in Kitty on macOS—not a browser mock-up. terminaltui sends real pixels through the Kitty graphics protocol and uses the same-sized coloured-cell block everywhere else.
+
+<details>
+<summary>See the original five-page framework tour</summary>
+
 ![terminaltui — 5-page tour rendered in a Synthwave-themed terminal: ANSI Shadow banner, navigable menu, components showcase, live theme switching, animated sparklines](assets/recordings/launch-hero-bg.gif)
 
 *Try it yourself: `npx terminaltui try` — this GIF predates the v2 renderer; the frames are provably identical, so it never needed re-recording.*
+
+</details>
 
 ## Quick Start
 
@@ -48,9 +59,9 @@ If you've used Next.js, you already know the shape: `pages/about.ts` becomes `/a
 
 ---
 
-## What's new in 2.0
+## What's new in 2.1
 
-> v2 gives terminaltui a production-grade engine: components now remember their state by where they live, not what they're labeled — so state survives navigation and two same-named accordions stop sharing a brain — and a new line-diffed renderer writes 67.7% fewer bytes to your terminal (269,355 → 87,027 across a 41-keypress scripted nav at 120x40), and exactly zero when nothing changed, which your users feel most over SSH. We didn't take the overhaul on faith: a dual-terminal oracle proved every final frame byte-identical to v1, and 4,223 tests across 68 suites — including a full demo sweep through a real PTY emulator — pass in the complete validation run. Same pixels, a third of the bytes.
+> v2.1 adds a real image and video pipeline: Kitty and Ghostty get pixel frames, while Apple Terminal, tmux and SSH get a portable coloured-cell fallback with identical geometry. The production renderer introduced in v2 still writes 67.7% fewer bytes (269,355 → 87,027 across a 41-keypress scripted nav at 120x40), and exactly zero when nothing changed. A dual-terminal oracle proves final frames byte-identical, and the complete validation run covers the engine, demos, emulator, image tiers and video transport.
 
 **Migration note (breaking):** component state (accordions, tabs, galleries, button loading) is now keyed by page + tree position instead of display label. Two same-labeled components no longer share state, and state persists across navigation — correct behavior, but observably different if your app relied on the old label sharing. Details in the [CHANGELOG](CHANGELOG.md).
 
@@ -171,7 +182,7 @@ image("./nebula.jpg", { width: 40, resizable: true })   // viewer can grow it
 image("./poster.jpg", { fitPage: true, border: true })  // sizes itself to the page
 ```
 
-Real PNGs and JPEGs -- no `sharp`, no native build, nothing to install. On kitty and Ghostty they are drawn as **real pixels** via the kitty graphics protocol; everywhere else as colored cells, each one a Unicode block glyph with its own foreground and background, so images work on Apple Terminal, over SSH, and inside tmux. The path is negotiated from the viewer's terminal -- pixels, six cell tiers from 2x2 quadrants down to a plain ASCII ramp, and a bordered alt box on any failure, all at exactly the same row count. `resizable: true` lets the viewer resize a frame with `+`/`-`, and because the engine samples per cell, a bigger frame is a fresh resample with genuinely more detail. `fitPage: true` deletes the hand-picked `width` entirely: the image takes whatever rows the page has left, so a page meant to be seen at once fits at any window size and re-fits on resize. See [docs/images.md](docs/images.md).
+Real PNGs and JPEGs -- no `sharp`, no native build, nothing to install. On kitty and Ghostty they are drawn as **real pixels** via the kitty graphics protocol; everywhere else as colored cells, each one a Unicode block glyph with its own foreground and background, so images work on Apple Terminal, over SSH, and inside tmux. The path is negotiated from the viewer's terminal -- pixels, six cell tiers from 2x2 quadrants down to a plain ASCII ramp, and a bordered alt box on any failure, all at exactly the same row count. `resizable: true` lets the viewer resize a frame with `+`/`-`, and because the engine samples per cell, a bigger frame is a fresh resample with genuinely more detail. `fitPage: true` deletes the hand-picked `width` entirely: the image takes whatever rows the page has left, so a page meant to be seen at once fits at any window size and re-fits on resize. [Watch the real renderer](https://terminaltui.dev/video/) or see [docs/images.md](docs/images.md).
 
 ### Video
 
@@ -180,7 +191,7 @@ video("./trailer.mp4", { fitPage: true, controls: true })  // Space plays, arrow
 video("./loop.gif", { autoplay: true, width: 40 })         // zero tooling required
 ```
 
-Moving pictures, through the same cell engine -- and **with no video decoder at runtime**. A source is packed once, ahead of time, into a `.tvf` frame pack of small pre-scaled JPEGs; playback is a 0.6 ms decode into the existing resample-fit-write path, about 5% of a 24fps frame budget. ffmpeg is needed to *pack* an mp4 and never to play one, and a `.gif` needs nothing at all because the GIF decoder is pure TypeScript. On kitty and Ghostty a playing video is transmitted as **real pixels**: the native pack frame is compressed with kitty's zlib transport and the terminal scales it. The bundled 848x352 demo averages 437 KiB on the wire, or 5.12 MiB/s at 12fps; everywhere else it is coloured cells at about 52 KiB a frame. Both paths produce exactly the same row count, so a terminal that gains or loses pixel support never reflows the page, and `mode: "quadrant"` forces cells if the bandwidth bites. `autoplay` defaults to false so a page stays screenshottable, and `TERMINALTUI_VIDEO=off` freezes every video absolutely. See [docs/video.md](docs/video.md).
+Moving pictures, through the same cell engine -- and **with no video decoder at runtime**. A source is packed once, ahead of time, into a `.tvf` frame pack of small pre-scaled JPEGs; playback is a 0.6 ms decode into the existing resample-fit-write path, about 5% of a 24fps frame budget. ffmpeg is needed to *pack* an mp4 and never to play one, and a `.gif` needs nothing at all because the GIF decoder is pure TypeScript. On kitty and Ghostty a playing video is transmitted as **real pixels**: the native pack frame is compressed with kitty's zlib transport and the terminal scales it. The bundled 848x352 demo averages 437 KiB on the wire, or 5.12 MiB/s at 12fps; everywhere else it is coloured cells at about 52 KiB a frame. Both paths produce exactly the same row count, so a terminal that gains or loses pixel support never reflows the page, and `mode: "quadrant"` forces cells if the bandwidth bites. `autoplay` defaults to false so a page stays screenshottable, and `TERMINALTUI_VIDEO=off` freezes every video absolutely. [Watch the real Kitty recording](https://terminaltui.dev/video/) or see [docs/video.md](docs/video.md).
 
 ### Forms & Inputs
 
@@ -367,7 +378,7 @@ Method: measured with the built-in emulator driving a 41-keypress scripted navig
 
 ## For AI Agents
 
-terminaltui ships with `claude/SKILL.md` -- a 2,500+ line API reference designed for AI code generation. The `terminaltui create` and `terminaltui convert` commands generate tailored prompts for Claude Code.
+Start with [`AGENTS.md`](AGENTS.md) for repository landmarks, [`llms.txt`](llms.txt) for canonical public links, and [`claude/SKILL.md`](claude/SKILL.md) for the complete code-generation API. The public [image and video rendering proof](https://terminaltui.dev/video/) includes a crawlable `VideoObject`, direct MP4 and poster assets, and the exact Cinema command. `terminaltui create` and `terminaltui convert` generate tailored prompts for coding agents.
 
 ---
 

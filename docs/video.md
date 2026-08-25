@@ -2,6 +2,8 @@
 
 `video()` plays a moving picture in the terminal, through the same cell engine that draws [images](images.md) — the same tier ladder, the same resampler, the same glyph fitter.
 
+> **See the real renderer:** [watch the three-second Kitty recording](https://terminaltui.dev/video/) or [open the MP4 directly](https://terminaltui.dev/media/terminaltui-kitty-video.mp4). It is the bundled Cinema demo running in an actual terminal, not a browser mock-up.
+
 ```ts
 import { video } from "terminaltui";
 
