@@ -81,7 +81,6 @@ function errText(err: unknown): string {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REAL_JPEG = join(HERE, "fixtures", "quarters-64x48.jpg");
-const TRAILER = join(HERE, "..", "devnotes", "media", "sintel-trailer.mp4");
 
 // ─── Synthetic frames ─────────────────────────────────────
 
@@ -744,9 +743,16 @@ test("sha1File matches shasum(1) on a small file", () => {
 });
 
 test("sha1File hashes a file larger than its 1 MiB read chunk correctly", () => {
-  // 4.4 MB, so the chunk loop runs five times — the case a single-read
-  // implementation would silently get wrong.
-  assertEqual(sha1File(TRAILER), "9b678890fb8ca401c28e7ca09171ec008a154b97", "sintel-trailer.mp4");
+  // One chunk plus 17 bytes forces a second read. The digest was pinned with
+  // `head -c 1048593 /dev/zero | tr '\\0' a | shasum -a 1`.
+  const dir = mkdtempSync(join(tmpdir(), "tvf-sha1-large-"));
+  try {
+    const path = join(dir, "large.bin");
+    writeFileSync(path, Buffer.alloc(1024 * 1024 + 17, 0x61));
+    assertEqual(sha1File(path), "4d936f3b48d0ec41dc5a43693850fe1fe7b5f9f1", "large synthetic file");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("sha1File returns \"\" for an unreadable source instead of throwing", () => {
@@ -811,7 +817,10 @@ test("A pack carries the source digest for staleness detection", () => {
     "digest",
   );
   assertEqual(pack.header.sourceSha1, digest, "digest survives the roundtrip");
-  assert(pack.header.sourceSha1 !== sha1File(TRAILER), "and a different source would not match");
+  assert(
+    pack.header.sourceSha1 !== sha1File(join(HERE, "fixtures", "video", "testsrc-48x32-8f.gif")),
+    "and a different source would not match",
+  );
 });
 
 // ═════════════════════════════════════════════════════════════
@@ -837,7 +846,7 @@ for (let i = 0; i < BIG_COUNT; i++) {
 
 const t0 = performance.now();
 const bigBytes = encodePack(
-  { width: 854, height: 480, fps: 24, frameCount: BIG_COUNT, durationMs: (BIG_COUNT * 1000) / 24, sourceSha1: sha1File(TRAILER) },
+  { width: 854, height: 480, fps: 24, frameCount: BIG_COUNT, durationMs: (BIG_COUNT * 1000) / 24, sourceSha1: sha1File(REAL_JPEG) },
   bigFrames,
 );
 const encodeMs = performance.now() - t0;

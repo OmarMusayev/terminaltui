@@ -958,8 +958,10 @@ test("decodeGifFirstFrame agrees byte-for-byte with frames[0] (synthetic)", () =
   );
 });
 
-test("decodeGifFirstFrame agrees with the full decode on both fixture GIFs", () => {
-  for (const path of [TESTSRC_GIF, SINTEL_GIF]) {
+test("decodeGifFirstFrame agrees with the full decode on every available fixture GIF", () => {
+  const fixtures = [TESTSRC_GIF, SINTEL_GIF].filter(existsSync);
+  assert(fixtures.length > 0, "at least the checked-in fixture is present");
+  for (const path of fixtures) {
     const bytes = new Uint8Array(readFileSync(path));
     const full = mustDecode(bytes, path);
     const first = decodeGifFirstFrame(bytes);
@@ -1090,7 +1092,11 @@ if (FFMPEG_DIR === null) {
   const fixtures: Array<[string, string, number]> = [
     [TESTSRC_GIF, "testsrc-48x32-8f", 8],
     [SINTEL_GIF, "sintel-3s", 36],
-  ];
+  ].filter(([path]) => existsSync(path));
+
+  if (!existsSync(SINTEL_GIF)) {
+    console.log("  \x1b[33m- skipped: optional devnotes/media/sintel-3s.gif fixture missing\x1b[0m");
+  }
 
   for (const [path, label, expectedFrames] of fixtures) {
     test(`${label}: frames match ffmpeg's composited output (MAE ~0)`, () => {
@@ -1151,22 +1157,24 @@ if (FFMPEG_DIR === null) {
     }
   });
 
-  test("sintel-3s: first-frame fast path is cheaper than the full decode", () => {
-    const bytes = new Uint8Array(readFileSync(SINTEL_GIF));
-    const t0 = performance.now();
-    const full = decodeGif(bytes);
-    const fullMs = performance.now() - t0;
-    const t1 = performance.now();
-    const first = decodeGifFirstFrame(bytes);
-    const firstMs = performance.now() - t1;
-    assert(full.ok && first !== null, "both paths decode");
-    measurements.push(`sintel-3s: full decode ${fullMs.toFixed(1)} ms, first frame only ${firstMs.toFixed(1)} ms`);
-    console.log(`    ${measurements[measurements.length - 1]}`);
-    // Frame 0 is ~1/36th of the LZW work; anything close to the full decode
-    // would mean the early-out is not early. Generous 0.75 bound so timer
-    // noise on a loaded machine cannot flake the suite.
-    assert(firstMs < fullMs * 0.75 + 2, `first-frame ${firstMs} ms vs full ${fullMs} ms`);
-  });
+  if (existsSync(SINTEL_GIF)) {
+    test("sintel-3s: first-frame fast path is cheaper than the full decode", () => {
+      const bytes = new Uint8Array(readFileSync(SINTEL_GIF));
+      const t0 = performance.now();
+      const full = decodeGif(bytes);
+      const fullMs = performance.now() - t0;
+      const t1 = performance.now();
+      const first = decodeGifFirstFrame(bytes);
+      const firstMs = performance.now() - t1;
+      assert(full.ok && first !== null, "both paths decode");
+      measurements.push(`sintel-3s: full decode ${fullMs.toFixed(1)} ms, first frame only ${firstMs.toFixed(1)} ms`);
+      console.log(`    ${measurements[measurements.length - 1]}`);
+      // Frame 0 is ~1/36th of the LZW work; anything close to the full decode
+      // would mean the early-out is not early. Generous 0.75 bound so timer
+      // noise on a loaded machine cannot flake the suite.
+      assert(firstMs < fullMs * 0.75 + 2, `first-frame ${firstMs} ms vs full ${fullMs} ms`);
+    });
+  }
 }
 
 // ═════════════════════════════════════════════════════════
